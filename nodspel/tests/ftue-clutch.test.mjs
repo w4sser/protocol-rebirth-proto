@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,detonateDrum} from '../round.js?v=2.28.57';
-import {initFtueRound} from '../ftue.js?v=2.28.57';
-import {stepStakes} from '../stakes.js?v=2.28.57';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,detonateDrum} from '../round.js?v=2.28.58';
+import {initFtueRound} from '../ftue.js?v=2.28.58';
+import {stepStakes} from '../stakes.js?v=2.28.58';
 import * as THREE from '../vendor/three.module.js';
-import {buildWorld} from '../world.js?v=2.28.57';
+import {buildWorld} from '../world.js?v=2.28.58';
 
 function setup(){
   const r=createRound('ftue-opening',0);

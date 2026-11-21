@@ -6,7 +6,7 @@ import {depthModeEnabled,createDepthState,initDepthRound,stepDepthRaid,goDeeper,
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.57';
+import '../../data/bit-lines.js?v=2.28.58';
 
 // ---- 1. depth mode on/off matrix ----
 test('depth mode: default off (Node Raid unchanged); opt-in via ?depth=1; FTUE/intro always off', () => {

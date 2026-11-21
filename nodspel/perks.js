@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.28.57';
-import {heal} from './stakes.js?v=2.28.57';
-import {RULES} from './levels.js?v=2.28.57';
+import '../data/raid-perks.js?v=2.28.58';
+import {heal} from './stakes.js?v=2.28.58';
+import {RULES} from './levels.js?v=2.28.58';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}

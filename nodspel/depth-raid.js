@@ -2,11 +2,11 @@
 // player goes deeper they cannot extract again until the next zone's window opens -- there is no
 // always-on entry beam. Reuses the existing Bunker L1/L2/L3 as three depth zones in one raid
 // (generateLevel 1 then 2 then 3); see docs/design-decisions.md. All tuning lives in data/raid-depth.js.
-import '../data/raid-depth.js?v=2.28.57';
-import {generateLevel,placeSupplyShelves,randomFromSeed} from './levels.js?v=2.28.57';
-import {applyFtueLevel} from './ftue.js?v=2.28.57';
-import {extractDepthZone} from './round.js?v=2.28.57';
-import {spawnRefuseHorde} from './stakes.js?v=2.28.57';
+import '../data/raid-depth.js?v=2.28.58';
+import {generateLevel,placeSupplyShelves,randomFromSeed} from './levels.js?v=2.28.58';
+import {applyFtueLevel} from './ftue.js?v=2.28.58';
+import {extractDepthZone} from './round.js?v=2.28.58';
+import {spawnRefuseHorde} from './stakes.js?v=2.28.58';
 
 export const DEPTH=globalThis.DATA.raidDepth;
 
