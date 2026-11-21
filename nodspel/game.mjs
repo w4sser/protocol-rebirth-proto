@@ -150,6 +150,7 @@ let autoDowngraded=false,fpsState=initialFpsMonitorState(),lastFrameAt=null;
 function setGraphicsQuality(next){
   if(next===QUALITY)return;
   QUALITY=next;try{localStorage.setItem('nodeRaid.quality',next);}catch{}
+  human?.setReadabilityQuality?.(next);
   document.documentElement.dataset.quality=next;
   pixelFX.setQuality(next);
   world?.setVfxQuality(next);
