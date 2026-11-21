@@ -1,5 +1,6 @@
 // @hot updateVfx
 import {attachEnemyModel} from './enemy-animation.js?v=2.28.56';
+import {createUnitContactShadow,tuneEnemyReadabilityMaterial} from './unit-readability.js';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.56';
 import * as THREE from './vendor/three.module.js';
 import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.56';
@@ -185,6 +186,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const color=choice.kind==='loot'?'#75cfcc':'#75cfcc';
     const markers=[];for(let i=0;i<5;i++)markers.push(box(choice.sign.x+choice.dir.x*i*.5,.03,choice.sign.z-i*.3,.28,.035,.28,color));routes.push({choice,markers,level});
   }
+  const fallbackReadableMaterials=new Map();
   function enemyVisual(enemy){
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     // Mood pass: enemies are threats the player must read at a glance, so their bodies stay fog-free.
@@ -196,15 +198,37 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       const beam=new THREE.Line(line,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,toneMapped:false,fog:false}));beam.frustumCulled=false;g.add(beam);
       return {enemy,group:g,beam};
     }
-    noFog(box(0,.1,0,1,.2,1,'#30353c',g));noFog(box(0,.52,0,.72,.72,.72,'#6e6266',g));
-    noFog(box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g));noFog(box(0,.64,.5,.18,.18,.65,'#4d2a30',g));
+    // A single soft ground contact works even on Low, where real GPU shadows are disabled.
+    // It follows each actor without affecting cover or collision.
+    const contactShadow=createUnitContactShadow({
+      radius:Math.max(.62,Math.min(1.28,(enemy.r??.5)*1.6)),opacity:.34
+    });
+    g.add(contactShadow);
+    const fallbackBody=[
+      noFog(box(0,.1,0,1,.2,1,'#30353c',g)),
+      noFog(box(0,.52,0,.72,.72,.72,'#6e6266',g)),
+      noFog(box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g)),
+      noFog(box(0,.64,.5,.18,.18,.65,'#4d2a30',g))
+    ];
+    // Keep the procedural fallback readable while enemy GLBs stream in or fail.
+    // Cache by base material rather than allocating a separate shader per unit.
+    for(const part of fallbackBody){
+      const base=part.material;
+      let readable=fallbackReadableMaterials.get(base);
+      if(!readable){
+        readable=base.clone();
+        tuneEnemyReadabilityMaterial(readable);
+        fallbackReadableMaterials.set(base,readable);
+      }
+      part.material=readable;
+    }
     const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false,fog:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     // Kill readability (docs/design-combat-feel-oct28.md §2.1.3): a white flash on the mesh itself, not just the
     // DOM hit label. Its own material (not the shared body material cache) so one enemy flashing never affects others.
     const meshFlash=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,depthWrite:false,toneMapped:false}));
     meshFlash.position.y=.52;meshFlash.scale.set(.76,.76,.76);g.add(meshFlash);
-    const out={enemy,group:g,eye,meshFlash};
+    const out={enemy,group:g,eye,meshFlash,contactShadow};
     // Encounter 1: the front shield is a cyan plate that turns with the guard; shots from inside its arc are blocked.
     if(enemy.frontShield&&!enemy.introGuard){
       const arc=new THREE.Mesh(shieldGeometry(enemy.frontShield,.95,.9),new THREE.MeshBasicMaterial({color:isShieldTurret(enemy)?ENEMY_COLORS.shield:'#3FE0D0',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
