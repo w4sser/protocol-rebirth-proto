@@ -233,8 +233,9 @@ if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env
 if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.57',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
-// Depth Raid prototype (PR1, Bunker only, v2.28.57): default ON for bunker/non-FTUE/non-big raids;
-// ?depth=1 forces it on (never during FTUE/intro), ?depth=0 forces it off (nodspel/depth-raid.js).
+// Depth Raid prototype (PR1, Bunker only, v2.28.57): opt-in via Raid Prep (NODE RAID / DEPTH RAID)
+// or ?depth=1 for testing (never during FTUE/intro). Default off so ordinary Node Raids stay unchanged.
+// ?depth=0 forces it off (nodspel/depth-raid.js).
 const DEPTH_MODE=depthModeEnabled({area:AREA_SEL,ftue:launch.ftue,intro:launch.intro,big:isBigLevelMode(),depthParam:new URLSearchParams(location.search).get('depth')});
 if(DEPTH_MODE)document.documentElement.dataset.depth='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;

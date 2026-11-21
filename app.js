@@ -3269,7 +3269,7 @@ SCREENS.prep = function(){
   const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">' + IC("close") + '</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>' + IC("mission") + ' Mission</h1></div>' +
     '<div class="pr-raid-options">' +
     (hardAvailable(raidArea()) ? '<button type="button" class="hard-btn' + (hardOn() ? ' on' : '') + '" onclick="A.toggleHard()" aria-pressed="' + hardOn() + '"><span>HARD</span><small>' + (hardOn() ? 'ON' : 'OFF') + '</small></button>' : '') +
-    '<button type="button" class="bigmap-btn' + (bigMapOn() ? ' on' : '') + '" onclick="A.toggleBigMap()" aria-pressed="' + bigMapOn() + '"><span>BIG MAP</span><small>' + (bigMapOn() ? 'ON' : 'BETA') + '</small></button></div>' +
+    (depthRaidSelected() ? '' : '<button type="button" class="bigmap-btn' + (bigMapOn() ? ' on' : '') + '" onclick="A.toggleBigMap()" aria-pressed="' + bigMapOn() + '"><span>BIG MAP</span><small>' + (bigMapOn() ? 'ON' : 'BETA') + '</small></button>') + '</div>' +
     (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
@@ -3728,8 +3728,9 @@ function lobbyHtml(gear, miss, locked){
     '<div class="lobby-side right"><div class="lobby-bottom">' +
       '<div class="pr-destination"><span class="pr-overline">DESTINATION</span>' +
         areaPickerHtml() + '<div class="pr-dest-preview" data-area="' + esc(area.id) + '" aria-hidden="true"></div></div>' +
+      raidModePickerHtml() +
       '<button type="button" class="mission-btn pr-mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' +
-        '<i aria-hidden="true">' + IC("mission") + '</i><span><small>MISSION · TAP TO PLAN</small><b>NODE RAID</b></span></button>' +
+        '<i aria-hidden="true">' + IC("mission") + '</i><span><small>MISSION · TAP TO PLAN</small><b>' + (depthRaidSelected() ? 'DEPTH RAID' : 'NODE RAID') + '</b></span></button>' +
       progressionGoalHtml(true) +
       '<div class="pr-risk-card">' + gearRiskHtml(gear) + '</div>' +
       '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy"><b>DEPLOY</b></button>' +
@@ -4226,6 +4227,29 @@ function ingestRaidResult(r){
 // v2.12.1: BIG MAP (beta) -- persisted toggle on the raid prep screen; ?levels=big on the base URL also forces it.
 function bigMapOn(){ try{ if(new URLSearchParams(location.search).get("levels") === "big") return true; return localStorage.getItem("pr.bigMap") === "1"; }catch(e){ return false; } }
 function setBigMap(on){ try{ localStorage.setItem("pr.bigMap", on ? "1" : "0"); }catch(e){} }
+// Depth Raid (v2.28.57): opt-in game mode, never the default. Shown in Raid Prep only for Bunker
+// after FTUE (and after the Fabricator unlocks custom prep). Last choice persists; ?depth=1/0 on
+// the meta URL overrides for testing, the same way ?levels=big forces BIG MAP.
+function depthRaidAvailable(){ return raidArea() === "bunker" && ftueOver() && !guidedRaid(); }
+function depthRaidOn(){
+  try{
+    const q = new URLSearchParams(location.search).get("depth");
+    if(q === "0") return false;
+    if(q === "1") return true;
+    return localStorage.getItem("pr.depthRaid") === "1";
+  }catch(e){ return false; }
+}
+function setDepthRaid(on){ try{ localStorage.setItem("pr.depthRaid", on ? "1" : "0"); }catch(e){} }
+function depthRaidSelected(){ return depthRaidAvailable() && depthRaidOn(); }
+function raidModePickerHtml(){
+  if(!depthRaidAvailable()) return "";
+  const on = depthRaidOn();
+  const btn = (mode, label, active) => '<button type="button" role="radio" class="pr-mode-btn' + (active ? ' on' : '') +
+    '" aria-checked="' + (active ? 'true' : 'false') + '" onclick="A.setRaidMode(\'' + mode + '\')">' + label + '</button>';
+  return '<div class="pr-mode-sel" role="radiogroup" aria-label="Raid mode">' +
+    '<span class="pr-overline">MODE</span>' +
+    '<div class="pr-mode-seg">' + btn("node", "NODE RAID", !on) + btn("depth", "DEPTH RAID", on) + '</div></div>';
+}
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
   if(debugMode()) returnPath = window.PR_DEBUG.withMode(returnPath);
@@ -4243,7 +4267,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
     (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
-    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.ftue ? "&ftue=1" : "") + (opts.bigMap ? "&levels=big" : "") +
+    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.ftue ? "&ftue=1" : "") + (opts.bigMap ? "&levels=big" : "") + (opts.depth ? "&depth=1" : "") +
     (opts.vestGuarantee ? "&vestGuarantee=" + encodeURIComponent(JSON.stringify(opts.vestGuarantee)) : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
@@ -5522,6 +5546,14 @@ window.A = {
   },
   toggleHard(){ if(!hardAvailable(raidArea())) return; session.hard = !hardOn(); act("HARD_TOGGLED", { area:raidArea(), on:session.hard }); refresh(); },
   toggleBigMap(){ const on = !bigMapOn(); setBigMap(on); act("BIGMAP_TOGGLED", { on }); refresh(); },
+  setRaidMode(mode){
+    if(!depthRaidAvailable()) return;
+    const on = mode === "depth";
+    setDepthRaid(on);
+    act("RAID_MODE_TOGGLED", { mode: on ? "depth" : "node" });
+    refresh();
+  },
+
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ if(on === false){ if(debugMode()) A.devExitSandbox(); } else A.devUnlock('worlds'); },
   devUnlock(mode){
@@ -5569,7 +5601,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind, vestGuarantee:vestGuaranteeNeed() }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && !depthRaidSelected() && bigMapOn(), depth: !intro && !ftue && depthRaidSelected(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind, vestGuarantee:vestGuaranteeNeed() }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
     // OP01 is the production default. Preserve explicit legacy debug
     // overrides without affecting save data, loadouts or stats.
     const previewSkin = new URLSearchParams(location.search).get("skin");
@@ -6641,4 +6673,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { prepareDebugState, goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };
+if(typeof module !== "undefined") module.exports = { prepareDebugState, goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, depthRaidAvailable, depthRaidOn, depthRaidSelected, setDepthRaid, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };

@@ -9,14 +9,16 @@ import {buildRaidResult} from '../raid-result.js';
 import '../../data/bit-lines.js?v=2.28.57';
 
 // ---- 1. depth mode on/off matrix ----
-test('depth mode: on for bunker non-FTUE, off for FTUE/intro/other areas/big, overridable by ?depth=', () => {
-  assert.equal(depthModeEnabled({area: 'bunker'}), true);
+test('depth mode: default off (Node Raid unchanged); opt-in via ?depth=1; FTUE/intro always off', () => {
+  // Regression: ordinary bunker raids stay on the existing Node Raid loop unless opted in.
+  assert.equal(depthModeEnabled({area: 'bunker'}), false);
   assert.equal(depthModeEnabled({area: 'bunker', ftue: true}), false);
   assert.equal(depthModeEnabled({area: 'bunker', intro: true}), false);
   assert.equal(depthModeEnabled({area: 'archipelago'}), false);
   assert.equal(depthModeEnabled({area: 'town'}), false);
   assert.equal(depthModeEnabled({area: 'bunker', big: true}), false);
   assert.equal(depthModeEnabled({area: 'bunker', depthParam: '0'}), false);
+  assert.equal(depthModeEnabled({area: 'bunker', depthParam: '1'}), true);
   assert.equal(depthModeEnabled({area: 'archipelago', depthParam: '1'}), true);
   assert.equal(depthModeEnabled({area: 'bunker', big: true, depthParam: '1'}), true);
   // ?depth=1 never wins against FTUE/intro.

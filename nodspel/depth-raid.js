@@ -10,14 +10,16 @@ import {spawnRefuseHorde} from './stakes.js?v=2.28.57';
 
 export const DEPTH=globalThis.DATA.raidDepth;
 
-// Default ON for bunker, non-FTUE/intro, non-big-level raids. ?depth=1 forces it on (but never
-// during FTUE/intro); ?depth=0 forces it off. Pure predicate: nodspel/game.mjs reads AREA_SEL,
-// launch.ftue/launch.intro and isBigLevelMode() and passes them in; no DOM, no URL parsing here.
+// Opt-in game mode. Default OFF: ordinary raids stay Node Raid (the existing loop). The Raid Prep
+// selector (NODE RAID / DEPTH RAID) passes ?depth=1 only when the player picks DEPTH RAID on Bunker
+// after FTUE. ?depth=1 also forces it on for testing (but never during FTUE/intro); ?depth=0 forces
+// it off. Pure predicate: nodspel/game.mjs reads AREA_SEL, launch.ftue/launch.intro, isBigLevelMode()
+// and the depth query and passes them in; no DOM, no URL parsing here.
 export function depthModeEnabled({area,ftue,intro,big,depthParam}={}){
   if(ftue||intro)return false;
   if(depthParam==='0')return false;
   if(depthParam==='1')return true;
-  return area==='bunker'&&!big;
+  return false;
 }
 
 export function createDepthState(now){
