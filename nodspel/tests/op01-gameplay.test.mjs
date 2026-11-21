@@ -90,7 +90,7 @@ test('OP01 size experiment scales presentation only and is reversible',async()=>
   assert.equal(op.root.userData.operatorScalePercent,135);
   for(const percent of [100,120,150,135]){
     assert.equal(op.setVisualScalePercent(percent),true);
-    assert(Math.abs(op.root.scale.x-base*percent/100)<1e-10);
+    assert(Math.abs(op.root.scale.x-OP01_CHARACTER.scale*percent/100)<1e-10);
     assert.equal(op.poseDiagnostics().scaleVariantPercent,percent);
     op.update(.05,{moving:true,aiming:true,walkYaw:.2,aimYaw:1});
     assert(op.muzzle.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite));
