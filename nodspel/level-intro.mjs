@@ -3,5 +3,6 @@
 export const LEVEL_INTRO_MS=1200;
 export function levelIntroTitle(level){
   if(!level||level.big||(level.area??'bunker')!=='bunker')return null;
+  if(level.depth)return 'BUNKER · DEPTH RAID';
   return `BUNKER LEVEL ${level.number}`;
 }

@@ -10,6 +10,7 @@ test('levelIntroTitle names only discrete bunker levels, not big/continuous area
   assert.equal(levelIntroTitle({number:1,big:false}),'BUNKER LEVEL 1');
   assert.equal(levelIntroTitle({number:2,big:false}),'BUNKER LEVEL 2');
   assert.equal(levelIntroTitle({number:3,big:false}),'BUNKER LEVEL 3');
+  assert.equal(levelIntroTitle({number:1,big:false,depth:true}),'BUNKER · DEPTH RAID');
   assert.equal(levelIntroTitle({number:1,big:true}),null,'archipelago/town is one continuous level, no card');
   assert.equal(levelIntroTitle({number:2,big:false,area:'archipelago'}),null,'non-bunker area has no card');
   assert.equal(levelIntroTitle(null),null);

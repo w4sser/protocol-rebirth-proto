@@ -1,14 +1,15 @@
-// Depth Raid prototype (PR1, Bunker only, v2.28.57). Robert's design lock (21 Nov 2026): once a
-// player goes deeper they cannot extract again until the next zone's window opens -- there is no
-// always-on entry beam. Reuses the existing Bunker L1/L2/L3 as three depth zones in one raid
-// (generateLevel 1 then 2 then 3); see docs/design-decisions.md. All tuning lives in data/raid-depth.js.
+// Depth Raid prototype (Bunker only, v2.28.58). Carlos's paper: an area completes when it is
+// cleared, then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door and the player
+// walks into the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area
+// extract. Area-clock timeout is a loss. NODE RAID is untouched (opt-in via depthModeEnabled).
 import '../data/raid-depth.js?v=2.28.58';
-import {generateLevel,placeSupplyShelves,randomFromSeed} from './levels.js?v=2.28.58';
-import {applyFtueLevel} from './ftue.js?v=2.28.58';
-import {extractDepthZone} from './round.js?v=2.28.58';
-import {spawnRefuseHorde} from './stakes.js?v=2.28.58';
+import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules} from './depth-level.js?v=2.28.58';
+import {timeoutRound,extractDepthZone} from './round.js?v=2.28.58';
+import {pausePick,resumePick} from './perks.js?v=2.28.58';
+import {rarityOf} from './rarity.js?v=2.28.58';
 
 export const DEPTH=globalThis.DATA.raidDepth;
+export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules};
 
 // Opt-in game mode. Default OFF: ordinary raids stay Node Raid (the existing loop). The Raid Prep
 // selector (NODE RAID / DEPTH RAID) passes ?depth=1 only when the player picks DEPTH RAID on Bunker
@@ -25,66 +26,115 @@ export function depthModeEnabled({area,ftue,intro,big,depthParam}={}){
 export function createDepthState(now){
   const zone=1,zoneDurationMs=DEPTH.zoneTimerMs[zone-1];
   return {zone,zoneDurationMs,zoneDeadline:now+zoneDurationMs,zoneRemainingMs:zoneDurationMs,
-    window:false,windowOpenedAt:null,extracting:null,windowOpened:null,goDeeperUsed:null,z3ClearBonus:0};
+    phase:'combat',choice:null,extractOpen:false,extracting:null,goDeeperUsed:null,z3ClearBonus:0};
 }
+
 // Called once per raid right after createRound (same spot initFtueRound/initEquip run from).
-export function initDepthRound(round,enabled,now){
-  round.depth=enabled?createDepthState(now):null;
+// Replaces the L1-only map with the stitched 3-area bunker so GO DEEPER never calls loadLevel().
+export function initDepthRound(round,enabled,now,opts={}){
+  if(!enabled){round.depth=null;return null;}
+  const level=generateDepthLevel(round.seed,{area:opts.area,hard:opts.hard??round.hard,completedRaids:round.completedRaids,ftue:!!round.ftue});
+  round.level=level;
+  round.depth=createDepthState(now);
+  wakeArea(level,1);
+  applyAreaCombat(level,1);
   return round.depth;
 }
 
-// Advances the zone timer / window / walk-in extract countdown by one frame. Mirrors round.js's own
-// tick-then-act functions: guarded on round.over/round.pauseAt, driven by the same paused-aware game
-// clock the rest of the engine uses (nodspel/game.mjs gameClock()), so a level-intro pause or the
-// bag/settings overlay freezes the zone timer exactly like it already freezes round.remainingMs.
-// Returns a one-shot event string for the caller to react to (BIT line, HUD refresh), or null.
-export function stepDepthRaid(round,now,position){
-  const d=round.depth;
-  if(!d||round.over||round.pauseAt!=null)return null;
-  if(!d.window){
-    d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
-    if(d.zoneRemainingMs>0)return null;
-    d.window=true;d.windowOpenedAt=now;d.windowOpened={zone:d.zone,at:now};
-    return 'window-opened';
-  }
-  d.zoneRemainingMs=0;
-  // Same point+radius the beam/hatch render at (round.level.exit, reused unchanged from
-  // nodspel/vfx-extract-beam.js's existing exit position) -- walking in starts the cancellable
-  // countdown; leaving it before the countdown completes cancels the attempt, not the raid.
-  const beam=round.level.exit,inBeam=Math.hypot(position.x-beam.x,position.z-beam.z)<=beam.r;
-  if(!inBeam){
-    if(d.extracting){d.extracting=null;return 'extract-canceled';}
-    return null;
-  }
-  if(!d.extracting){d.extracting={startedAt:now};return 'extract-started';}
-  if(now-d.extracting.startedAt<DEPTH.extractCountdownMs)return null;
-  const zone=d.zone,complete=zone>=3;
-  d.extracting=null;
-  if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;
-  extractDepthZone(round,now,zone,complete);
-  return complete?'zone3-complete':'zone-extracted';
+export function areaEnemies(round,zone){
+  return (round.level?.enemies??[]).filter(e=>e.depthArea===zone);
+}
+export function areaIsCleared(round,zone=round.depth?.zone){
+  if(!round?.depth||zone==null)return false;
+  return areaEnemies(round,zone).every(e=>e.health<=0);
 }
 
-// GO DEEPER (Z1/Z2 only, during an open window): closes the beam, advances to the next zone's level
-// (the same generateLevel/placeSupplyShelves/applyFtueLevel path enterExit uses for a normal level
-// advance -- but never offers Extract/checkpoint), starts the next zone's timer and spawns a
-// refuse-horde (reuses stakes.js's seeded rusher/swarm spawn, never a new enemy type). The caller
-// still owns rebuilding the 3D world (nodspel/game.mjs loadLevel()) and enemy visuals.
-export function goDeeper(round,now,playerPosition,cameraTarget=null){
+export function nextAreaPreview(round,nextZone){
+  const enemies=(round.level?.enemies??[]).filter(e=>e.depthArea===nextZone);
+  const loot=(round.level?.lootBoxes??[]).filter(b=>b.depthArea===nextZone&&b.item);
+  const types=[...new Set(enemies.map(e=>e.type||e.kind||'enemy'))];
+  const tiers=[...new Set(loot.map(b=>rarityOf(b.item)).filter(Boolean))];
+  return {zone:nextZone,enemyCount:enemies.length,enemyTypes:types,lootCount:loot.length,lootTiers:tiers,harder:true,betterLoot:true};
+}
+
+export function openChoice(round,now){
   const d=round.depth;
-  if(!d||round.over||round.pauseAt!=null||!d.window||d.zone>=3||d.extracting)return null;
+  if(!d||round.over||d.phase==='choice')return null;
+  d.phase='choice';
+  d.choice={zone:d.zone,at:now,canGoDeeper:d.zone<3};
+  d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
+  pausePick(round,now);
+  return 'choice-opened';
+}
+
+export function chooseExtract(round,now){
+  const d=round.depth;
+  if(!d||round.over||d.phase!=='choice')return null;
+  const zone=d.zone;
+  d.extractOpen=true;d.extracting=null;d.choice=null;d.phase='combat';
+  const exit=round.level.depthExits?.[zone-1];
+  if(exit){round.level.exit={x:exit.x,z:exit.z,r:exit.r??1};}
+  resumePick(round,now);
+  return {kind:'extract',zone};
+}
+
+export function goDeeper(round,now){
+  const d=round.depth;
+  if(!d||round.over||d.phase!=='choice'||d.zone>=3||!d.choice?.canGoDeeper)return null;
   const zoneLeft=d.zone;
+  const door=depthDoor(round.level,zoneLeft);
+  if(door){door.locked=false;door.openedAt=now;}
   round.levelsCleared=Math.max(round.levelsCleared,zoneLeft);
-  round.nodeInteraction=null;round.keys=[];
-  round.level=generateLevel(round.level.number+1,round.seed);
-  placeSupplyShelves(round.level,round.completedRaids,!!round.ftue||round.guidedIntro);
-  applyFtueLevel(round);
-  if(round.stakes)round.stakes.pendingSpawn=null;
-  d.zone=zoneLeft+1;d.window=false;d.windowOpenedAt=null;d.extracting=null;
-  d.zoneDurationMs=DEPTH.zoneTimerMs[d.zone-1];d.zoneDeadline=now+d.zoneDurationMs;d.zoneRemainingMs=d.zoneDurationMs;
-  d.goDeeperUsed={zone:zoneLeft,nextZone:d.zone,at:now};
-  const size=DEPTH.refuseHordeSize[zoneLeft-1],rng=randomFromSeed(`${round.seed}:refuse:${zoneLeft}`),
-    count=size.min+Math.floor(rng()*(size.max-size.min+1));
-  const spawned=spawnRefuseHorde(round,now,count,playerPosition,round.currentRoom??0,rng,cameraTarget);
-  return {zoneLeft,nextZone:d.zone,spawned};
+  d.phase='travel';d.choice=null;d.extractOpen=false;d.extracting=null;
+  d.goDeeperUsed={zone:zoneLeft,nextZone:zoneLeft+1,at:now};
+  resumePick(round,now);
+  return {zoneLeft,nextZone:zoneLeft+1,doorId:door?.id};
+}
+
+export function enterArea(round,now,area){
+  const d=round.depth;
+  if(!d||round.over||area<=d.zone)return null;
+  d.zone=area;d.phase='combat';d.extractOpen=false;d.extracting=null;d.choice=null;
+  d.zoneDurationMs=DEPTH.zoneTimerMs[area-1];
+  d.zoneDeadline=now+d.zoneDurationMs;d.zoneRemainingMs=d.zoneDurationMs;
+  wakeArea(round.level,area);
+  applyAreaCombat(round.level,area);
+  return 'area-entered';
+}
+
+// Advances the area timer / clear-check / walk-in extract countdown by one frame. Mirrors
+// round.js's own tick-then-act functions: combat ticking is guarded on pauseAt, but the
+// clear check must still run (and travel must still detect the next area) using the same
+// paused-aware game clock nodspel/game.mjs already passes in.
+export function stepDepthRaid(round,now,position){
+  const d=round.depth;
+  if(!d||round.over)return null;
+  if(d.phase==='choice')return null;
+  if(d.phase==='travel'){
+    const area=areaAt(round.level,position);
+    if(area&&area>d.zone)return enterArea(round,now,area);
+    return null;
+  }
+  if(round.pauseAt!=null)return null;
+  if(d.extractOpen){
+    const beam=round.level.exit,inBeam=beam&&Math.hypot(position.x-beam.x,position.z-beam.z)<=(beam.r??1);
+    if(!inBeam){
+      if(d.extracting){d.extracting=null;return 'extract-canceled';}
+      return null;
+    }
+    if(!d.extracting){d.extracting={startedAt:now};return 'extract-started';}
+    if(now-d.extracting.startedAt<DEPTH.extractCountdownMs)return null;
+    const zone=d.zone,complete=zone>=3;
+    d.extracting=null;
+    if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;
+    extractDepthZone(round,now,zone,complete);
+    return complete?'zone3-complete':'zone-extracted';
+  }
+  d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
+  if(d.zoneRemainingMs<=0){
+    timeoutRound(round,now);
+    return 'timeout';
+  }
+  if(areaIsCleared(round,d.zone))return openChoice(round,now);
+  return null;
 }

@@ -35,7 +35,7 @@ import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.58-o
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.58';
 import {safeSpawn} from './spawn.js?v=2.28.58';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.58-ftue-opening-v1';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,DEPTH} from './depth-raid.js?v=2.28.58';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,nextAreaPreview,scaleDepthRules,DEPTH} from './depth-raid.js?v=2.28.58';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.58';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.58-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.58';
@@ -765,40 +765,24 @@ function renderRoomBox(level){
 // one, hidden underneath) top-center; the window swaps the clock for OPEN and reveals GO DEEPER. Stays
 // hidden until maybeIntroduceDepth()'s one-time BIT card reveals it (bit-introduces-systems-first).
 function renderDepthHud(){
-  const timerBox=$('#round-timer-box'),box=$('#depth-hud'),goDeeperBtn=$('#go-deeper');
-  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;if(goDeeperBtn)goDeeperBtn.hidden=true;return;}
+  const timerBox=$('#round-timer-box'),box=$('#depth-hud');
+  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;hideDepthChoice();return;}
   if(timerBox)timerBox.hidden=true;
   if(!box)return;
-  box.hidden=!depthHudRevealed;
-  if(!depthHudRevealed){if(goDeeperBtn)goDeeperBtn.hidden=true;return;}
-  // This runs every frame while depth mode is on (the default for bunker) -- only rebuild the pip
-  // elements when the zone/window actually changed, same dataset-memoization pattern as the other
-  // per-frame HUD renderers (e.g. renderBagContents' dataset.tiles check).
-  const d=round.depth,pips=$('#depth-pips'),timerEl=$('#depth-timer'),zoneEl=$('#depth-zone-label'),timer=$('#depth-timer-box'),pipKey=`${d.zone}:${d.window}`;
+  box.hidden=false;
+  const d=round.depth,pips=$('#depth-pips'),timerEl=$('#depth-timer'),zoneEl=$('#depth-zone-label'),timer=$('#depth-timer-box'),pipKey=`${d.zone}:${d.phase}`;
   if(pips.dataset.key!==pipKey){
     pips.dataset.key=pipKey;
     pips.replaceChildren(...roomPips(d.zone,3).map(c=>{const i=document.createElement('i');i.className=c;return i;}));
-    pips.classList.toggle('window',d.window);
-    zoneEl.textContent=d.zone<3?`ZONE ${d.zone}`:'FINAL ZONE';
+    zoneEl.textContent=d.phase==='travel'?`AREA ${d.zone+1} AHEAD`:d.zone<3?`AREA ${d.zone}`:'FINAL AREA';
   }
-  const seconds=Math.ceil(d.zoneRemainingMs/1000),text=d.window?'OPEN':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+  const seconds=Math.ceil(d.zoneRemainingMs/1000);
+  const text=d.phase==='travel'?'WALK':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   if(timerEl.textContent!==text)timerEl.textContent=text;
-  timer?.classList.toggle('warn',!d.window&&seconds<=30&&seconds>10);
-  timer?.classList.toggle('urgent',d.window||(!d.window&&seconds<=10));
-  if(goDeeperBtn)goDeeperBtn.hidden=!(d.window&&d.zone<3&&!round.over);
+  timer?.classList.toggle('warn',d.phase==='combat'&&seconds<=30&&seconds>10);
+  timer?.classList.toggle('urgent',d.phase==='combat'&&seconds<=10);
+  box.classList.toggle('is-paused',d.phase==='choice');
 }
-$('#go-deeper').addEventListener('click',()=>{
-  if(!round?.depth?.window||round.depth.zone>=3||round.over)return;
-  const clock=gameClock(),zoneLeft=round.depth.zone,res=goDeeper(round,clock,position,target);
-  if(!res)return;
-  // goDeeper() already pushed the horde into round.level.enemies; loadLevel()'s buildWorld() reads
-  // the new level's full enemy list (horde included) in one pass, so no separate spawnEnemyVisuals
-  // call is needed here -- unlike the mid-level hunter wave (stepStakes), which has no level
-  // transition to rebuild the world from.
-  loadLevel();
-  if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
-  renderDepthHud();
-});
 // Pickup toasts: icon + name in rarity colour under the bag panel; stack of at most 3, each fades after TOAST_MS.
 let pickupToasts=[];
 function placePickupToasts(){const bp=$('.bag-panel'),c=$('#pickup-toasts');if(bp&&c&&bp.offsetHeight){c.style.top=`${bp.offsetTop+bp.offsetHeight+6}px`;c.style.left=`${bp.offsetLeft}px`;}}
@@ -844,17 +828,19 @@ function updateHUD(){
   renderBackpackHUD();
   {const n=carriedCount(round),cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
-  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(round.depth?!!round.depth.window:level.big?exitIsOpen({...round,level:{...level,extracts:[level.exit]}}):level.nodes.every(n=>n.active));
+  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(round.depth?!!round.depth.extractOpen:level.big?exitIsOpen({...round,level:{...level,extracts:[level.exit]}}):level.nodes.every(n=>n.active));
   {const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}
   viewport.classList.toggle('low-hp',round.health>0&&round.health<=25);
-  // Depth Raid prototype (PR1): node/gate progress is irrelevant in depth mode (nodes never gate the
-  // window or GO DEEPER) -- #level-corner stays hidden so it cannot clutter or overlap #depth-hud.
+  // Depth Raid: node/gate progress is irrelevant -- #level-corner stays hidden for the whole raid
+  // so the 2/3 node counter cannot leak (Robert's v2.28.57 live shot).
   if(round.depth)$('#level-corner').hidden=true;else renderRoomBox(level);
   renderDepthHud();
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?(round.depth?'ALL ZONES CLEARED':'ALL LEVELS CLEARED'):open?(round.ftue?'EXTRACT - WALK IN':(level.number===3||round.depth)?'EXTRACT · WALK IN':'EXIT · OPEN'):(round.depth?'ZONE LOCKED':'EXIT · LOCKED');
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());if(round.depth)v.label.el.hidden=true;}
+  const hideExit=!!(round.depth&&!round.depth.extractOpen&&!round.cleared);
+  world.exitLabel.el.hidden=hideExit;
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?(round.depth?'ALL AREAS CLEARED':'ALL LEVELS CLEARED'):open?(round.ftue?'EXTRACT - WALK IN':(level.number===3||round.depth)?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
   const justOpened=world.setExit(open);
-  if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
+  if(open&&(level.number===3||round.depth)&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   else if(justOpened)audioEvent('extract-revealed');
   if(!resultPending)setCollisions();
 }
@@ -1009,7 +995,8 @@ function renderEnemyFeedback(clock){
 function renderEncounterLabels(clock){
   for(const e of encounterLabels){const l=e.label;
     if(e.door){const d=e.door,icon=d.locked?'lock':'unlock';
-      setIconText(l.caption,icon,!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
+      const depthLocked=d.depth&&d.locked,depthOpen=d.depth&&!d.locked;
+      setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthLocked?'LOCKED · CLEAR THE AREA':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
       setIconText(l.shortEl,icon,d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
     else{const warn=e.sp.state==='warning';
       setIconText(l.caption,warn?'warning':'threat',warn?'! SWARM INCOMING':'SPAWN POINT');setIconText(l.shortEl,'threat','');
@@ -1069,17 +1056,53 @@ function checkShelfIntro(){
 // reveals the HUD immediately -- there is nothing to wait for.
 const depthIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[DEPTH.bitLines.introId];}catch{return false;}})();
 function maybeIntroduceDepth(){
-  if(!round.depth||depthIntroShownThisSession)return;
-  depthIntroShownThisSession=true;
-  if(bitAlong&&!depthIntroSeenAtLaunch&&globalThis.PRBitCard){
-    (round.bitSeen??=[]).push(DEPTH.bitLines.introId);
-    globalThis.PRBitCard.show({id:DEPTH.bitLines.introId,text:DEPTH.bitLines.intro,mood:'skeptical',onDone:()=>{depthHudRevealed=true;renderDepthHud();}});
-  }else depthHudRevealed=true;
+  // Clock and pips are visible immediately; BIT introduces the CHOICE the first time it appears,
+  // not at raid start (the old raid-start intro hid the clock and leaked the 2/3 node counter).
+  if(!round.depth)return;
+  depthHudRevealed=true;renderDepthHud();
 }
-// A short contextual BIT line, not a modal, every time a window opens -- kept out of the @hot
-// frameInner function (hot-alloc-lint forbids per-frame object/template literals) since it's only
-// ever called from the one-shot 'window-opened' event.
-function showDepthWindowLine(zone){globalThis.PRBitCard?.show({id:`depth_window_${zone}`,text:DEPTH.bitLines.window,mood:'skeptical'});}
+function rarityLabel(tier){return String(tier||'').replace(/_/g,' ');}
+function showDepthChoice(){
+  const pop=$('#depth-choice');if(!pop||!round.depth?.choice)return;
+  const d=round.depth,zone=d.choice.zone,title=$('#depth-choice-title'),q=$('#depth-choice-q');
+  title.textContent=`AREA ${zone} CLEARED`;
+  const extractCopy=$('#depth-extract-copy'),deeperBtn=$('#depth-go-deeper'),deeperCopy=$('#depth-deeper-copy');
+  if(zone>=3){
+    q.textContent='The level is clear. Take everything home, plus a bonus.';
+    extractCopy.textContent=`Go home with your loot · +${DEPTH.z3ClearBonusScrap} Scrap bonus`;
+    deeperBtn.hidden=true;
+  }else{
+    q.textContent='Extract now, or risk it and go deeper?';
+    extractCopy.textContent='Go home with your loot';
+    const preview=nextAreaPreview(round,zone+1);
+    const types=preview.enemyTypes.length?preview.enemyTypes.join(', '):'harder hostiles';
+    const loot=preview.lootTiers.length?preview.lootTiers.map(rarityLabel).join(', ')+' loot':'better loot';
+    deeperCopy.textContent=`Area ${zone+1}: ${types} · ${loot}`;
+    deeperBtn.hidden=false;
+  }
+  pop.hidden=false;
+  if(!depthIntroShownThisSession&&bitAlong&&!depthIntroSeenAtLaunch&&globalThis.PRBitCard){
+    depthIntroShownThisSession=true;
+    (round.bitSeen??=[]).push(DEPTH.bitLines.introId);
+    globalThis.PRBitCard.show({id:DEPTH.bitLines.introId,text:DEPTH.bitLines.intro,mood:'skeptical'});
+  }else depthIntroShownThisSession=true;
+  renderDepthHud();
+}
+function hideDepthChoice(){const pop=$('#depth-choice');if(pop)pop.hidden=true;}
+function onDepthExtract(){
+  if(!round?.depth||round.depth.phase!=='choice'||round.over)return;
+  const res=chooseExtract(round,gameClock());if(!res)return;
+  hideDepthChoice();updateHUD();
+}
+function onDepthGoDeeper(){
+  if(!round?.depth||round.depth.phase!=='choice'||round.depth.zone>=3||round.over)return;
+  const zoneLeft=round.depth.zone,res=goDeeper(round,gameClock());if(!res)return;
+  hideDepthChoice();
+  if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
+  updateHUD();
+}
+$('#depth-extract')?.addEventListener('click',onDepthExtract);
+$('#depth-go-deeper')?.addEventListener('click',onDepthGoDeeper);
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
 function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=ref.progress??0,done=door?ref.open:ref.searched,busy=!done&&p>0;
@@ -1267,7 +1290,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=false;if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;hideDepthChoice();if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);if(round.depth)scaleDepthRules(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro&&!launch.ftue)notice(RULES.intro.tip,6000);
   if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);if(bitAlong)void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
@@ -1464,7 +1487,7 @@ function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=st
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,#go-deeper,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
+const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,#depth-choice,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -1631,7 +1654,7 @@ const LABEL_SHOW_HOLD_MS=1200;
 const audioSettings=createAudioSettings({document,audio,
   canOpen:()=>!!round&&!round.over&&round.pauseAt==null&&!resultPending&&!tutorialOpen&&$('#inventory').hidden,
   onPause:()=>{clearInput();cancelToolDrag();hideSwap();pausePick(round,Date.now());},
-  onResume:()=>{resumePick(round,Date.now());clearInput();}
+  onResume:()=>{if(round.depth?.phase==='choice')pausePick(round,Date.now());else resumePick(round,Date.now());clearInput();}
 });
 createQualityUI({document,container:$('#raid-settings .audio-menu-body'),quality:QUALITY,onChange:setGraphicsQuality});
 createVibrationUI({document,container:$('#raid-settings .audio-menu-body'),haptics});
@@ -1744,28 +1767,29 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     round.shooter=position;const applied=detonateDrum(round,drum.id,gameClock(),solids);round.shooter=null;
     setCollisions();return {applied,health:round.health,id:drum.id};
   },
-  // Depth Raid prototype (PR1) screenshot/debug hooks: force past the BIT intro card, open the zone
-  // window immediately and trigger GO DEEPER, all through the real state machine (nodspel/depth-raid.js).
+  // Depth Raid (v2.28.58) screenshot/debug hooks: clear the current area to prompt the choice,
+  // then pick EXTRACT or GO DEEPER through the real state machine (nodspel/depth-raid.js).
   depthState(){return round.depth?{...round.depth}:null;},
   depthDismissIntro(){globalThis.PRBitCard?.dismiss();depthHudRevealed=true;renderDepthHud();},
-  depthOpenWindow(){
+  depthClearArea(){
     if(!round.depth)return null;
-    globalThis.PRBitCard?.dismiss(); // clear any unrelated ambient first-sight card out of the way
-    round.depth.zoneDeadline=gameClock();
-    const dres=stepDepthRaid(round,gameClock(),{x:-9999,z:-9999});
-    if(dres==='window-opened')showDepthWindowLine(round.depth.zone);
-    depthHudRevealed=true;updateHUD();renderDepthHud();
-    return round.depth;
-  },
-  depthGoDeeper(){
-    if(!round.depth?.window||round.depth.zone>=3)return null;
     globalThis.PRBitCard?.dismiss();
-    const zoneLeft=round.depth.zone,res=goDeeper(round,gameClock(),position,target);
-    if(!res)return null;
-    // loadLevel() rebuilds the world from round.level.enemies, which already includes the horde.
-    loadLevel();depthHudRevealed=true;renderDepthHud();
-    if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
-    return {zoneLeft,...res};
+    for(const e of round.level.enemies)if(e.depthArea===round.depth.zone)e.health=0;
+    const dres=stepDepthRaid(round,gameClock(),position);
+    if(dres==='choice-opened')showDepthChoice();
+    updateHUD();return {event:dres,...round.depth};
+  },
+  depthChooseExtract(){onDepthExtract();return round.depth;},
+  depthGoDeeper(){onDepthGoDeeper();return round.depth;},
+  depthEnterNext(){
+    if(!round.depth||round.depth.phase!=='travel')return null;
+    const start=round.level.depthStarts?.[round.depth.zone]; // next area is zone+1 after goDeeper? phase travel keeps current zone
+    const dest=round.level.depthStarts?.[round.depth.zone]; // after goDeeper, zone is still the cleared one
+    const next=round.level.depthStarts?.find(s=>s.depthArea===round.depth.zone+1);
+    if(!next)return null;
+    teleportPlayer(next.x,next.z);
+    const dres=stepDepthRaid(round,gameClock(),position);
+    updateHUD();return {event:dres,...round.depth};
   }});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
@@ -2095,12 +2119,12 @@ function frameInner(now){
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
-    // Depth Raid prototype (PR1): the window (not the node gate) controls extract, and GO DEEPER (the
-    // player's own button) -- never enterExit -- advances the zone, so the old node-gated path and its
-    // mid-raid checkpoint screen never run here.
+    // Depth Raid (v2.28.58): area-clear opens the choice popup; extract uses the walk-in beam
+    // only after EXTRACT is chosen. enterExit / the mid-raid checkpoint never run here.
     if(round.depth){
       const dres=stepDepthRaid(round,clock,position);
-      if(dres==='window-opened'){showDepthWindowLine(round.depth.zone);renderDepthHud();}
+      if(dres==='choice-opened')showDepthChoice();
+      if(dres==='area-entered'||dres==='extract-started'||dres==='extract-canceled')renderDepthHud();
       if(round.over)finishRound();
     }else{
       const result=enterExit(round,position,clock);

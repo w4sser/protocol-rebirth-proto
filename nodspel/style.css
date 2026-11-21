@@ -428,19 +428,34 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
   #raid-goal small{display:none}
 }
 
-/* Depth Raid prototype (PR1, data/raid-depth.js): THIS zone's clock + three zone pips replace the
-   global 8-minute timer top-center (#round-timer-box hides while #depth-hud is shown). GO DEEPER sits
-   in that same row as a quiet coral chip -- never the orange primary, never a fixed overlay that
-   can miss the safe area at 667x375. */
+/* Depth Raid (v2.28.58): THIS area's clock + three area pips replace the global 8-minute timer
+   top-center (#round-timer-box hides while #depth-hud is shown). The EXTRACT / GO DEEPER choice
+   is a forced pop-card (no close badge); GO DEEPER is coral, EXTRACT is cyan. */
 .depth-hud{display:flex;align-items:center;gap:10px}
 .depth-pips.room-pips{display:flex;align-items:center;gap:5px}
-.depth-pips.window i.cur{animation:depthpipwindow 1s ease-in-out infinite}
-@keyframes depthpipwindow{50%{opacity:.4}}
-#go-deeper{flex:0 0 auto;cursor:pointer;background:color-mix(in srgb,var(--ad-ink) 85%,transparent);color:var(--ad-danger);
-  border:1px solid var(--ad-danger);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:1.2px;white-space:nowrap}
-#go-deeper:hover{background:color-mix(in srgb,var(--ad-danger) 16%,var(--ad-ink))}
-#go-deeper:focus-visible{outline:2px solid var(--ad-danger);outline-offset:3px}
-@media(max-width:740px){.depth-hud{gap:6px}#go-deeper{padding:5px 9px;font-size:10px;letter-spacing:1px}}
+.depth-hud.is-paused #depth-timer{opacity:.85}
+.depth-choice{position:fixed;inset:0;z-index:22;display:grid;place-items:center;pointer-events:auto}
+.depth-choice[hidden]{display:none}
+.depth-choice-frame{position:relative;margin:16px;max-width:min(560px,calc(100vw - 32px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));width:100%}
+.depth-choice-card{padding:14px 16px 16px;background:var(--ad-ink);border:1px solid color-mix(in srgb,var(--ad-bit) 45%,transparent)}
+.depth-choice-q{margin:0 0 12px;text-align:center;color:var(--ad-bone);font:600 13px/1.3 system-ui,sans-serif}
+.depth-choice-tiles{display:flex;gap:10px}
+.depth-choice-tile{flex:1 1 0;min-width:0;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:10px;cursor:pointer;font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ad-bone);background:color-mix(in srgb,var(--ad-ink) 80%,transparent)}
+.depth-choice-tile .pr-ic{width:28px;height:28px}
+.depth-choice-tile small{font:600 10px/1.25 system-ui,sans-serif;letter-spacing:.02em;text-transform:none;text-align:center;color:var(--ad-bone);opacity:.85}
+.depth-choice-tile.extract{border:2px solid var(--ad-cyan);color:var(--ad-cyan)}
+.depth-choice-tile.extract .pr-ic{color:var(--ad-cyan)}
+.depth-choice-tile.deeper{border:2px solid var(--ad-danger);color:var(--ad-danger)}
+.depth-choice-tile.deeper .pr-ic{color:var(--ad-danger)}
+.depth-choice-tile:hover,.depth-choice-tile:focus-visible{background:color-mix(in srgb,var(--ad-night) 70%,transparent)}
+.depth-choice-tile:focus-visible{outline:2px solid var(--ad-bone);outline-offset:3px}
+@media(max-height:375px){
+  .depth-choice-card{padding:8px 10px 10px}
+  .depth-choice-q{margin:0 0 8px;font-size:12px}
+  .depth-choice-tile{min-height:72px;gap:2px;padding:6px}
+  .depth-choice-tile .pr-ic{width:22px;height:22px}
+  .depth-choice-tile small{font-size:9px}
+}
 
 /* Paired junction instructions stay compact beside the box at phone sizes. */
 .hazard-label.junction-label{font-size:10px;line-height:1.2;color:var(--ad-loot);background:var(--ad-night);padding:3px 5px;border:1px solid var(--ad-loot);text-shadow:none;white-space:nowrap}
