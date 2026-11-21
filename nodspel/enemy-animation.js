@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.56';
 import {loadEnemyModel} from './enemy-models.js?v=2.28.56';
+import {tuneEnemyReadabilityMaterial} from './unit-readability.js';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 const SWARM_LEG_PIVOTS=Array.from({length:6},(_,i)=>`leg_0${i+1}_pivot`);
@@ -69,7 +70,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
   const visual=visualFor(v.enemy);
   if(!visual)return;
   const id=visual.archetype;
-  const oldChildren=[...v.group.children].filter(c=>c!==v.shield&&c!==v.meshFlash&&c!==v.cone);
+  const oldChildren=[...v.group.children].filter(c=>c!==v.shield&&c!==v.meshFlash&&c!==v.cone&&c!==v.contactShadow);
   return loader(id,{fallback:()=>null}).then(model=>{
     if(model.fallback||isDisposed())return;
     const mount=new THREE.Group(),yaw=new THREE.Group(),up=new THREE.Group(),spec=ENEMIES[id];
@@ -96,7 +97,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
       if(n.material)for(const m of Array.isArray(n.material)?n.material:[n.material]){m.userData.shared=true;m.fog=false;
         // Vertex-colour GLBs default to a fully metallic material without an environment map.
         // Match the existing procedural enemies so bunker light reveals their authored colours.
-        if(m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}}
+        if(m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;tuneEnemyReadabilityMaterial(m);}}
     });
     const animatedMaterials=[];
     for(const name of ['shield_arc','back_battery','weakpoint_battery']){
