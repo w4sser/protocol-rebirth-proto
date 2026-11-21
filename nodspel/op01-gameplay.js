@@ -11,7 +11,7 @@
  */
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {UNIT_READABILITY} from './unit-readability.js';
+import {UNIT_READABILITY} from './unit-readability.js?v=2.28.56-readability1';
 
 export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD0.glb',
