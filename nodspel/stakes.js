@@ -139,30 +139,44 @@ function huntSpawnPoint(round, playerPosition, currentRoomIndex, rng, cameraTarg
 }
 // Hunters are seeded 'rusher' enemies (1 HP, existing rusher speed/range/standoff): a push, not a wall.
 // `swarm:true` reuses the doorway-routing + unstick-sidestep combat already built for swarm rushers.
-// Every hunter's own point is measured against the player again here (not just the zone picked for the
-// wave), so a wide zone can't let one straggler land closer than the minimum.
-function spawnWave(round, now, waveNumber, zone, rng, playerPosition, cameraTarget) {
+// Every spawned enemy's own point is measured against the player again here (not just the zone picked
+// for the group), so a wide zone can't let one straggler land closer than the minimum. Shared by the
+// hunter-wave clock below and Depth Raid's GO DEEPER refuse-horde (nodspel/depth-raid.js) -- both are
+// just more of this same seeded rusher group, never a new enemy type.
+function spawnEnemyGroup(round, now, idPrefix, groupNumber, count, zone, rng, playerPosition, cameraTarget, hunter) {
   const level = round.level, type = RULES.enemyTypes.rusher;
-  const count = waveSize(round, waveNumber);
   const speed = (RULES.levels[level.number - 1]?.enemySpeed ?? 1.5) * type.speedMul;
   const spawned = [], locked = (level.doors ?? []).filter(d => d.locked);
   for (let i = 0; i < count; i++) {
     const p = freeSpawnPoint(level, zone, rng, playerPosition, locked, cameraTarget);
     if (!p) return [];
-    const enemy = { id: `hunter-${level.number}-${waveNumber}-${i}`, kind: 'enemy', x: p.x, z: p.z, r: .48,
+    const enemy = { id: `${idPrefix}-${level.number}-${groupNumber}-${i}`, kind: 'enemy', x: p.x, z: p.z, r: .48,
       health: STAKES.waveRusherHealth, speed, type: 'rusher', rangeMul: type.rangeMul, cooldownMul: type.cooldownMul,
-      standoff: type.standoff, active: true, aggro: true, swarm: true, graceMs: 0, spawnedAt: now, hunter: true };
+      standoff: type.standoff, active: true, aggro: true, swarm: true, graceMs: 0, spawnedAt: now, ...(hunter ? { hunter: true } : {}) };
     spawned.push(enemy);
   }
   level.enemies.push(...spawned);
   return spawned;
+}
+function spawnWave(round, now, waveNumber, zone, rng, playerPosition, cameraTarget) {
+  return spawnEnemyGroup(round, now, 'hunter', waveNumber, waveSize(round, waveNumber), zone, rng, playerPosition, cameraTarget, true);
+}
+// Depth Raid (prototype PR1, data/raid-depth.js): GO DEEPER's punishment horde. Reuses the exact
+// hunter-wave spawn search (off-camera, hidden, outside the player's current room, never too close)
+// with an explicit count instead of the wave-number ramp.
+export function spawnRefuseHorde(round, now, count, playerPosition, currentRoomIndex, rng, cameraTarget = null) {
+  const spawn = huntSpawnPoint(round, playerPosition, currentRoomIndex, rng, cameraTarget);
+  if (!spawn) return [];
+  return spawnEnemyGroup(round, now, 'refuse', round.depth?.zone ?? 0, count, spawn.zone, rng, playerPosition, cameraTarget, false);
 }
 // Advances the alarm/wave clock one frame. Call only while the raid is actually running (the caller's
 // existing pause/over guard already skips this, same as every other per-frame step function).
 // `playerPosition`/`currentRoomIndex` (round.currentRoom, kept up to date by the caller every frame) locate
 // the player without this module depending on perks.js's roomAt (would cycle back through stakes.js).
 export function stepStakes(round, now, playerPosition, currentRoomIndex, cameraTarget = null) {
-  const s = round.stakes; if (!s || round.over || round.ftue) return { spawned: [] };
+  // Depth Raid (prototype PR1): the global hunter-wave clock competes with the refuse-hordes GO DEEPER
+  // already spawns, so it stays off entirely in depth mode (data/raid-depth.js, nodspel/depth-raid.js).
+  const s = round.stakes; if (!s || round.over || round.ftue || round.depth) return { spawned: [] };
   const elapsed = elapsedMs(round);
   if (!s.alarmTriggered) {
     if (elapsed < STAKES.alarmDelayMs) return { spawned: [] };

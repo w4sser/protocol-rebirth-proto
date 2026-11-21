@@ -258,7 +258,10 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
 export function tickRound(round,now) {
   if(round.over||round.pauseAt!=null)return;
   round.gameNow=now;round.remainingMs=Math.max(round.ftue?.minTimeMs??0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
-  if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
+  // Depth Raid (prototype PR1, nodspel/depth-raid.js): the per-zone timer is the HUD clock there, not
+  // this global 8-minute one -- Robert's design lock says a depth raid can run long (open windows
+  // never auto-advance), so the global clock keeps counting underneath but never fails the raid.
+  if(round.remainingMs===0&&!round.depth){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
 }
 export function takeDamage(round,amount,now){
   tickRound(round,now);
@@ -421,13 +424,32 @@ export function extractRound(round,now){
   autoPickPerks(round,now,undefined,{all:true});
   secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';resetPerks(round);return true;
 }
+// Depth Raid (prototype PR1, nodspel/depth-raid.js stepDepthRaid): walk-in plus the 5s cancellable
+// countdown secures the bag exactly like extractRound above, except Z3's completion reason is
+// 'complete' (a full raid clear, same as enterExit's own level-3 branch) rather than 'extract'.
+// Depth mode never calls extractRound or enterExit itself -- no node gate, no checkpoint screen.
+export function extractDepthZone(round,now,zoneCleared,complete){
+  tickRound(round,now);if(round.pauseAt!=null||round.over)return false;
+  round.levelsCleared=Math.max(round.levelsCleared,zoneCleared);
+  autoPickPerks(round,now,undefined,{all:true});
+  round.exitLoot=bagItems(round.bag);round.nodeInteraction=null;
+  secureBag(round);
+  if(complete)round.cleared=true;
+  round.over=true;round.reason=complete?'complete':'extract';resetPerks(round);
+  return true;
+}
 // Leaving a launched raid early counts as a loss: the bag is lost like on death.
 export function abandonRound(round,now){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
   loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';resetPerks(round);return true;
 }
 export function exitIsOpen(round) {
-  return !round.over && (round.level.big ? round.level.extracts.some(e=>extractAvailable(e,round)) : round.level.nodes.every(n=>n.active));
+  if(round.over)return false;
+  // Depth Raid (prototype PR1): the window, not the node gate, controls the beam/hatch and the
+  // collision-blocking solid at the exit (both already keyed off this function) -- nodes never gate
+  // anything in depth mode (data/raid-depth.js, nodspel/depth-raid.js).
+  if(round.depth)return !!round.depth.window;
+  return round.level.big ? round.level.extracts.some(e=>extractAvailable(e,round)) : round.level.nodes.every(n=>n.active);
 }
 export function activateNode(round,id,now) {
   tickRound(round,now);
