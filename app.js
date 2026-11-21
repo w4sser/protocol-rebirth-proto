@@ -4148,7 +4148,9 @@ function ingestRaidResult(r){
     for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
   });
   // v1.64: fixed Scrap bonus per cleared level, paid on extract only (death/timeout = 0, like all raid loot).
-  const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) : 0;
+  // Depth Raid prototype (PR1, v2.28.57): r.depthBonus is the extra Z3 full-clear Scrap (data/raid-depth.js
+  // z3ClearBonusScrap), on top of this same ladder -- never a replacement for it.
+  const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) + (Number(r.depthBonus) > 0 ? Math.floor(r.depthBonus) : 0) : 0;
   if(scrapBonus){ S.cur.scrap = (S.cur.scrap||0) + scrapBonus; revealCurrency("scrap"); }
   S.raids++;
   const questBefore = raidQuestSnapshot();

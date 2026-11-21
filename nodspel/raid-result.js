@@ -27,6 +27,9 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null,acknowledg
     // BIT narrator moments shown live this raid (e.g. 'fuel_drum_intro', nodspel/drum-intro.js): the base
     // ingests these into S.bitCardsSeen (app.js ingestRaidResult) so a first-sight card is once per profile.
     ...(round.bitSeen?.length?{bitSeen:[...new Set(round.bitSeen)]}:{}),
+    // Depth Raid prototype (PR1, data/raid-depth.js): Z3's full-clear bonus, on top of the existing
+    // extractScrapBonus ladder app.js already pays on levelsCleared -- only present on that one outcome.
+    ...(OUTCOMES[round.reason]==='extract'&&round.depth?.z3ClearBonus?{depthBonus:round.depth.z3ClearBonus}:{}),
     ...(round.gearConsumed?.length?{gearConsumed:[...round.gearConsumed]}:{}),
     ...(OUTCOMES[round.reason]!=='extract'&&(equippedGear(round).length||round.backpack?.length)?{equipmentLost:[...equippedGear(round),...(round.backpack??[])]}:{}),
     stats:round.stats,gear:launch?.gear??[],...(launch?.ftue?{ftue:true}:{}),gearOut:OUTCOMES[round.reason]==='extract'?[...equippedGear(round),...(round.backpack??[])]:[],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};

@@ -42,7 +42,7 @@
   <div class="landscape" id="viewport">
   <main id="game" aria-label="Game world"></main>
   <header class="hud">
-    <div class="round-hud"><div class="shield-hud" id="shield-hud" aria-label="Shield" hidden><span class="eyebrow">SHIELD</span><span id="shield-value">0</span></div><div class="timer" aria-label="Time left"><span class="eyebrow">TIME LEFT</span><span id="time-left" role="timer">8:00</span></div><div class="quest-chip" id="quest-chip" aria-label="Tracked quest" hidden></div></div>
+    <div class="round-hud"><div class="shield-hud" id="shield-hud" aria-label="Shield" hidden><span class="eyebrow">SHIELD</span><span id="shield-value">0</span></div><div class="timer" id="round-timer-box" aria-label="Time left"><span class="eyebrow">TIME LEFT</span><span id="time-left" role="timer">8:00</span></div><div class="depth-hud" id="depth-hud" aria-label="Zone progress" hidden><span id="depth-pips" class="room-pips depth-pips" aria-hidden="true"></span><div class="timer" id="depth-timer-box" aria-label="Zone time left"><span class="eyebrow" id="depth-zone-label">ZONE 1</span><span id="depth-timer" role="timer">1:30</span></div><button id="go-deeper" class="go-deeper-btn" type="button" hidden>GO DEEPER</button></div><div class="quest-chip" id="quest-chip" aria-label="Tracked quest" hidden></div></div>
     <button id="raid-settings-open" type="button" aria-label="Pause and settings" aria-expanded="false" aria-controls="raid-settings"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#pause"/></svg></button>
   </header>
   <div id="alarm-banner" class="alarm-banner" role="status" hidden><b id="alarm-banner-title"></b><span id="alarm-banner-sub"></span></div>

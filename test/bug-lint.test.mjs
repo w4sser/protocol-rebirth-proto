@@ -414,3 +414,20 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(by('fabricator-marker-once').check({appSrc:app.replace('markGoalOnMap(trackedGoalHtml()','(trackedGoalHtml()'),html}).length,1,'v2.28.55 fires when the base renders both labels');
  assert.equal(by('fabricator-marker-once').check({appSrc:app,html:html.replace('.on-map-marked{display:none','.on-map-marked{opacity:1')}).length,1,'v2.28.55 fires without the CSS hide');
  assert.equal(by('fabricator-marker-once').check({appSrc:'',html:''}).length,3,'v2.28.55 fires on missing pieces');}
+
+{
+ const rule=by('depth-raid-locked-window');
+ assert.equal(rule.check().length,0,'depth raid locked window holds on real source');
+ assert.equal(rule.check({roundSrc:'',depthRaidSrc:'',stakesSrc:'',gameSrc:''}).length,7,'all depth-raid window guards fire');
+ const round=fs.readFileSync(new URL('../nodspel/round.js',import.meta.url),'utf8');
+ const depthRaid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ const stakes=fs.readFileSync(new URL('../nodspel/stakes.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({roundSrc:round.replace('if(round.depth)return !!round.depth.window;','')}).length,1,'exitIsOpen regressing to the node gate fires');
+ assert.equal(rule.check({roundSrc:round.replace('if(round.remainingMs===0&&!round.depth)','if(round.remainingMs===0)')}).length,1,'the global clock failing a depth raid fires');
+ assert.equal(rule.check({roundSrc:round.replace('export function extractDepthZone(','function removedDepthZone(')}).length,1,'a missing extractDepthZone fires');
+ assert.equal(rule.check({depthRaidSrc:depthRaid.replace('d.window=true;d.windowOpenedAt=now;','d.windowOpenedAt=now;')}).length,1,'a window that never opens fires');
+ assert.equal(rule.check({depthRaidSrc:depthRaid.replace('if(!d||round.over||round.pauseAt!=null||!d.window||d.zone>=3||d.extracting)return null;','')}).length,1,'goDeeper missing its window/zone-3/mid-countdown guard fires');
+ assert.equal(rule.check({stakesSrc:stakes.replace('round.ftue || round.depth','round.ftue')}).length,1,'the hunter-wave clock staying on in depth mode fires');
+ assert.equal(rule.check({gameSrc:game.replace('if(round.depth){\n      const dres=stepDepthRaid(round,clock,position);','if(true){\n      const dres=stepDepthRaid(round,clock,position);')}).length,1,'enterExit running unconditionally for a depth round fires');
+}

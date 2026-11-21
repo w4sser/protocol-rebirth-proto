@@ -428,6 +428,20 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
   #raid-goal small{display:none}
 }
 
+/* Depth Raid prototype (PR1, data/raid-depth.js): THIS zone's clock + three zone pips replace the
+   global 8-minute timer top-center (#round-timer-box hides while #depth-hud is shown). GO DEEPER sits
+   in that same row as a quiet coral chip -- never the orange primary, never a fixed overlay that
+   can miss the safe area at 667x375. */
+.depth-hud{display:flex;align-items:center;gap:10px}
+.depth-pips.room-pips{display:flex;align-items:center;gap:5px}
+.depth-pips.window i.cur{animation:depthpipwindow 1s ease-in-out infinite}
+@keyframes depthpipwindow{50%{opacity:.4}}
+#go-deeper{flex:0 0 auto;cursor:pointer;background:color-mix(in srgb,var(--ad-ink) 85%,transparent);color:var(--ad-danger);
+  border:1px solid var(--ad-danger);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:1.2px;white-space:nowrap}
+#go-deeper:hover{background:color-mix(in srgb,var(--ad-danger) 16%,var(--ad-ink))}
+#go-deeper:focus-visible{outline:2px solid var(--ad-danger);outline-offset:3px}
+@media(max-width:740px){.depth-hud{gap:6px}#go-deeper{padding:5px 9px;font-size:10px;letter-spacing:1px}}
+
 /* Paired junction instructions stay compact beside the box at phone sizes. */
 .hazard-label.junction-label{font-size:10px;line-height:1.2;color:var(--ad-loot);background:var(--ad-night);padding:3px 5px;border:1px solid var(--ad-loot);text-shadow:none;white-space:nowrap}
 .hazard-label.junction-label[data-state=on],.hazard-label.junction-label[data-state=overload]{font-size:10px;color:var(--ad-danger);border-color:var(--ad-danger)}

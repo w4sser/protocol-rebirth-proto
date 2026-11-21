@@ -5,6 +5,7 @@ import {extractScrapBonus} from '../levels.js';
 import {depthModeEnabled,createDepthState,initDepthRound,stepDepthRaid,goDeeper,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
+import {buildRaidResult} from '../raid-result.js';
 import '../../data/bit-lines.js?v=2.28.57';
 
 // ---- 1. depth mode on/off matrix ----
@@ -60,6 +61,7 @@ test('extract is closed before the window and requires a 5s walk-in countdown th
   assert.equal(r.over, false);
   assert.equal(stepDepthRaid(r, 93000 + DEPTH.extractCountdownMs, beam), 'zone-extracted');
   assert.equal(r.over, true); assert.equal(r.reason, 'extract'); assert.equal(r.levelsCleared, 1);
+  assert.equal(buildRaidResult(r).depthBonus, undefined, 'the Z3 clear bonus never pays out on a Z1/Z2 extract');
 });
 test('after GO DEEPER, extract is closed until the next zone window opens', () => {
   const r = createRound('go-deeper-gate', 0);
@@ -132,6 +134,8 @@ test('Z3 window extract banks all loot, the full zone ladder bonus plus the 25 S
   assert.equal(r.extracted.scrap_alloy, 2); assert.equal(r.bag.scrap_alloy, 0);
   assert.equal(r.depth.z3ClearBonus, DEPTH.z3ClearBonusScrap);
   assert.equal(extractScrapBonus(r.levelsCleared), 5 + 10 + 15);
+  // app.js's ingestRaidResult adds this on top of extractScrapBonus(r.levelsCleared) -- see app.js.
+  assert.equal(buildRaidResult(r).depthBonus, DEPTH.z3ClearBonusScrap);
 });
 test('death still loses the carried bag in depth mode', () => {
   const r = createRound('depth-death', 0);
