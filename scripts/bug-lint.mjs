@@ -533,6 +533,14 @@ export const RULES=[
      if(!/if\(round\.depth\)\{[\s\S]*?stepDepthRaid\(round,clock,position\)[\s\S]*?\}else\{\s*const result=enterExit\(round,position,clock\);/.test(game))out.push('nodspel/game.mjs: the node-gated enterExit/checkpoint path must never run for a depth round -- stepDepthRaid and enterExit must stay mutually exclusive on round.depth');
      if(game.includes("const res=goDeeper(round,clock,position,target)")&&game.includes('loadLevel();depthHudRevealed'))out.push('nodspel/game.mjs: GO DEEPER must not rebuild the world with loadLevel()');
      return out;}},
+  {id:'depth-choice-touch',pr:'v2.28.59 depth-choice-touch',why:"Robert 21 Nov 2026: EXTRACT / GO DEEPER must work with real phone taps, not just harness/__NR clicks. The paused-input capture gate must allow #depth-choice (and the BIT intro card). The buttons use bindHUDTap so pointerup activates them without a synthesized click. The popup backdrop must not cover the tiles or swallow pointers. The old in-HUD #go-deeper chip must stay gone.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),css=ctx.cssSrc??read('nodspel/style.css'),html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
+     if(!game.includes("bindHUDTap($('#depth-extract'),onDepthExtract)")||!game.includes("bindHUDTap($('#depth-go-deeper'),onDepthGoDeeper)"))out.push('nodspel/game.mjs: EXTRACT / GO DEEPER must use bindHUDTap so a phone pointerup activates them without a synthesized click');
+     if(!game.includes("e.target.closest?.('#depth-choice,.bit-card')"))out.push('nodspel/game.mjs: the paused-input capture gate must treat #depth-choice and .bit-card as owned, otherwise it swallows taps while the choice is paused');
+     if(!game.includes("#quest-chip,#depth-choice")||!game.includes(".pop-backdrop,.stick,#depth-choice"))out.push('nodspel/game.mjs: stick routing must treat #depth-choice as covered UI so playfield aims cannot steal the tap');
+     if(!css.includes('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}')||!css.includes('.depth-choice-frame{position:relative;z-index:1'))out.push('nodspel/style.css: the depth-choice backdrop must sit behind the card and ignore pointer events so it cannot cover EXTRACT / GO DEEPER');
+     if(html.includes('id="go-deeper"'))out.push('nodspel/index.html: the stale v2.28.57 #go-deeper HUD chip must stay removed');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

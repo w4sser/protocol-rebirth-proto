@@ -432,3 +432,17 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({stakesSrc:stakes.replace('round.ftue || round.depth','round.ftue')}).length,1,'the hunter-wave clock staying on in depth mode fires');
  assert.equal(rule.check({gameSrc:game.replace('if(round.depth){\n      const dres=stepDepthRaid(round,clock,position);','if(true){\n      const dres=stepDepthRaid(round,clock,position);')}).length,1,'enterExit running unconditionally for a depth round fires');
 }
+
+{
+ const rule=by('depth-choice-touch');
+ assert.equal(rule.check().length,0,'depth choice touch holds on real source');
+ assert.equal(rule.check({gameSrc:'',cssSrc:'',htmlSrc:'id="go-deeper"'}).length,5,'all depth-choice touch guards fire');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const css=fs.readFileSync(new URL('../nodspel/style.css',import.meta.url),'utf8');
+ const html=fs.readFileSync(new URL('../nodspel/index.html',import.meta.url),'utf8');
+ assert.equal(rule.check({gameSrc:game.replace("bindHUDTap($('#depth-extract'),onDepthExtract)","$('#depth-extract').addEventListener('click',onDepthExtract)")}).length,1,'click-only EXTRACT wiring fires');
+ assert.equal(rule.check({gameSrc:game.replace("e.target.closest?.('#depth-choice,.bit-card')","e.target.closest?.('#nope')")}).length,1,'a paused-input gate that swallows the popup fires');
+ assert.equal(rule.check({gameSrc:game.replace('#quest-chip,#depth-choice','#quest-chip')}).length,1,'stick routing that ignores #depth-choice fires');
+ assert.equal(rule.check({cssSrc:css.replace('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}','')}).length,1,'a covering backdrop fires');
+ assert.equal(rule.check({htmlSrc:html+'<button id="go-deeper" type="button">GO DEEPER</button>'}).length,1,'a leftover HUD chip fires');
+}

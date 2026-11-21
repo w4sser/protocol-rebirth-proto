@@ -1,15 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.58';
-import {audioEvent} from './audio.js?v=2.28.58';
-import {ownRooms} from './perks.js?v=2.28.58';
-import {RULES,hazardState} from './levels.js?v=2.28.58';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.58';
-import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.58-ftue-opening-v1';
-import {houseWaypoint} from './house.js?v=2.28.58';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.58';
-import {detectionMultiplier} from './stakes.js?v=2.28.58';
-import {dashInvulnerable} from './dash.js?v=2.28.58';
-import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.58-bridge1';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.59';
+import {audioEvent} from './audio.js?v=2.28.59';
+import {ownRooms} from './perks.js?v=2.28.59';
+import {RULES,hazardState} from './levels.js?v=2.28.59';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.59';
+import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.59-ftue-opening-v1';
+import {houseWaypoint} from './house.js?v=2.28.59';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.59';
+import {detectionMultiplier} from './stakes.js?v=2.28.59';
+import {dashInvulnerable} from './dash.js?v=2.28.59';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.59-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
