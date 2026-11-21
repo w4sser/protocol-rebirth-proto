@@ -161,6 +161,21 @@ body #app.s-prep{
 }
 #app.s-prep .pr-cinematic .pr-dest-preview[data-area="bunker"]{background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),url("../assets/production/env_tunnel.webp")}
 #app.s-prep .pr-cinematic .pr-dest-preview[data-area="town"]{background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),url("../assets/production/env_transit_map.webp")}
+/* Depth Raid opt-in selector: NODE RAID (existing) / DEPTH RAID (prototype). Compact, cyan like
+   other prep overlines; never the orange primary (that's DEPLOY). Hidden unless Bunker + FTUE done. */
+#app.s-prep .pr-cinematic .pr-mode-sel{display:flex;flex-direction:column;gap:4px;flex:none}
+#app.s-prep .pr-cinematic .pr-mode-seg{display:flex;width:100%;border:1px solid color-mix(in srgb,var(--ad-bit) 28%,transparent);border-radius:4px;overflow:hidden}
+#app.s-prep .pr-cinematic .pr-mode-btn{
+  flex:1;min-height:32px;padding:6px 8px;margin:0;border:0;background:transparent;border-radius:0;
+  color:color-mix(in srgb,var(--ad-bit) 45%,var(--ad-bone));
+  font:800 clamp(9px,.95vw,13px) "Archivo",sans-serif;letter-spacing:.1em;cursor:pointer
+}
+#app.s-prep .pr-cinematic .pr-mode-btn.on{background:color-mix(in srgb,var(--ad-bit) 18%,var(--ad-ink));color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .pr-mode-btn:focus-visible{outline:2px solid var(--ad-bone);outline-offset:-2px}
+@media (orientation:landscape) and (max-height:440px){
+  #app.s-prep .pr-cinematic .pr-mode-btn{min-height:26px;padding:4px 6px;font-size:9px;letter-spacing:.08em}
+}
+
 #app.s-prep .pr-cinematic .pr-mission-btn{
   width:100%;display:flex;gap:8px;align-items:center;justify-content:flex-start;flex:none;min-height:0;
   padding:clamp(4px,.7vw,9px) 0;margin:0;border:0;border-bottom:1px solid color-mix(in srgb,var(--ad-bit) 20%,transparent);

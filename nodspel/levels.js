@@ -1,14 +1,14 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.56';
-import {generateBigLevel} from './big-level.js?v=2.28.56';
-import '../data/items.js?v=2.28.56';
-import '../data/raid-ftue.js?v=2.28.56';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.56';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.56-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.56';
-import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.56';
-import '../data/raid-combat.js?v=2.28.56';
-import '../data/raid-junction.js?v=2.28.56';
-import '../data/raid-shelf.js?v=2.28.56';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.57';
+import {generateBigLevel} from './big-level.js?v=2.28.57';
+import '../data/items.js?v=2.28.57';
+import '../data/raid-ftue.js?v=2.28.57';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.57';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.57-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.57';
+import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.57';
+import '../data/raid-combat.js?v=2.28.57';
+import '../data/raid-junction.js?v=2.28.57';
+import '../data/raid-shelf.js?v=2.28.57';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
@@ -290,6 +290,7 @@ export function ruleSet(area,hard){const AR=AREA_RULES[area]??AREA_RULES.bunker;
   return {...AR,hpMul:AR.hpMul*H.hpMul,dmgMul:AR.dmgMul*H.dmgMul,extraEnemies:(AR.extraEnemies??[0,0,0]).map((v,i)=>v+H.extraEnemies[i])};}
 let BIG_LEVELS=false;
 export function setLevelMode(mode){BIG_LEVELS=mode==='big';}
+export const isBigLevelMode=()=>BIG_LEVELS;
 export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVELS,layoutOverride=null){
   if(big){const level=generateBigLevel(roundSeed,area);applyGuaranteeLoot(level);return level;}
   const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');

@@ -518,7 +518,19 @@ export const RULES=[
      if(!physics.includes('if(box.movementOnly)return Infinity')||!physics.includes('previous>0&&Math.hypot(x-b.x,z-b.z)>Math.hypot(p.x-b.x,p.z-b.z)')||!game.includes('(round.level.shelves??[]).map(s=>s.collider)'))out.push('fallen shelves must block movement but allow shots and LOS');
      if(!game.includes("push('shelf_intro')")||!game.includes('shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids)')||!intro.includes('Gravity: still free, still rude.')||!intro.includes('e.health>0&&e.aggro'))out.push('shelf BIT first sight must stay calm, exact and profile-persisted');
      return out;}},
-
+  {id:'depth-raid-locked-window',pr:'v2.28.57 depth-raid-prototype',why:"Robert's design lock (21 Nov 2026): once a player goes deeper there is no always-on entry beam and no walking back to extract mid-zone -- extract is only ever open during a zone's own window; and an elapsed window must never auto-advance or auto-close -- the beam stays lit and GO DEEPER stays available until the player makes an active choice",
+   check(ctx={}){const round=ctx.roundSrc??read('nodspel/round.js'),depth=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),stakes=ctx.stakesSrc??read('nodspel/stakes.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!round.includes('if(round.depth)return !!round.depth.window;'))out.push('nodspel/round.js: exitIsOpen must gate depth-mode extract on the window, never on node completion');
+     if(!round.includes('if(round.remainingMs===0&&!round.depth)'))out.push('nodspel/round.js: tickRound must not let the global 8-minute clock fail a depth raid');
+     if(!round.includes('export function extractDepthZone('))out.push('nodspel/round.js: extractDepthZone() (the walk-in+countdown success path) is missing');
+     const stepFn=(depth.match(/export function stepDepthRaid\([^)]*\)\{[\s\S]*?\n\}/)||[''])[0];
+     const goDeeperFn=(depth.match(/export function goDeeper\([^)]*\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!stepFn.includes('d.window=true;d.windowOpenedAt=now;'))out.push('nodspel/depth-raid.js: stepDepthRaid must open the window once its zone timer hits 0');
+     if(stepFn.includes('d.window=false'))out.push('nodspel/depth-raid.js: stepDepthRaid must never itself close an open window (no auto-advance/auto-close) -- only an explicit player choice (goDeeper) may');
+     if(!goDeeperFn.includes('!d.window')||!goDeeperFn.includes('d.zone>=3')||!goDeeperFn.includes('d.window=false'))out.push('nodspel/depth-raid.js: goDeeper must require an open window, reject it on zone 3, and close the window it advances past');
+     if(!stakes.includes('round.ftue || round.depth'))out.push('nodspel/stakes.js: stepStakes must skip the global hunter-wave clock in depth mode (it competes with GO DEEPER refuse-hordes)');
+     if(!/if\(round\.depth\)\{[\s\S]*?stepDepthRaid\(round,clock,position\)[\s\S]*?\}else\{\s*const result=enterExit\(round,position,clock\);/.test(game))out.push('nodspel/game.mjs: the node-gated enterExit/checkpoint path must never run for a depth round -- stepDepthRaid and enterExit must stay mutually exclusive on round.depth');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

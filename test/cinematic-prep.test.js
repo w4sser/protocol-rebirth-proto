@@ -29,6 +29,8 @@ assert.equal(stage.tabIndex,0,'keyboard user may rotate operator');
 assert(d.querySelector('.lobby-hero .hero-art'),'static fallback remains in DOM');
 assert(d.querySelector('.pr-dest-preview[data-area]'),'destination art follows the selected area');
 assert(d.querySelector('.pr-mission-btn'),'mission planning remains accessible');
+assert(!d.querySelector('.pr-mode-sel'),'mode selector stays hidden on the first-raid / pre-Fabricator prep');
+assert.equal(d.querySelector('.pr-mission-btn b')?.textContent,'NODE RAID');
 assert(d.querySelector('.pr-risk-card .riskbar'),'loss warning stays visible');
 assert.equal(d.querySelectorAll('.node-raid-launch').length,1,'only one deploy action');
 assert.equal(d.querySelector('.node-raid-launch').getAttribute('onclick'),'A.deployNodeRaid()','deploy retains real raid launch');

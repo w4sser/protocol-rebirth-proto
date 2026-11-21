@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=2.28.56';
-import {RULES} from './levels.js?v=2.28.56';
-import {bagCap,equippedGear} from './round.js?v=2.28.56';
-import {readGoal,readVestGuarantee} from './progression-goal.js?v=2.28.56';
+import {bagItems} from './raid.js?v=2.28.57';
+import {RULES} from './levels.js?v=2.28.57';
+import {bagCap,equippedGear} from './round.js?v=2.28.57';
+import {readGoal,readVestGuarantee} from './progression-goal.js?v=2.28.57';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -27,6 +27,9 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null,acknowledg
     // BIT narrator moments shown live this raid (e.g. 'fuel_drum_intro', nodspel/drum-intro.js): the base
     // ingests these into S.bitCardsSeen (app.js ingestRaidResult) so a first-sight card is once per profile.
     ...(round.bitSeen?.length?{bitSeen:[...new Set(round.bitSeen)]}:{}),
+    // Depth Raid prototype (PR1, data/raid-depth.js): Z3's full-clear bonus, on top of the existing
+    // extractScrapBonus ladder app.js already pays on levelsCleared -- only present on that one outcome.
+    ...(OUTCOMES[round.reason]==='extract'&&round.depth?.z3ClearBonus?{depthBonus:round.depth.z3ClearBonus}:{}),
     ...(round.gearConsumed?.length?{gearConsumed:[...round.gearConsumed]}:{}),
     ...(OUTCOMES[round.reason]!=='extract'&&(equippedGear(round).length||round.backpack?.length)?{equipmentLost:[...equippedGear(round),...(round.backpack??[])]}:{}),
     stats:round.stats,gear:launch?.gear??[],...(launch?.ftue?{ftue:true}:{}),gearOut:OUTCOMES[round.reason]==='extract'?[...equippedGear(round),...(round.backpack??[])]:[],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
