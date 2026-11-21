@@ -541,7 +541,13 @@ export const RULES=[
      if(!css.includes('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}')||!css.includes('.depth-choice-frame{position:relative;z-index:1'))out.push('nodspel/style.css: the depth-choice backdrop must sit behind the card and ignore pointer events so it cannot cover EXTRACT / GO DEEPER');
      if(html.includes('id="go-deeper"'))out.push('nodspel/index.html: the stale v2.28.57 #go-deeper HUD chip must stay removed');
      return out;}},
+  {id:'depth-raid-retag-refs',pr:'v2.28.60 raid-start-crash',why:"Robert 21 Nov 2026: a progressed Depth Raid (2+ completed raids) crashed on entry. retagPart prefixed hazard/junction/enemy ids but left padId/junctionId/patrolId/guardId/enemyId pointing at the old ids, so buildWorld read pad.x of undefined and the fatal overlay covered Start.",
+   check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),world=ctx.worldSrc??read('nodspel/world.js');const out=[];
+     if(!depth.includes('if(o&&o.padId!=null)o.padId=`${prefix}-${o.padId}`')||!depth.includes('if(o&&o.junctionId!=null)o.junctionId=`${prefix}-${o.junctionId}`')||!depth.includes('if(o&&o.patrolId!=null)o.patrolId=`${prefix}-${o.patrolId}`')||!depth.includes('if(o&&o.guardId!=null)o.guardId=`${prefix}-${o.guardId}`')||!depth.includes('if(o&&o.enemyId!=null)o.enemyId=`${prefix}-${o.enemyId}`'))out.push('nodspel/depth-level.js: retagPart must prefix padId, junctionId, patrolId, guardId and enemyId when it prefixes ids');
+     if(!world.includes('const pad=level.hazards.find(h=>h.id===j.padId);if(!pad)return null;')||!world.includes('}).filter(Boolean);'))out.push('nodspel/world.js: buildWorld must skip a junction whose pad is missing so a broken ref cannot kill raid entry');
+     return out;}},
 ];
+
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
 if(process.argv[1]===fileURLToPath(import.meta.url)){

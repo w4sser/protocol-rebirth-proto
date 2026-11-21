@@ -7,7 +7,7 @@ import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,are
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.59';
+import '../../data/bit-lines.js?v=2.28.60';
 
 function startDepth(seed,now=0){
   const r=createRound(seed,now);
@@ -241,4 +241,33 @@ test('stitched depth layouts keep areas apart, lock two depth doors, and become 
     depthDoor(L,2).locked=false;walk=walkMap(L);
     assert.equal(tryNear(walk,L.depthStarts[2]),true,seed);
   }
+});
+
+function assertLinkedIds(level,label){
+  for(const j of level.junctions??[]){
+    assert.ok((level.hazards??[]).some(h=>h.id===j.padId),`${label}: junction ${j.id} padId ${j.padId} has no hazard`);
+    if(j.patrolId)assert.ok((level.enemies??[]).some(e=>e.id===j.patrolId),`${label}: junction patrolId ${j.patrolId} has no enemy`);
+  }
+  for(const h of level.hazards??[]){
+    if(h.junctionId)assert.ok((level.junctions??[]).some(j=>j.id===h.junctionId),`${label}: hazard junctionId ${h.junctionId} has no junction`);
+  }
+  for(const s of level.shelves??[]){
+    if(s.guardId)assert.ok((level.enemies??[]).some(e=>e.id===s.guardId),`${label}: shelf guardId ${s.guardId} has no enemy`);
+  }
+  for(const e of level.encounters??[]){
+    if(e.enemyId)assert.ok((level.enemies??[]).some(en=>en.id===e.enemyId),`${label}: encounter enemyId ${e.enemyId} has no enemy`);
+  }
+}
+
+test('retag prefixes pad, junction, patrol, guard and enemy refs so a progressed Depth Raid can build the world', () => {
+  const seeds=['repro-depth','probe-seed','alpha','bravo','charlie','delta','echo','foxtrot','golf','seed0','seed7','seed19'];
+  let pads=0,shelves=0;
+  for(const seed of seeds)for(const raids of [0,2,3,5,8]){
+    const L=generateDepthLevel(seed,{completedRaids:raids});
+    assertLinkedIds(L,`${seed} raids=${raids}`);
+    if((L.junctions??[]).length)pads++;
+    if((L.shelves??[]).length)shelves++;
+  }
+  assert.ok(pads>0,'expected at least one power pad once completedRaids unlocks them');
+  assert.ok(shelves>0,'expected at least one shelf once completedRaids unlocks them');
 });

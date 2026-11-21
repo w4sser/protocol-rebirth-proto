@@ -1,19 +1,19 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.59';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.59';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.60';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.60';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.59';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.59';
-import {buildTown} from './town.js?v=2.28.59';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.59';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.59-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.59-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.59';
-import {controlCablePath} from './control-cables.js?v=2.28.59';
-import {extractAvailable} from './big-level.js?v=2.28.59';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.59';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.59';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.59';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.60';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.60';
+import {buildTown} from './town.js?v=2.28.60';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.60';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.60-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.60-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.60';
+import {controlCablePath} from './control-cables.js?v=2.28.60';
+import {extractAvailable} from './big-level.js?v=2.28.60';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.60';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.60';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.60';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -365,7 +365,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   }
   // Reuse the kit's box geometry/material vocabulary; no new models or textures.
   const junctions=(level.junctions??[]).map(j=>{
-    const pad=level.hazards.find(h=>h.id===j.padId),g=new THREE.Group();g.position.set(j.x,0,j.z);group.add(g);
+    const pad=level.hazards.find(h=>h.id===j.padId);if(!pad)return null;const g=new THREE.Group();g.position.set(j.x,0,j.z);group.add(g);
     box(0,.6,0,1.15,1.2,.65,PALETTE.base,g);
     const face=new THREE.MeshStandardMaterial({color:PALETTE.warm,emissive:PALETTE.warm,emissiveIntensity:.7,metalness:.5,roughness:.45,fog:false});
     const panel=new THREE.Mesh(cube,face);panel.scale.set(1.05,.85,.72);panel.position.y=.7;g.add(panel);tagBloom(panel);
@@ -373,7 +373,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     const cable=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(j.x,.08,j.z),new THREE.Vector3(pad.x,.08,pad.z)]),new THREE.LineBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.65,toneMapped:false,fog:false}));group.add(cable);
     const burst=new THREE.Mesh(new THREE.RingGeometry(.9,1,48),new THREE.MeshBasicMaterial({color:PALETTE.neon,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false}));burst.rotation.x=-Math.PI/2;burst.position.set(pad.x,.08,pad.z);group.add(burst);
     return {junction:j,pad,face,cable,burst};
-  });
+  }).filter(Boolean);
   const hazards=(level.hazards??[]).map(h=>{
     const mat=new THREE.MeshBasicMaterial({color:'#e0c040',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
     const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
