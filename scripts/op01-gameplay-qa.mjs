@@ -74,9 +74,11 @@ try{
         dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
       checks.push(report);
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
-      if(Math.abs((idle.visualScale||0)-1.10)>.001 ||
-         Math.abs((idle.visualHeight||0)-1.958)>.01)
-        failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
+      if(Math.abs((idle.visualScale||0)-1.485)>.001 ||
+         Math.abs((idle.visualHeight||0)-2.6433)>.01 ||
+         idle.scaleVariantPercent!==135||idle.rimStrength!==.32||
+         idle.fillStrength!==(quality==='low'?.30:.18))
+        failures.push(tag+': OP01 default 135% silhouette and neutral rim are not applied');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
       if(aim.faceLocked)failures.push(tag+': aim preview marked as fired');

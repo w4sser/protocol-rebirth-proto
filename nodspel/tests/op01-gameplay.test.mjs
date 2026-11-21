@@ -5,6 +5,7 @@ import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {createOP01GameplayOperator,createOP01FacingLatch,OP01_CHARACTER,OP01_RIM_STRENGTHS} from '../op01-gameplay.js';
 import {createOP01DeployGrip} from '../../ui/raid-prep-op01.mjs';
+import {UNIT_READABILITY} from '../unit-readability.js';
 
 async function parse(name){
   // Node has no image decoder. Preserve the actual GLB geometry, skin and
@@ -85,18 +86,18 @@ test('OP01 size experiment scales presentation only and is reversible',async()=>
   const gltf=await parse('OP01_Game_LOD0.glb');
   const op=createOP01GameplayOperator(gltf);
   const base=op.root.scale.x;
-  assert.equal(base,1.10);
-  assert.equal(op.root.userData.operatorScalePercent,100);
-  for(const percent of [120,135,150,100]){
+  assert(Math.abs(base-1.10*1.35)<1e-10);
+  assert.equal(op.root.userData.operatorScalePercent,135);
+  for(const percent of [100,120,150,135]){
     assert.equal(op.setVisualScalePercent(percent),true);
-    assert(Math.abs(op.root.scale.x-base*percent/100)<1e-10);
+    assert(Math.abs(op.root.scale.x-OP01_CHARACTER.scale*percent/100)<1e-10);
     assert.equal(op.poseDiagnostics().scaleVariantPercent,percent);
     op.update(.05,{moving:true,aiming:true,walkYaw:.2,aimYaw:1});
     assert(op.muzzle.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite));
   }
   for(const invalid of [0,90,115,200,NaN,Infinity,'invalid']){
     assert.equal(op.setVisualScalePercent(invalid),false);
-    assert.equal(op.root.userData.operatorScalePercent,100);
+    assert.equal(op.root.userData.operatorScalePercent,135);
   }
   assert.equal(op.root.scale.x,base,'baseline is restored without loading another skin');
 });
@@ -108,7 +109,7 @@ test('OP01 live rim strength is a shared shader uniform across LODs, not added g
     if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);
   });
   assert.deepEqual([...OP01_RIM_STRENGTHS],[.16,.24,.32]);
-  assert.equal(op.root.userData.op01RimStrength,.16);
+  assert.equal(op.root.userData.op01RimStrength,.32);
   const initialChildren=op.model.children.length;
   function compileRim(material){
     assert.equal(typeof material.onBeforeCompile,'function');
@@ -121,18 +122,21 @@ test('OP01 live rim strength is a shared shader uniform across LODs, not added g
     assert.match(shader.fragmentShader,/uniform float op01RimStrength;/);
     assert.match(shader.fragmentShader,/op01RimColor\*op01Edge\*op01RimStrength/);
     assert.equal(shader.uniforms.op01RimColor.value.getHexString(),'b6c4ca');
+    assert.equal(shader.uniforms.op01FillColor.value.getHexString(),'aebcc2');
+    assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorFillStrength);
+    assert.match(shader.fragmentShader,/op01FillColor\*op01FillStrength/);
     return shader.uniforms.op01RimStrength;
   }
   const uniforms=parts.map(part=>compileRim(part.material));
   assert(uniforms.every(u=>u===uniforms[0]),'all four body materials share one live uniform');
-  for(const strength of [.24,.32,.16]){
+  for(const strength of [.16,.24,.32]){
     assert.equal(op.setRimStrength(strength),true);
     assert.equal(op.poseDiagnostics().rimStrength,strength);
     assert(uniforms.every(u=>u.value===strength),'compiled shader uniforms update without recompilation');
   }
   for(const invalid of [-1,0,.20,1,NaN,Infinity,'invalid']){
     assert.equal(op.setRimStrength(invalid),false);
-    assert.equal(op.root.userData.op01RimStrength,.16);
+    assert.equal(op.root.userData.op01RimStrength,.32);
   }
   assert.equal(op.model.children.length,initialChildren,'rim does not add geometry or render passes');
   const loader={loadAsync:async url=>parse(new URL(url).pathname.split('/').at(-1))};
@@ -147,7 +151,26 @@ test('OP01 live rim strength is a shared shader uniform across LODs, not added g
     'streamed LOD2 materials use the same uniform');
   assert(op.setLOD(0));
   op.setRimStrength(.16);
-  assert.equal(uniforms[0].value,.16,'baseline rim restores after LOD switches');
+  assert.equal(uniforms[0].value,.16,'explicit A/B baseline is still selectable after LOD switches');
+});
+
+test('OP01 low quality preserves a readable body without an extra light or shader recompile',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'),{quality:'low'});
+  const parts=[];op.model.traverse(n=>{if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);});
+  const mat=parts[0].material;
+  const shader={
+    uniforms:{},vertexShader:'#include <common>\\n#include <project_vertex>',
+    fragmentShader:'#include <common>\\n#include <dithering_fragment>'
+  };
+  mat.onBeforeCompile(shader);
+  assert.equal(op.poseDiagnostics().fillStrength,UNIT_READABILITY.operatorLowFillStrength);
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorLowFillStrength);
+  const key=mat.customProgramCacheKey();
+  op.setReadabilityQuality('medium');
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorFillStrength);
+  op.setReadabilityQuality('low');
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorLowFillStrength);
+  assert.equal(mat.customProgramCacheKey(),key,'quality switches update the uniform only');
 });
 
 test('OP01 presentation does not modify core movement, collision or weapon rules',()=>{
@@ -317,9 +340,8 @@ test('OP01 occlusion silhouette includes every skinned body primitive through al
 
 test('OP01 gameplay grows uniformly while world physics and weapon alignment remain unchanged',async()=>{
   const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
-  assert.equal(op.root.scale.x,OP01_CHARACTER.scale);
-  assert.equal(op.root.scale.y,OP01_CHARACTER.scale);
-  assert.equal(op.root.scale.z,OP01_CHARACTER.scale);
+  const displayScale=OP01_CHARACTER.scale*UNIT_READABILITY.operatorScalePercent/100;
+  for(const axis of ['x','y','z'])assert(Math.abs(op.root.scale[axis]-displayScale)<1e-10);
   // Compute bounds twice on the same posed GLB: the visual expansion must
   // be uniform. Neither the character's model, skeleton nor parent moves.
   const parent=new THREE.Group();
@@ -333,17 +355,17 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   op.root.updateMatrixWorld(true);
   const source=new THREE.Box3().setFromObject(op.root).getSize(new THREE.Vector3());
   for(const axis of ['x','y','z']){
-    assert(Math.abs(larger[axis]/source[axis]-1.10)<.01,'uniform visual scale on '+axis);
+    assert(Math.abs(larger[axis]/source[axis]-displayScale)<.01,'uniform visual scale on '+axis);
   }
-  op.root.scale.setScalar(OP01_CHARACTER.scale);
+  op.root.scale.setScalar(displayScale);
   op.root.updateMatrixWorld(true);
   assert(op.muzzle.getWorldPosition(new THREE.Vector3()).distanceTo(vfxBefore)<.00001,
     'muzzle still follows the scaled weapon/hand attachment');
   assert.equal(parent.scale.x,1,'gameplay player remains unscaled');
   assert.equal(op.character.height,1.78,'authoring and physics contract is unchanged');
   const diag=op.poseDiagnostics();
-  assert.equal(diag.visualScale,1.10);
-  assert(Math.abs(diag.visualHeight-1.958)<.001);
+  assert(Math.abs(diag.visualScale-displayScale)<1e-10);
+  assert(Math.abs(diag.visualHeight-OP01_CHARACTER.height*displayScale)<.001);
 });
 
 test('OP01 aims immediately, then eases toward movement without snapping',async()=>{

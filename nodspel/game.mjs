@@ -4,11 +4,12 @@ import {shelfBitLine} from './shelf-intro.js?v=2.28.56';
 import {initFtueRound} from './ftue.js?v=2.28.56-ftue-opening-v1';
 import {artilleryFlight} from './artillery-flight.mjs?v=2.28.56-bridge1';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.56';
-import {animateEnemyModel} from './enemy-animation.js?v=2.28.56';
+import {animateEnemyModel} from './enemy-animation.js?v=2.28.56-readability1';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.56';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.56';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.56-op01-default';
-import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.56-scale-rim-experiment';
+import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.56-readability1';
+import {createUnitContactShadow,UNIT_READABILITY} from './unit-readability.js?v=2.28.56-readability1';
 import {createRobotPresence} from './robot-operator.js?v=2.28.56';
 import {createOperatorFX} from './operator-fx.js?v=2.28.56';
 import {createAudioSettings} from './audio-settings.js?v=2.28.56';
@@ -39,7 +40,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.56';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.56-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.56';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.56';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.56-ftue-opening-v1-glacial-merge1';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.56-ftue-opening-v1-glacial-merge1-readability1';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.56';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.56-ftue-opening-v1';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.56';
@@ -149,6 +150,7 @@ let autoDowngraded=false,fpsState=initialFpsMonitorState(),lastFrameAt=null;
 function setGraphicsQuality(next){
   if(next===QUALITY)return;
   QUALITY=next;try{localStorage.setItem('nodeRaid.quality',next);}catch{}
+  human?.setReadabilityQuality?.(next);
   document.documentElement.dataset.quality=next;
   pixelFX.setQuality(next);
   world?.setVfxQuality(next);
@@ -272,6 +274,10 @@ function box(x,y,z,w,h,d,color,parent){
   m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
 }
 const player=new THREE.Group();scene.add(player);
+// Soft neutral grounding survives Low-quality mode, with real shadow maps off.
+// Only a transparent visual mesh is added; gameplay X/Z and hitboxes stay untouched.
+const playerContactShadow=createUnitContactShadow({radius:.72*UNIT_READABILITY.operatorScalePercent/100,opacity:.32});
+player.add(playerContactShadow);
 const robot=new THREE.Group();player.add(robot);
 const robotBody=box(0,.5,0,.62,.7,.62,'#bac4c7',robot),robotHead=box(0,.98,0,.48,.29,.46,'#e0e7e5',robot);
 const robotVisor=box(0,.97,.24,.32,.075,.025,'#2c4a54',robot);const robotGun=box(0,.65,.58,.16,.16,.67,'#242d34',robot);
@@ -298,14 +304,16 @@ if(requestedSkin!=='robot'){
 }
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
 const op01Facing=activeSkin==='op01'?createOP01FacingLatch():null;
-// Visual-only OP01 presentation experiment. Default art is unchanged.
+// Gameplay-readability pass. The original 100% / 0.16 remains selectable for A/B comparisons.
 // ?operatorScale=135 and ?operatorRim=0.24 select independent presets;
 // ?operatorScaleTest=1 (or ?operatorRimTest=1) shows both live controls.
 // No save writes, physics, hitboxes, camera or gameplay changes.
 if(activeSkin==='op01'){
   const params=new URLSearchParams(location.search);
-  human.setVisualScalePercent(Number(params.get('operatorScale')??100));
-  human.setRimStrength(Number(params.get('operatorRim')??.16));
+  const scale=Number(params.get('operatorScale')??UNIT_READABILITY.operatorScalePercent);
+  human.setVisualScalePercent(scale);
+  playerContactShadow.scale.set(.72*human.root.userData.operatorScalePercent/100,.72*human.root.userData.operatorScalePercent/100,1);
+  human.setRimStrength(Number(params.get('operatorRim')??UNIT_READABILITY.operatorRimStrength));
   if(params.get('operatorScaleTest')==='1'||params.get('operatorRimTest')==='1'){
     const panel=document.createElement('div');
     panel.id='operator-scale-test';
@@ -348,7 +356,11 @@ if(activeSkin==='op01'){
     };
     addRow('SIZE',[100,120,135,150],
       ()=>human.root.userData.operatorScalePercent,
-      value=>human.setVisualScalePercent(value),value=>value+'%');
+      value=>{
+        if(!human.setVisualScalePercent(value))return false;
+        const r=.72*value/100;playerContactShadow.scale.set(r,r,1);
+        return true;
+      },value=>value+'%');
     addRow('RIM',[.16,.24,.32],
       ()=>human.root.userData.op01RimStrength,
       value=>human.setRimStrength(value),value=>value.toFixed(2));
