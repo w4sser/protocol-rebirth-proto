@@ -1,11 +1,11 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.28.61';
-import {resultReaction} from './result-bit.js?v=2.28.61';
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.61';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.61';
-import {extractScrapBonus} from './levels.js?v=2.28.61';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.61';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.61';
+import '../data/bit.js?v=2.28.62';
+import {resultReaction} from './result-bit.js?v=2.28.62';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.62';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.62';
+import {extractScrapBonus} from './levels.js?v=2.28.62';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.62';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.62';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
