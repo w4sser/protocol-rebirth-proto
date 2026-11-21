@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createRound,tickRound} from '../round.js?v=2.28.57';
-import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.57';
-import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.57';
+import {createRound,tickRound} from '../round.js?v=2.28.58';
+import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.58';
+import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.58';
 
 test('levelIntroTitle names only discrete bunker levels, not big/continuous areas',()=>{
   assert.equal(levelIntroTitle({number:1,big:false}),'BUNKER LEVEL 1');
   assert.equal(levelIntroTitle({number:2,big:false}),'BUNKER LEVEL 2');
   assert.equal(levelIntroTitle({number:3,big:false}),'BUNKER LEVEL 3');
+  assert.equal(levelIntroTitle({number:1,big:false,depth:true}),'BUNKER · DEPTH RAID');
   assert.equal(levelIntroTitle({number:1,big:true}),null,'archipelago/town is one continuous level, no card');
   assert.equal(levelIntroTitle({number:2,big:false,area:'archipelago'}),null,'non-bunker area has no card');
   assert.equal(levelIntroTitle(null),null);
