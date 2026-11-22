@@ -528,7 +528,7 @@ function coverBetween(entry,enemies,box){
   });
 }
 // The room's far door (the one continuing the route away from the entry), used as the
-// other end of the main-route lane that cover must never block (v2.28.67: Robert 22 Nov
+// other end of the main-route lane that cover must never block (v2.28.66: Robert 22 Nov
 // 2026, cover crates sat in the middle of the walkway in a combat room).
 function roomExitPoint(level,room,entry){
   const dirs=(room.doors??[]).filter(d=>d&&typeof d.x==='number'&&Math.abs(d.x)+Math.abs(d.z??0)<=1.01&&!('w' in d)&&!('id' in d));

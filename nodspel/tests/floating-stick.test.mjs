@@ -1,4 +1,4 @@
-// Floating stick gesture logic (docs/design-combat-feel-oct28.md §2.2a, PR-A acceptance; v2.28.67 made the
+// Floating stick gesture logic (docs/design-combat-feel-oct28.md §2.2a, PR-A acceptance; v2.28.66 made the
 // first shot fire on touchdown instead of release, see AGENTS.md bug-fix notes): exercises the real
 // setupStick() from game.mjs (brace-matched extraction, same technique as perk-exit.test.mjs) in a jsdom
 // sandbox with synthetic pointer events, instead of re-implementing the gesture rules in parallel (which could

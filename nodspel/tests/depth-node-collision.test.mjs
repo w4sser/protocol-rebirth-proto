@@ -1,4 +1,4 @@
-// v2.28.67 (Robert 22 Nov 2026 playtest, CONTROL ROOM screenshot): a leftover Node Raid node
+// v2.28.66 (Robert 22 Nov 2026 playtest, CONTROL ROOM screenshot): a leftover Node Raid node
 // pad ("GATE CONTROL") must be walk-through and bullet-through in Depth Areas. Depth Raid
 // already clears round.level.nodes (retagPart in depth-level.js), so this guards the actual
 // shared collider builder (setCollisions() in game.mjs) against a future regression -- a leaked

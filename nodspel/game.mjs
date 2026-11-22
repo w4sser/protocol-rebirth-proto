@@ -794,7 +794,7 @@ function setCollisions(){
   // Depth Raid clears round.level.nodes (retagPart in depth-level.js), so this is normally a
   // no-op there, but keep it explicit: old Node Raid node pads (and any other depth leftover)
   // must never grow a collider in Depth Areas -- flat pads are walk-through and bullets pass
-  // over them (v2.28.67: Robert 22 Nov 2026, the CONTROL ROOM pad blocked movement/shots).
+  // over them (v2.28.66: Robert 22 Nov 2026, the CONTROL ROOM pad blocked movement/shots).
   playerSolids=[...solids,...(round.level.depth?[]:round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))),...(round.level.barrels??[]).filter(b=>!b.active).map(b=>({x:b.x,z:b.z,w:b.r*1.25,d:b.r*1.25,explosiveBarrel:true}))];
 }
 // A node with a live generator cannot be charged: the label says what breaks the shield.
@@ -1073,7 +1073,7 @@ function depthJambAssist(level,pos,delta){
   // open corridor floors (level.corridors/deadEnds) are not openings: their "short" side is the
   // full 2.4 m clear width and their "long" side is the corridor's entire length, so the same
   // wide/thin math used for a real door instead read the whole corridor as one giant doorway and
-  // fought the player's forward movement along its entire length (v2.28.67: Robert 22 Nov 2026,
+  // fought the player's forward movement along its entire length (v2.28.66: Robert 22 Nov 2026,
   // stuck walking straight down the area-1/area-2 connector).
   for(const door of level.doors??[])if(door&&typeof door.x==='number'&&Math.min(door.w,door.d)<=1)mouths.push(door);
   for(const room of level.rooms??[]){

@@ -52,7 +52,7 @@ test('active Transmitter supply has a visible guaranteed Archipelago radio crate
   assert.ok(!generateLevel(1,'inactive-radio','archipelago').lootBoxes.some(b=>b.item==='transmitter'));
 });
 
-test('held aim gesture is cleared on modal entry and its release cannot fire after close (v2.28.67: touchdown fires instantly, so a stale post-modal release must not add an extra shot)',()=>{
+test('held aim gesture is cleared on modal entry and its release cannot fire after close (v2.28.66: touchdown fires instantly, so a stale post-modal release must not add an extra shot)',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),handlers={},state={shots:0},thumb={style:{},getBoundingClientRect:()=>({width:36})};
   const el={style:{setProperty(){}},querySelector:()=>thumb,classList:{add(){},remove(){},toggle(){}},getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:100}),addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture(){},hasPointerCapture:()=>true,releasePointerCapture(id){handlers.lostpointercapture({pointerId:id,type:'lostpointercapture'});}};
   const ctx={viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390})},inputPaused,stickOffset,finishGesture,document:{addEventListener(){}},sticks:[],round:{pauseAt:null,over:false},tutorialOpen:false,$:selector=>selector==='#inventory'?{hidden:true}:el,keys:new Set(['Space']),mouseDown:true,screenToWorld:(x,y)=>({x,z:y}),beginAim:(x,y)=>({origin:{x,y},direction:null,target:{x:1,y:0}}),dragAim:(g,x,y)=>g.direction={x:x-g.origin.x,y:y-g.origin.y},releaseAim:(g,cancelled)=>cancelled?null:g.direction,aim:null,shot:()=>state.shots++,
