@@ -415,7 +415,8 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,#depth-extract-guide,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer and both sticks. */
-#extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:min(240px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px));white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
+#extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:max-content;max-width:calc(100vw - var(--sl,0px) - var(--sr,0px) - 200px);white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
+#extract-toast.one-line{white-space:nowrap}
 /* Playtest 2026-11-08 item 2: on a short phone screen the bag/NEED panel (backpack count, tool slots, upgrade
    material chips) stacked tall enough to eat close to half the viewport. Landscape phones have width to spare,
    so trade it for height: a wider panel holds more chips per row instead of wrapping into more rows. */

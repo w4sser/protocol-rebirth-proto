@@ -101,8 +101,27 @@ async function shot(name, w, h, kind) {
     await page.evaluate(() => {
       const exit = window.__NR.round().level.exit;
       window.__NR.teleport(exit.x, exit.z + 6);
+      // Keep ROOM CLEAR up with the extract toast so the no-overlap rule is actually on screen.
+      window.__NR.areaNotice?.("ROOM CLEAR", 8000);
     });
     await new Promise(r => setTimeout(r, 700));
+    const layout = await page.evaluate(() => {
+      const notices = [...document.querySelectorAll(".area-notice")].filter(el => el.getClientRects().length);
+      const rects = notices.map(el => {
+        const r = el.getBoundingClientRect();
+        return { id: el.id, className: el.className, text: el.textContent, x: r.x, y: r.y, w: r.width, h: r.height };
+      });
+      const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      const collisions = [];
+      for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (overlap(rects[i], rects[j])) collisions.push([rects[i], rects[j]]);
+      const extract = rects.find(r => r.id === "extract-toast");
+      const roomClear = rects.find(r => /ROOM CLEAR/.test(r.text));
+      return { rects, collisions, extract, roomClear };
+    });
+    if (!layout.extract) throw new Error(name + " " + w + "x" + h + " missing EXTRACT OPEN toast: " + JSON.stringify(layout));
+    if (!layout.roomClear) throw new Error(name + " " + w + "x" + h + " missing ROOM CLEAR for overlap check: " + JSON.stringify(layout));
+    if (layout.collisions.length) throw new Error(name + " " + w + "x" + h + " toasts overlapped: " + JSON.stringify(layout.collisions));
+    if (layout.extract.h > 24) throw new Error(name + " " + w + "x" + h + " EXTRACT OPEN wrapped off one line: " + JSON.stringify(layout.extract));
   } else if (kind === "edge-result") {
     await page.evaluate(() => {
       const exit = window.__NR.round().level.exit;

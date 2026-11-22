@@ -490,3 +490,14 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({beamSrc:vfx.replaceAll('EXTRACT_PAD_RADIUS=1.45','EXTRACT_PAD_RADIUS=1')}).length,1,'a smaller visual pad fires');
  assert.equal(rule.check({gameSrc:game.replaceAll('hideForExtract','hideNothing')}).length,1,'loot labels that stay over the open hatch fire');
 }
+
+{
+ const rule=by('area-notice-no-overlap');
+ assert.equal(rule.check().length,0,'area-notice stack holds on real source');
+ assert.equal(rule.check({gameSrc:'',cssSrc:''}).length,3,'all area-notice overlap guards fire');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const css=fs.readFileSync(new URL('../nodspel/style.css',import.meta.url),'utf8');
+ assert.equal(rule.check({gameSrc:game.replaceAll('layoutBottomNotices','layoutNothing')}).length,1,'dropping the bottom-toast stack fires');
+ assert.equal(rule.check({gameSrc:game.replaceAll('EXTRACT OPEN · walk into the lit hatch','EXTRACT OPEN · the hatch in this area is lit — follow the marker and walk into the beam')}).length,1,'restoring the long depth extract toast fires');
+ assert.equal(rule.check({cssSrc:css.replaceAll('#extract-toast.one-line{white-space:nowrap}','#extract-toast.one-line{white-space:normal}')}).length,1,'a wrapping extract toast fires');
+}

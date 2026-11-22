@@ -563,6 +563,12 @@ export const RULES=[
      if(!vfx.includes('export const EXTRACT_PAD_RADIUS=1.45')||!vfx.includes('RingGeometry(PAD_INNER,EXTRACT_PAD_RADIUS'))out.push('nodspel/vfx-extract-beam.js: the ground pad outer radius must be EXTRACT_PAD_RADIUS 1.45');
      if(!game.includes('hideForExtract')||!game.includes('extractRadiusOf(round)+1.2'))out.push('nodspel/game.mjs: loot/equip labels on an open extract pad must hide so they cannot cover the hatch');
      return out;}},
+  {id:'area-notice-no-overlap',pr:'v2.28.63 depth-extract-trigger',why:"On a 667-wide phone the ROOM CLEAR pill sat on top of the EXTRACT OPEN toast and hid the text. Both used the same bottom slot, and the Depth Raid copy wrapped onto two lines.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),css=ctx.cssSrc??read('nodspel/style.css');const out=[];
+     if(!game.includes('function layoutBottomNotices(')||!game.includes('layoutBottomNotices()'))out.push('nodspel/game.mjs: bottom toasts must be stacked by layoutBottomNotices so they never overlap');
+     if(!game.includes("EXTRACT OPEN · walk into the lit hatch"))out.push('nodspel/game.mjs: the Depth Raid EXTRACT OPEN toast must stay short enough for one line at 667px');
+     if(!/#extract-toast\.one-line\{[^}]*white-space:\s*nowrap/.test(css))out.push('nodspel/style.css: the shortened EXTRACT OPEN toast must stay on one line (nowrap)');
+     return out;}},
 ];
 
 

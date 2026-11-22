@@ -206,7 +206,14 @@ if(DEBUG){
     ftueDebugEl.textContent=`FTUE step:${ftue.step||'-'} attempts:${ftue.attempts||0}\nplay:${fmt('play')} raidStart:${fmt('raidStart')} firstShot:${fmt('firstShot')} firstKill:${fmt('firstKill')} firstExtract:${fmt('firstExtract')}`;
   },500);
 }
-function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className=text==='ROOM CLEAR'?'area-notice room-clear':'area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
+function layoutBottomNotices(){
+  const list=[...document.querySelectorAll('.area-notice')].filter(el=>el.isConnected&&!el.hidden&&(el.id==='extract-toast'||el.classList.contains('room-clear')));
+  list.sort((a,b)=>(a.id==='extract-toast'?0:1)-(b.id==='extract-toast'?0:1));
+  const sb=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||0;
+  let y=18+sb;
+  for(const el of list){el.style.top='auto';el.style.bottom=`${y}px`;el.style.left='50%';el.style.transform='translateX(-50%)';y+=el.getBoundingClientRect().height+6;}
+}
+function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className=text==='ROOM CLEAR'?'area-notice room-clear':'area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);layoutBottomNotices();setTimeout(()=>{n.remove();layoutBottomNotices();},ms);},0);}
 // Combat feel opt-out (docs/design-combat-feel-oct28.md §2.1.3/§2.2a point 6): one flag for camera shake + haptics.
 const FX_KEY='nodspel.reducedFx';
 const fxToggle=document.createElement('button');fxToggle.type='button';fxToggle.className='combat-fx-toggle';
@@ -1136,7 +1143,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   if(label.caption.textContent!==text)label.caption.textContent=text;if(!door&&done)setIconText(label.shortEl,'check','');else setIconText(label.shortEl,'',door?(done?'':'DOOR'):'SEARCH');
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
   label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&gameClock()-ref.openedAt>1500;}}
-function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent=round.depth?'EXTRACT OPEN · the hatch in this area is lit — follow the marker and walk into the beam':'EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);setTimeout(()=>t.remove(),6000);}
+function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className=round.depth?'area-notice one-line':'area-notice';t.setAttribute('role','status');t.textContent=round.depth?'EXTRACT OPEN · walk into the lit hatch':'EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);layoutBottomNotices();setTimeout(()=>{t.remove();layoutBottomNotices();},6000);}
 // Shared by the level-load roster and v2.7.0 hunter waves (nodspel/stakes.js), which add enemies mid-raid.
 function labelEnemyVisual(v){
   v.maxHealth=v.enemy.health;
@@ -1721,6 +1728,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   operator:()=>human,
   capturePerformance(options={}){return raidProfiler.start({...options,metadata:{area:AREA_SEL,quality:QUALITY,userAgent:navigator.userAgent,viewport:{width:viewWidth,height:viewHeight,pixelRatio:renderer.getPixelRatio()},renderMode:'whole frame including postprocessing',deviceLabel:options.deviceLabel||'unspecified',physicalPhoneVerified:options.physicalPhoneVerified===true}});},
   setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
+  areaNotice,layoutBottomNotices,
   // Headless/software-rendered test runs can sustain <40 fps for reasons that have nothing to do with the
   // mood pass itself; let fixtures opt out of the auto-downgrade watchdog so screenshots stay deterministic.
   setMoodAutoDowngradeEnabled(enabled){autoDowngraded=!enabled;},
