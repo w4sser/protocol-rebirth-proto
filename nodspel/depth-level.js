@@ -3,8 +3,8 @@
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
 // v2.28.64: corridors are at least 2.4 m clear with chamfered joints so the capsule does not
 // snag, and every combat room gets 2-4 cover pieces between the entry and the enemies.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.65';
-import '../data/raid-depth.js?v=2.28.65';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.66';
+import '../data/raid-depth.js?v=2.28.66';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
@@ -520,14 +520,42 @@ function coverBetween(entry,enemies,box){
     // Closest point on the entry-to-enemy segment to the box center.
     const t=Math.max(0.12,Math.min(0.88,((box.x-entry.x)*dx+(box.z-entry.z)*dz)/(len*len)));
     const px=entry.x+t*dx,pz=entry.z+t*dz;
-    // Offset pieces with an open flank still count as "between" if they sit
-    // in the approach lane (about a capsule-and-a-half off the line).
+    // Offset pieces with an open flank still count as tactically "between" if they sit
+    // close enough to be a flanking option, but they must stay outside the clear main-route
+    // lane (see blocksMainRoute) -- cover is a side option, never a wall across the lane.
     const lat=Math.hypot(box.x-px,box.z-pz);
     return lat<=Math.max(box.w,box.d)/2+1.65;
   });
 }
-// Every combat room (a room that has enemies) gets 2-4 cover pieces between
-// the player entry and those enemies, with an open flank on one side.
+// The room's far door (the one continuing the route away from the entry), used as the
+// other end of the main-route lane that cover must never block (v2.28.66: Robert 22 Nov
+// 2026, cover crates sat in the middle of the walkway in a combat room).
+function roomExitPoint(level,room,entry){
+  const dirs=(room.doors??[]).filter(d=>d&&typeof d.x==='number'&&Math.abs(d.x)+Math.abs(d.z??0)<=1.01&&!('w' in d)&&!('id' in d));
+  let best=null,bestD=-1;
+  for(const dir of dirs){
+    const p={x:room.x+dir.x*(room.w/2),z:room.z+dir.z*(room.d/2)};
+    const d=Math.hypot(p.x-entry.x,p.z-entry.z);
+    if(d>bestD){bestD=d;best=p;}
+  }
+  return bestD>1?best:null;
+}
+// Perpendicular distance from p to the entry->exit segment (clamped to the segment span).
+function segmentLateral(p,a,b){
+  const dx=b.x-a.x,dz=b.z-a.z,len2=dx*dx+dz*dz||1;
+  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/len2));
+  return Math.hypot(p.x-(a.x+t*dx),p.z-(a.z+t*dz));
+}
+// A ~1.25 m cover box's own half-extent, so its near edge (not just its center) clears the lane.
+const COVER_HALF_EXTENT=0.65;
+export const DEPTH_COVER_LANE_HALF=DEPTH_CLEAR_WIDTH/2+COVER_HALF_EXTENT;
+function blocksMainRoute(p,entry,exit){
+  if(!exit)return false;
+  return segmentLateral(p,entry,exit)<DEPTH_COVER_LANE_HALF;
+}
+// Every combat room (a room that has enemies) gets 2-4 cover pieces as tactical, flanking
+// options near the entry-to-enemy approach, with an open flank on one side. None of them may
+// sit inside the clear lane between the room's entry and its far (exit/connector) door.
 export function placeDepthCover(level){
   const reserved=reservedNavPath(level);
   const rooms=level.rooms??[];
@@ -535,8 +563,9 @@ export function placeDepthCover(level){
     const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
     if(!enemies.length)continue;
     const entry=roomEntry(level,room);
+    const exit=roomExitPoint(level,room,entry);
     const existing=(level.boxes??[]).filter(b=>inRoom(room,b,0.2));
-    const useful=existing.filter(b=>coverBetween(entry,enemies,b));
+    const useful=existing.filter(b=>coverBetween(entry,enemies,b)&&!blocksMainRoute(b,entry,exit));
     const want=Math.max(2,Math.min(4,useful.length>=2?useful.length:2+(enemies.length>2?1:0)+(room.w*room.d>80?1:0)));
     if(useful.length>=want)continue;
     const cx=enemies.reduce((s,e)=>s+e.x,0)/enemies.length;
@@ -550,25 +579,28 @@ export function placeDepthCover(level){
       if(!coverSpotFree(level,p,0.7))return false;
       if(inWallOpening(level,p,0.9))return false;
       if(reserved.near(p,0.65))return false;
+      if(blocksMainRoute(p,entry,exit))return false;
       if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<2.0))return false;
       if(Math.hypot(p.x-entry.x,p.z-entry.z)<1.45)return false;
       return true;
     };
+    // Lateral offsets start just past the clear lane so a candidate is a side option, not a wall.
+    const LANE=exit?DEPTH_COVER_LANE_HALF:0.95;
     const candidates=[];
     for(const fl of [flank,-flank]){
       for(let i=0;i<18;i++){
         const t=0.25+0.55*(i/17);
-        const side=fl*(0.95+0.55*(i%4)/3);
+        const side=fl*(LANE+0.55*(i%4)/3);
         candidates.push({x:entry.x+ux*len*t+px*side,z:entry.z+uz*len*t+pz*side});
       }
     }
     for(let t=0.28;t<=0.8;t+=0.08){
-      for(let s=-2.4;s<=2.4;s+=0.4){
-        if(Math.abs(s)<0.7)continue;
+      for(let s=-2.8;s<=2.8;s+=0.4){
+        if(Math.abs(s)<LANE)continue;
         candidates.push({x:entry.x+ux*len*t+px*s,z:entry.z+uz*len*t+pz*s});
       }
     }
-    // Wall-hugging last resort: sit a low wall just inside a long side, still between entry and enemies.
+    // Wall-hugging last resort: sit a low wall just inside a long side, still a flanking option.
     for(const fl of [flank,-flank]){
       for(const t of [0.35,0.5,0.65]){
         const side=fl*((Math.abs(ux)>Math.abs(uz)?room.w:room.d)/2-1.05);
@@ -587,16 +619,17 @@ export function placeDepthCover(level){
       if(!ok(raw))continue;
       place(raw,along);
     }
-    // Deterministic last try: two flank spots on the approach, slightly looser.
+    // Deterministic last try: two flank spots on the approach, slightly looser but still off-lane.
     if(added<need){
       const loose=p=>inRoom(room,p,0.5)&&coverSpotFree(level,p,0.55)&&!inWallOpening(level,p,0.8)
+        &&!blocksMainRoute(p,entry,exit)
         &&!(level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.8)
         &&Math.hypot(p.x-entry.x,p.z-entry.z)>=1.2;
       for(const t of [0.4,0.55,0.7]){
         if(added>=need)break;
         for(const fl of [1,-1]){
           if(added>=need)break;
-          const p={x:entry.x+ux*len*t+px*fl*1.35,z:entry.z+uz*len*t+pz*fl*1.35};
+          const p={x:entry.x+ux*len*t+px*fl*(LANE+0.7),z:entry.z+uz*len*t+pz*fl*(LANE+0.7)};
           if(loose(p))place(p,along);
         }
       }
@@ -611,7 +644,8 @@ function topUpRoomCover(level,reserved){
     const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
     if(!enemies.length)continue;
     const entry=roomEntry(level,room);
-    const between=(level.boxes??[]).filter(b=>inRoom(room,b,0.2)&&coverBetween(entry,enemies,b));
+    const exit=roomExitPoint(level,room,entry);
+    const between=(level.boxes??[]).filter(b=>inRoom(room,b,0.2)&&coverBetween(entry,enemies,b)&&!blocksMainRoute(b,entry,exit));
     if(between.length>=2)continue;
     const cx=enemies.reduce((s,e)=>s+e.x,0)/enemies.length;
     const cz=enemies.reduce((s,e)=>s+e.z,0)/enemies.length;
@@ -621,15 +655,18 @@ function topUpRoomCover(level,reserved){
     const clear=p=>{
       if(!inRoom(room,p,0.45))return false;
       if(inWallOpening(level,p,0.75))return false;
+      if(blocksMainRoute(p,entry,exit))return false;
       const solids=[...(level.walls??[]),...(level.boxes??[])];
       if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5&&Math.abs(p.z-o.z)<(o.d||0)/2+0.5))return false;
       if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.6))return false;
       return true;
     };
     let need=2-between.length;
+    const LANE=exit?DEPTH_COVER_LANE_HALF:1.15;
+    const flanks=[LANE,LANE+0.55,LANE+0.95,-LANE,-LANE-0.55,-LANE-0.95];
     for(const t of [0.35,0.5,0.65,0.8,0.25]){
       if(need<=0)break;
-      for(const fl of [1.15,1.7,2.1,-1.15,-1.7,-2.1]){
+      for(const fl of flanks){
         if(need<=0)break;
         const p={x:entry.x+ux*len*t+px*fl,z:entry.z+uz*len*t+pz*fl};
         if(!clear(p))continue;
@@ -768,9 +805,11 @@ export function combatRoomsWithCover(level){
     const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
     if(!enemies.length)return null;
     const entry=roomEntry(level,room);
+    const exit=roomExitPoint(level,room,entry);
     const boxes=(level.boxes??[]).filter(b=>inRoom(room,b,0.2));
-    const between=boxes.filter(b=>coverBetween(entry,enemies,b));
-    return {room,entry,enemies,boxes,between};
+    const between=boxes.filter(b=>coverBetween(entry,enemies,b)&&!blocksMainRoute(b,entry,exit));
+    const blockingLane=exit?boxes.filter(b=>blocksMainRoute(b,entry,exit)):[];
+    return {room,entry,exit,enemies,boxes,between,blockingLane};
   }).filter(Boolean);
 }
 // Centerline waypoints for every depth connector (door + corridor floors), plus

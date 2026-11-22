@@ -537,7 +537,8 @@ export const RULES=[
    check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),css=ctx.cssSrc??read('nodspel/style.css'),html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
      if(!game.includes("bindHUDTap($('#depth-extract'),onDepthExtract)")||!game.includes("bindHUDTap($('#depth-go-deeper'),onDepthGoDeeper)"))out.push('nodspel/game.mjs: EXTRACT / GO DEEPER must use bindHUDTap so a phone pointerup activates them without a synthesized click');
      if(!game.includes("e.target.closest?.('#depth-choice,.bit-card')"))out.push('nodspel/game.mjs: the paused-input capture gate must treat #depth-choice and .bit-card as owned, otherwise it swallows taps while the choice is paused');
-     if(!game.includes("#quest-chip,#depth-choice")||!game.includes(".pop-backdrop,.stick,#depth-choice"))out.push('nodspel/game.mjs: stick routing must treat #depth-choice as covered UI so playfield aims cannot steal the tap');
+     const covered=(game.match(/const covered=\[\.\.\.document\.querySelectorAll\('([^']*)'\)\]/)||[])[1]??'';
+     if(!covered.includes('#depth-choice')||!game.includes(".pop-backdrop,.stick,#depth-choice"))out.push('nodspel/game.mjs: stick routing must treat #depth-choice as covered UI so playfield aims cannot steal the tap');
      if(!css.includes('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}')||!css.includes('.depth-choice-frame{position:relative;z-index:1'))out.push('nodspel/style.css: the depth-choice backdrop must sit behind the card and ignore pointer events so it cannot cover EXTRACT / GO DEEPER');
      if(html.includes('id="go-deeper"'))out.push('nodspel/index.html: the stale v2.28.57 #go-deeper HUD chip must stay removed');
      return out;}},
@@ -591,6 +592,35 @@ export const RULES=[
      const shootEnd=gen.indexOf('if name.startswith',shootStart+1);
      const shootBody=shootStart<0?'':gen.slice(shootStart,shootEnd<0?shootStart+400:shootEnd);
      if(shootStart<0||!gen.includes('def gunshot(')||/return tone\(|np\.sin\(/.test(shootBody))out.push('tools/audio/gen-sfx.py shoot cues must be noise-burst gunpowder or air reports, not sine tone sweeps');
+     return out;}},
+  {id:'aim-stick-instant-fire',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: the aim stick only fired on pointerup, so every shot felt laggy; and the document-level touch router treated floating, pointer-events:none HUD labels (ammo/weapon/health/shield), which track the player's screen position, as covered obstacles, so they could silently swallow a touch meant to start the aim stick in the right zone.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),levels=ctx.levelsSrc??read('nodspel/levels.js');const out=[];
+     if(!/if\(onShot&&!inputPaused\(round\)\)onShot\(true\);/.test(game))out.push('nodspel/game.mjs: setupStick must fire an instant auto-target shot on pointerdown, not wait for pointerup');
+     const covered=(game.match(/const covered=\[\.\.\.document\.querySelectorAll\('([^']*)'\)\]/)||[])[1];
+     if(!covered)out.push('nodspel/game.mjs: setupStick must have a covered-controls selector for the document-level touch router');
+     else if(/#ammo-hud|#weapon-name|#player-health|#player-shield|#quest-chip|\.round-hud|#level-corner/.test(covered))out.push('nodspel/game.mjs: floating HUD labels must not be treated as covered controls that block an aim-stick touch');
+     if(!/deadZonePx:(\d+)/.test(levels)||+(levels.match(/deadZonePx:(\d+)/)||[])[1]>=20)out.push('nodspel/levels.js: RULES.aimControls.deadZonePx must stay below the old 20px so a touch just past center still counts as a drag');
+     return out;}},
+  {id:'depth-jamb-assist-corridors-not-openings',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: walking through a Depth Raid doorway/corridor gap felt like tar, an invisible wall slowing the player. depthJambAssist()'s wide/thin-axis math is built for a door plane (one axis is a thin wall thickness); feeding it full corridor floor segments (wide only up to the 2.4 m clear width, but many metres long) made it read the whole corridor as one giant doorway and fight the player's forward movement along its entire length.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     const start=game.indexOf('function depthJambAssist(');
+     if(start<0){out.push('nodspel/game.mjs: depthJambAssist() is missing');return out;}
+     let i=game.indexOf('{',start),depth=0;
+     for(;i<game.length;i++){if(game[i]==='{')depth++;else if(game[i]==='}'){depth--;if(depth===0)break;}}
+     const body=game.slice(start,i+1);
+     if(/for\(const c of \[\.\.\.\(level\.corridors/.test(body)||/mouths\.push\(c\)/.test(body))out.push('nodspel/game.mjs: depthJambAssist must not add full corridor/deadEnd floor segments to its mouths -- only thin door/doorway planes');
+     if(!/Math\.min\(door\.w,door\.d\)<=1/.test(body))out.push('nodspel/game.mjs: depthJambAssist must only centre-pull through genuinely thin openings (reject wide, long corridor rectangles)');
+     return out;}},
+  {id:'depth-cover-lane-clear',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: a combat room's cover crates sat in the middle of the walkway. placeDepthCover() used the entry-to-enemy line as its only reference, so tactical cover could land squarely on the main route between a room's entry and its far door instead of beside it.",
+   check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js');const out=[];
+     if(!depth.includes('function roomExitPoint(')||!depth.includes('function blocksMainRoute(')||!depth.includes('export const DEPTH_COVER_LANE_HALF='))out.push('nodspel/depth-level.js: cover placement needs a room-exit lane and a main-route-blocking guard');
+     if(!/if\(blocksMainRoute\(p,entry,exit\)\)return false;/.test(depth))out.push('nodspel/depth-level.js: placeDepthCover candidate spots must reject anything that blocks the entry-exit lane');
+     if(!depth.includes('export function combatRoomsWithCover')||!/return \{room,entry,exit,enemies,boxes,between,blockingLane\};/.test(depth))out.push('nodspel/depth-level.js: combatRoomsWithCover must expose which cover (if any) blocks the main-route lane, so tests can prove the lane stays clear');
+     return out;}},
+  {id:'depth-nodes-no-collider',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest (CONTROL ROOM screenshot): a leftover Node Raid node pad blocked the player and bullets in a Depth Area. setCollisions() in game.mjs built a 1.4x1.4 collider for every round.level.nodes entry unconditionally, with no depth-aware guard, even though the same obstacle list also gates the player's shots.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!/playerSolids=\[\.\.\.solids,\.\.\.\(round\.level\.depth\?\[\]:round\.level\.nodes\.map\(n=>\(\{x:n\.x,z:n\.z,w:1\.4,d:1\.4\}\)\)\)/.test(game))out.push('nodspel/game.mjs: setCollisions must skip node colliders entirely while round.level.depth is set');
+     if(!/fireAimedWeapon\(weapon,round,position,direction,clock,playerSolids,playerMoving,tap\)/.test(game))out.push('nodspel/game.mjs: fire() must still trace shots against the same playerSolids list (one source of truth for movement and bullets)');
      return out;}},
 ];
 

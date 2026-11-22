@@ -37,7 +37,7 @@ try{
   const extract=async items=>{const nav=page.waitForNavigation({waitUntil:'networkidle0',timeout:60000});await page.evaluate(items=>__NR.extractDemo(items),items);await nav;await page.waitForFunction(()=>window.A);};
   await page.goto(base,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.A);await page.evaluate(()=>{document.getElementById('splash')?.remove();window.dispatchEvent(new Event('pr:splash-finished'));});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));
   // Voice-producing events also stay silent while BIT sleeps; SFX continue normally.
-  await page.evaluate(async()=>{window.__voiceRequests=[];const voice=PR_AUDIO.voice.bind(PR_AUDIO);PR_AUDIO.voice=(name,...args)=>{__voiceRequests.push(name);return voice(name,...args);};const {audioEvent}=await import('./audio.js?v=2.28.65');audioEvent('bag-full');audioEvent('extract-revealed');});
+  await page.evaluate(async()=>{window.__voiceRequests=[];const voice=PR_AUDIO.voice.bind(PR_AUDIO);PR_AUDIO.voice=(name,...args)=>{__voiceRequests.push(name);return voice(name,...args);};const {audioEvent}=await import('./audio.js?v=2.28.66');audioEvent('bag-full');audioEvent('extract-revealed');});
   assert.equal(await page.evaluate(()=>__voiceRequests.length),0,'no BIT event voice before wake');
   // Observe the fuel drum at first sight. Encounter and explosion remain present in the FTUE.
   await page.evaluate(()=>{const r=__NR.round();const b=r.level.barrels?.[0];if(!b)throw Error('FTUE explosive barrel missing');__NR.teleport(b.x-2,b.z);for(const e of r.level.enemies)e.aggro=false;});

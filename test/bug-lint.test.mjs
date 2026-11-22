@@ -442,7 +442,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  const html=fs.readFileSync(new URL('../nodspel/index.html',import.meta.url),'utf8');
  assert.equal(rule.check({gameSrc:game.replace("bindHUDTap($('#depth-extract'),onDepthExtract)","$('#depth-extract').addEventListener('click',onDepthExtract)")}).length,1,'click-only EXTRACT wiring fires');
  assert.equal(rule.check({gameSrc:game.replace("e.target.closest?.('#depth-choice,.bit-card')","e.target.closest?.('#nope')")}).length,1,'a paused-input gate that swallows the popup fires');
- assert.equal(rule.check({gameSrc:game.replace('#quest-chip,#depth-choice','#quest-chip')}).length,1,'stick routing that ignores #depth-choice fires');
+ assert.equal(rule.check({gameSrc:game.replace("#raid-settings-open,#depth-choice'","#raid-settings-open'")}).length,1,'stick routing that ignores #depth-choice fires');
  assert.equal(rule.check({cssSrc:css.replace('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}','')}).length,1,'a covering backdrop fires');
  assert.equal(rule.check({htmlSrc:html+'<button id="go-deeper" type="button">GO DEEPER</button>'}).length,1,'a leftover HUD chip fires');
 }
@@ -535,4 +535,49 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({audioSrc:audio.replace('thump2*thumpGain','Math.sin(phase)*thumpGain')}).length,1,'a sine thump in shotBuffer fires');
  assert.equal(rule.check({audioDataSrc:data.replaceAll("kind:'air'", "kind:'pew'").replaceAll('shoot-air','shoot-pew')}).length,1,'dropping the air weapon profile fires');
  assert.equal(rule.check({genSfxSrc:gen.replace('return gunshot(name, rng)','return tone(.16, 540, 90, 2.4, rng)')}).length,1,'restoring sine-tone shoot files fires');
+}
+
+{
+ const rule=by('aim-stick-instant-fire');
+ assert.equal(rule.check().length,0,'aim-stick instant fire holds on real source');
+ assert.equal(rule.check({gameSrc:'',levelsSrc:''}).length,3,'all aim-stick-instant-fire guards fire');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
+ assert.equal(rule.check({gameSrc:game.replace('if(onShot&&!inputPaused(round))onShot(true);','')}).length,1,'dropping the instant pointerdown fire call fires');
+ assert.equal(rule.check({gameSrc:game.replace("'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice'","'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice,#player-health,#player-shield,#ammo-hud,#weapon-name'")}).length,1,'treating floating HUD labels as covered controls fires');
+ assert.equal(rule.check({levelsSrc:levels.replace('deadZonePx:8','deadZonePx:20')}).length,1,'raising the deadzone back to 20px fires');
+}
+
+{
+ const rule=by('depth-jamb-assist-corridors-not-openings');
+ assert.equal(rule.check().length,0,'depth jamb assist (corridors excluded) holds on real source');
+ assert.equal(rule.check({gameSrc:'function depthJambAssist(level,pos,delta){}'}).length,1,'a missing/rewritten depthJambAssist fires');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const reintroduced=game.replace(
+   "for(const door of level.doors??[])if(door&&typeof door.x==='number'&&Math.min(door.w,door.d)<=1)mouths.push(door);",
+   "for(const door of level.doors??[])if(door&&typeof door.x==='number'&&Math.min(door.w,door.d)<=1)mouths.push(door);\n  for(const c of [...(level.corridors??[]),...(level.deadEnds??[])]){\n    if(!c)continue;\n    mouths.push(c);\n  }"
+ );
+ assert.equal(rule.check({gameSrc:reintroduced}).length,1,'re-adding corridor/deadEnd segments to the mouths list fires');
+}
+
+{
+ const rule=by('depth-cover-lane-clear');
+ assert.equal(rule.check().length,0,'depth cover lane clearance holds on real source');
+ assert.equal(rule.check({depthLevelSrc:''}).length,3,'all depth-cover-lane-clear guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ assert.equal(rule.check({depthLevelSrc:depth.replaceAll('if(blocksMainRoute(p,entry,exit))return false;','')}).length,1,'dropping the lane guard in placeDepthCover candidates fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('between,blockingLane','between')}).length,1,'dropping the blockingLane report fires');
+}
+
+{
+ const rule=by('depth-nodes-no-collider');
+ assert.equal(rule.check().length,0,'depth nodes no-collider holds on real source');
+ assert.equal(rule.check({gameSrc:''}).length,2,'all depth-nodes-no-collider guards fire');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const regressed=game.replace(
+   "playerSolids=[...solids,...(round.level.depth?[]:round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))),...(round.level.barrels??[]).filter(b=>!b.active).map(b=>({x:b.x,z:b.z,w:b.r*1.25,d:b.r*1.25,explosiveBarrel:true}))];",
+   "playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...(round.level.barrels??[]).filter(b=>!b.active).map(b=>({x:b.x,z:b.z,w:b.r*1.25,d:b.r*1.25,explosiveBarrel:true}))];"
+ );
+ assert.notEqual(regressed,game,'the replace actually matched the shipped setCollisions line');
+ assert.equal(rule.check({gameSrc:regressed}).length,1,'dropping the depth guard on node colliders fires');
 }

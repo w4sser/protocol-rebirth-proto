@@ -1,14 +1,14 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.65';
-import {generateBigLevel} from './big-level.js?v=2.28.65';
-import '../data/items.js?v=2.28.65';
-import '../data/raid-ftue.js?v=2.28.65';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.65';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.65-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.65';
-import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.65';
-import '../data/raid-combat.js?v=2.28.65';
-import '../data/raid-junction.js?v=2.28.65';
-import '../data/raid-shelf.js?v=2.28.65';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.66';
+import {generateBigLevel} from './big-level.js?v=2.28.66';
+import '../data/items.js?v=2.28.66';
+import '../data/raid-ftue.js?v=2.28.66';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.66';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.66-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.66';
+import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.66';
+import '../data/raid-combat.js?v=2.28.66';
+import '../data/raid-junction.js?v=2.28.66';
+import '../data/raid-shelf.js?v=2.28.66';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
@@ -216,7 +216,7 @@ export const RULES=Object.freeze({
       resistantEncounters:['guard','turret','shield_turret'],
     }},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
-  aimControls:{deadZonePx:20,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
+  aimControls:{deadZonePx:8,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
 });
 // Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.
