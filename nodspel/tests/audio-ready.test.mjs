@@ -27,7 +27,7 @@ test('raid waits for every combat decode, selects AAC, prewarms shots, then star
   const ready=prepareCombatAudio(audio);let starts=0;
   const start=waitForCombatAudio(ready).then(ok=>{assert.equal(ok,true);starts++;});
   await tick();assert.equal(starts,0);assert.ok(urls.length>20);assert.ok(urls.every(url=>url.endsWith('.m4a')));
-  assert.equal(audio.shotCache.size,8);
+  assert.equal(audio.shotCache.size,2*Object.keys(config.shots.weapons).length);
   const last=ctx.pending.pop();ctx.pending.splice(0).forEach(p=>p.resolve({duration:1}));
   await tick();assert.equal(starts,0,'one undecoded combat cue still holds play');
   last.resolve({duration:1});await start;assert.equal(starts,1);

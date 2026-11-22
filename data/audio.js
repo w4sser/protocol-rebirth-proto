@@ -3,7 +3,7 @@
   root.DATA=root.DATA||{};
   const sfx={};
   const add=(names,gain=0.5,minGap=0)=>names.split(' ').forEach(name=>sfx[name]={file:'sfx/'+name,gain,minGap});
-  add('shoot-carbine shoot-smg shoot-shotgun shoot-rifle',0.82,40);
+  add('shoot-carbine shoot-smg shoot-shotgun shoot-rifle shoot-air',0.82,40);
   add('reload-carbine reload-smg reload-shotgun reload-rifle empty-carbine empty-smg empty-shotgun empty-rifle',0.35,180);
   add('impact-enemy impact-wall kill medkit dash perk-open perk-select ui-tap ui-back ui-confirm bag-full extract-countdown extract-success death',0.45,100);
   add('hit-grunt hit-rusher hit-thrower hit-tank hit-turret hit-generator death-grunt death-rusher death-thrower death-tank death-turret death-generator',0.35,160);
@@ -18,12 +18,18 @@
     pitchVariation:0.035,gainVariation:0.08,globalVoiceCooldownMs:12000,
     shots:{
       duration:.32,attack:.0005,fade:.015,crackDecay:.007,bodyDecay:.055,tailDecay:.075,
-      highpassHz:1400,bodyHz:1800,tailHz:650,thumpStartHz:150,thumpEndHz:40,thumpDrop:.035,thumpDecay:.12,
+      highpassHz:1400,bodyHz:1800,tailHz:650,thumpHz:160,thumpDecay:.12,
       crackGain:1.3,bodyGain:.8,thumpGain:1.4,tailGain:.22,drive:1.65,ceiling:.86,
       echoes:[{delay:.034,gain:.15},{delay:.071,gain:.07}],
       enemyGain:.46,enemyCrack:.5,enemyThump:.55,
       compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08},
-      weapons:{carbine:{pitch:1,gain:1},smg:{pitch:1.17,gain:.86},shotgun:{pitch:.78,gain:1.18},rifle:{pitch:.9,gain:1.08}}
+      weapons:{
+        carbine:{kind:'powder',pitch:1,gain:1},
+        smg:{kind:'powder',pitch:1.17,gain:.86,crackDecay:.004,thumpGain:.7},
+        shotgun:{kind:'powder',pitch:.78,gain:1.18,crackGain:1.5,bodyGain:1,thumpGain:1.7,thumpHz:120,tailGain:.3,drive:1.9},
+        rifle:{kind:'powder',pitch:.9,gain:1.08,thumpGain:1.55,thumpHz:140,tailGain:.26},
+        air:{kind:'air',pitch:1.18,gain:.82,duration:.2,drive:1.45,crackGain:1.15,hissHz:4200,hissGain:.75,hissDecay:.05,bodyGain:.22}
+      }
     },
     voiceCooldownMs:60000,voiceCooldowns:{'nice-shot':90000,'signal-lost':15000,'welcome-back':15000,'youre-back':15000},
     voiceGain:0.95,killStreak:5,extractCountdownSeconds:10,

@@ -580,7 +580,20 @@ export const RULES=[
      if(!game.includes('GO DEEPER · skip remaining enemies')||!html.includes('id="depth-push"')||!game.includes('onDepthPushConfirm'))out.push('the first uncleared push must show a small GO DEEPER confirm on the door');
      if(!bunker.includes('if(level.depth)')||!world.includes('if(level.depth)'))out.push('nodspel/bunker.js / world.js: Depth Raid must light every area, not only the first Q.lights anchors');
      return out;}},
+  {id:'depth-scale-light-gun-sfx',pr:'v2.28.65 depth lighting and gunpowder SFX',why:"Robert 22 Nov 2026: asked if the Depth Raid character was bigger and if the rim light was too strong, and said shots sounded like lasers instead of gunpowder or air weapons.",
+   check(ctx={}){const bunker=ctx.bunkerSrc??read('nodspel/bunker.js'),world=ctx.worldSrc??read('nodspel/world.js'),audio=ctx.audioSrc??read('ui/audio.js'),data=ctx.audioDataSrc??read('data/audio.js'),gen=ctx.genSfxSrc??read('tools/audio/gen-sfx.py');const out=[];
+     if(/depth\s*\?\s*9/.test(bunker)||/depth\s*\?\s*8/.test(world)||/depth\s*\?\s*10/.test(world)||/depth\s*\?\s*22/.test(world))out.push('nodspel/bunker.js / world.js: Depth Raid lamps, fills and extract lights must use the same intensity and range as Node Raid so the stitched map is not washed out');
+     if(!bunker.includes('for(const area of [1,2,3])'))out.push('nodspel/bunker.js: every depth area must still get a lamp');if(!world.includes('for(const area of [1,2,3])'))out.push('nodspel/world.js: every depth area must still get a fill');
+     const body=audio.slice(audio.indexOf('shotBuffer('),audio.indexOf('shotDestination('));
+     if(!body||/createOscillator|Math\.sin\s*\(|type:\s*['"]sine['"]|type:\s*['"]square['"]|thumpStartHz|thumpEndHz/.test(body))out.push('ui/audio.js shotBuffer must synthesize gunfire as filtered noise bursts, not sine or square laser oscillators');
+     if(!data.includes("kind:'air'")||!data.includes("kind:'powder'")||!data.includes('shoot-air'))out.push('data/audio.js must ship powder weapon profiles plus an air/pneumatic shoot cue');
+     const shootStart=gen.indexOf("if name.startswith('shoot')");
+     const shootEnd=gen.indexOf('if name.startswith',shootStart+1);
+     const shootBody=shootStart<0?'':gen.slice(shootStart,shootEnd<0?shootStart+400:shootEnd);
+     if(shootStart<0||!gen.includes('def gunshot(')||/return tone\(|np\.sin\(/.test(shootBody))out.push('tools/audio/gen-sfx.py shoot cues must be noise-burst gunpowder or air reports, not sine tone sweeps');
+     return out;}},
 ];
+
 
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

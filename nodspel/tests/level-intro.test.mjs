@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createRound,tickRound} from '../round.js?v=2.28.64';
-import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.64';
-import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.64';
+import {createRound,tickRound} from '../round.js?v=2.28.65';
+import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.65';
+import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.65';
 
 test('levelIntroTitle names only discrete bunker levels, not big/continuous areas',()=>{
   assert.equal(levelIntroTitle({number:1,big:false}),'BUNKER LEVEL 1');

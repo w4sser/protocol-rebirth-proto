@@ -322,7 +322,7 @@ test('synthesized shots are cached, bounded and route through compressor, SFX an
       assert.equal(a.context.sources.at(-1).buffer,buffer);
     }
   }
-  assert.equal(f.requests,0);assert.equal(a.context.decodes,0);assert.equal(a.shotCache.size,8);
+  assert.equal(f.requests,0);assert.equal(a.context.decodes,0);assert.equal(a.shotCache.size,2*Object.keys(config.shots.weapons).length);
   const [player,,enemy]=a.context.sources;
   assert.ok(enemy.destination.gain.value<player.destination.gain.value);
   a.set('sfx',.24);near(a.buses.sfx.gain.value,.24);
@@ -340,16 +340,40 @@ test('raid shot events select the synthesized weapon and quieter enemy path; sho
   try{
     const {audioEvent}=await import('../audio.js?shot-route-test');await a.unlock();
     audioEvent('shoot',{weapon:'shotgun_breach'});
-    const first=a.context.sources.at(-1);assert.ok(first);assert.equal(a.shotCache.size,8,'all shot variants prewarmed before combat');
+    const first=a.context.sources.at(-1);assert.ok(first);assert.equal(a.shotCache.size,2*Object.keys(config.shots.weapons).length,'all shot variants prewarmed before combat');
     f.advance(100);f.env.random=()=>.8;audioEvent('shoot',{weapon:'shotgun_breach'});
     const second=a.context.sources.at(-1);assert.equal(second.buffer,first.buffer);
     assert.ok(second.playbackRate.value>first.playbackRate.value);assert.ok(second.destination.gain.value>first.destination.gain.value);
     audioEvent('shoot',{enemy:true});const enemy=a.context.sources.at(-1);
-    assert.equal(a.shotCache.size,8);assert.ok(enemy.destination.gain.value<first.destination.gain.value);
+    assert.equal(a.shotCache.size,2*Object.keys(config.shots.weapons).length);assert.ok(enemy.destination.gain.value<first.destination.gain.value);
     a.set('sfx',0);f.advance(100);const count=a.context.sources.length;
     audioEvent('shoot',{weapon:'shotgun_breach'});assert.equal(a.context.sources.length,count);
     a.stop();assert.equal(a.active.size,0);
   }finally{globalThis.PR_AUDIO=previous;}
+});
+
+
+test('gunfire is a noise-burst powder report or air hiss, never a sine laser',async()=>{
+  const src=await readFile(new URL('../../ui/audio.js',import.meta.url),'utf8');
+  const body=src.slice(src.indexOf('shotBuffer('),src.indexOf('shotDestination('));
+  assert.doesNotMatch(body,/createOscillator|Math\.sin\s*\(|type:\s*['"]sine['"]|type:\s*['"]square['"]|thumpStartHz|thumpEndHz/);
+  assert.match(body,/kind===['"]air['"]/);
+  assert.equal(config.shots.weapons.air.kind,'air');
+  assert.ok(Object.values(config.shots.weapons).every(w=>w.kind==='powder'||w.kind==='air'));
+  const f=fixture(),a=f.audio;await a.unlock();
+  const low=samples=>{
+    const rate=a.context.sampleRate,n=Math.min(samples.length,Math.floor(rate*.08));
+    let acc=0,energy=0,aCoeff=1-Math.exp(-2*Math.PI*200/rate);
+    for(let i=0;i<n;i++){acc+=aCoeff*(samples[i]-acc);energy+=acc*acc;}
+    return energy/n;
+  };
+  assert.equal(await a.play('shoot-shotgun'),true);
+  const powder=low(a.context.sources.at(-1).buffer.getChannelData(0));
+  assert.equal(await a.play('shoot-air'),true);
+  const air=low(a.context.sources.at(-1).buffer.getChannelData(0));
+  assert.ok(powder>air*3,`powder thump ${powder} should dwarf air hiss ${air}`);
+  const samples=a.context.sources.at(-1).buffer.getChannelData(0);
+  assert.ok(samples.some(x=>Math.abs(x)>.5));
 });
 
 test('failed fetch/decode samples leave unlock, shots and later sample retries usable',async()=>{

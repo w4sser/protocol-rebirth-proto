@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateLevel,setArea,setQuestLoot,RULES} from '../levels.js?v=2.28.64';
-import {createRound,collectLoot,swapLoot,extractRound} from '../round.js?v=2.28.64';
-import {initFtueRound} from '../ftue.js?v=2.28.64';
-import {applyIntroEncounter,applyFirstPayoff} from '../progression-goal.js?v=2.28.64';
-import {walkMap} from '../encounters.js?v=2.28.64';
+import {generateLevel,setArea,setQuestLoot,RULES} from '../levels.js?v=2.28.65';
+import {createRound,collectLoot,swapLoot,extractRound} from '../round.js?v=2.28.65';
+import {initFtueRound} from '../ftue.js?v=2.28.65';
+import {applyIntroEncounter,applyFirstPayoff} from '../progression-goal.js?v=2.28.65';
+import {walkMap} from '../encounters.js?v=2.28.65';
 const goal={parts:[{id:'cable',need:1,secured:0},{id:'scrap_alloy',need:2,secured:0},{id:'scrap',kind:'currency',need:10,secured:0}]};
 const units=(boxes,id)=>boxes.filter(b=>b.item===id).reduce((n,b)=>n+(b.quantity??1),0);
 

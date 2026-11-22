@@ -31,11 +31,55 @@ def tone(duration, start, end, noise, rng):
     return (.7 * np.sin(2 * np.pi * phase) + noise * rng.normal(0, .4, len(t))) * envelope
 
 
+def one_pole(x, hz):
+    a = 1 - np.exp(-2 * np.pi * hz / SR)
+    y = np.empty_like(x)
+    acc = 0.0
+    for i, v in enumerate(x):
+        acc += a * (v - acc)
+        y[i] = acc
+    return y
+
+
+def gunshot(name, rng):
+    """Noise-burst powder report or pneumatic hiss. No sine/square tone sweeps."""
+    cls = name.split('-')[-1]
+    profiles = {
+        'carbine': dict(kind='powder', duration=.28, crack=1.3, body=.8, thump=1.4, tail=.22, thump_hz=160, crack_decay=.007, body_decay=.055, thump_decay=.12, tail_decay=.075, drive=1.65),
+        'smg': dict(kind='powder', duration=.2, crack=1.3, body=.8, thump=.7, tail=.18, thump_hz=180, crack_decay=.004, body_decay=.04, thump_decay=.08, tail_decay=.055, drive=1.65),
+        'shotgun': dict(kind='powder', duration=.4, crack=1.5, body=1, thump=1.7, tail=.3, thump_hz=120, crack_decay=.007, body_decay=.07, thump_decay=.14, tail_decay=.1, drive=1.9),
+        'rifle': dict(kind='powder', duration=.34, crack=1.3, body=.8, thump=1.55, tail=.26, thump_hz=140, crack_decay=.007, body_decay=.055, thump_decay=.13, tail_decay=.09, drive=1.65),
+        'air': dict(kind='air', duration=.2, crack=1.15, body=.22, hiss=.75, hiss_hz=4200, hiss_decay=.05, crack_decay=.0035, body_decay=.03, drive=1.45),
+    }
+    P = profiles.get(cls, profiles['carbine'])
+    n = int(round(P['duration'] * SR))
+    t = np.arange(n) / SR
+    noise = rng.normal(0, 1, n)
+    attack = np.minimum(t / .0005, 1)
+    fade = np.minimum((P['duration'] - t) / .015, 1)
+    if P['kind'] == 'air':
+        low = one_pole(noise, 1400)
+        mid = one_pole(noise, 1800)
+        hiss = one_pole(noise, P['hiss_hz'])
+        x = attack * ((noise - low) * P['crack'] * np.exp(-t / P['crack_decay']) + mid * P['body'] * np.exp(-t / P['body_decay']) + (noise - hiss) * P['hiss'] * np.exp(-t / P['hiss_decay'])) * fade
+    else:
+        low = one_pole(noise, 1400)
+        mid = one_pole(noise, 1800)
+        thump = one_pole(one_pole(noise, P['thump_hz']), P['thump_hz'])
+        high = one_pole(noise, 650)
+        x = attack * ((noise - low) * P['crack'] * np.exp(-t / P['crack_decay']) + mid * P['body'] * np.exp(-t / P['body_decay']) + thump * P['thump'] * np.exp(-t / P['thump_decay']) + high * P['tail'] * np.exp(-t / P['tail_decay'])) * fade
+    dry = x.copy()
+    for delay, gain in ((.034, .15), (.071, .07)):
+        j = int(round(delay * SR))
+        if j < n:
+            x[j:] += dry[:n - j] * gain
+    return .86 * np.tanh(x * P['drive'])
+
+
 def cue(name):
     rng = rng_for(name)
     if name.startswith('shoot'):
-        cls = name.split('-')[-1]; freq = {'carbine':180, 'smg':260, 'shotgun':90, 'rifle':130}.get(cls, 180)
-        return tone(.24 if cls == 'shotgun' else .16, freq * 3, freq / 2, 2.4, rng)
+        return gunshot(name, rng)
     if name.startswith('reload'): return np.concatenate([tone(.09, 1200, 300, 1, rng), np.zeros(int(.08*SR)), tone(.12, 850, 200, 1, rng)])
     if name.startswith('empty'): return tone(.06, 900, 400, .8, rng)
     if name.startswith('impact'): return tone(.1, 600 if name.endswith('wall') else 120, 65, 2, rng)
