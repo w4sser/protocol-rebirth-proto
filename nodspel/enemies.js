@@ -15,10 +15,18 @@ export const ENEMIES=freeze({
   // Separate variant; today's unshielded turret remains in encounter pools.
   shield_turret:archetype('shield_turret',['base','turret_head_pivot','turret_head','front_armor','cannon','optic','weakpoint','shield_arc'],'SHIELD TURRET · FLANK THE BACK',2,1),
   // The textured rusher authors its crouched legs already resting on the ground, so no legRest re-pose.
-  rusher:archetype('rusher',['core','wedge_head','back_battery','optic','leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'],'RUSHER · SIDESTEP THE CHARGE',2,1),
+  // gait: distance-driven footplant cycle (enemy-animation.js legGait). stance = fraction of the cycle a foot
+  // is planted, maxSweep = peak leg swing in radians, liftHeight = swing-phase hop (model units) for fore/aft
+  // legs, lift = swing-phase roll (radians) for sideways legs, pivotShift = how far the pitch centre moves from
+  // the hip towards the foot, mode forces 'pitch'/'yaw' for every leg (default: per leg from its foot offset);
+  // legs sharing an offset move together (diagonal trot).
+  rusher:{...archetype('rusher',['core','wedge_head','back_battery','optic','leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'],'RUSHER · SIDESTEP THE CHARGE',2,1),
+    gait:{mode:'pitch',stance:.6,maxSweep:.22,liftHeight:.05,pivotShift:.85,offsets:{leg_front_left_pivot:0,leg_rear_right_pivot:0,leg_front_right_pivot:.5,leg_rear_left_pivot:.5}}},
   // Tank crushes light cover (Phase 2).
   tank:archetype('tank',['hull','track_left','track_right','turret_head_pivot','turret_head','front_armor','cannon','optic','weakpoint'],'TANK · AVOID ITS FRONT',3,2),
-  swarm_bot:archetype('swarm_bot',['shell','optic',...Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`)],'SWARM · FALL BACK',2,2),
+  // Eight legs in two alternating groups of four (every other leg around the body).
+  swarm_bot:{...archetype('swarm_bot',['shell','optic',...Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`)],'SWARM · FALL BACK',2,2),
+    gait:{stance:.55,maxSweep:.32,lift:.3,offsets:Object.fromEntries(Array.from({length:8},(_,i)=>[`leg_0${i+1}_pivot`,i%2?.5:0]))}},
   // Scout may pull enemies from other rooms in BIG MAP (Phase 2).
   scout:archetype('scout',['body','nose','duct_left','duct_right','rotor_left_pivot','rotor_right_pivot','scanner','optic'],'SCOUT · STOP THE ALERT',2,2),
   artillery:archetype('artillery',['base','armor','mortar_pivot','ammo_drum','weakpoint',...Array.from({length:4},(_,i)=>`stabilizer_0${i+1}`)],'ARTILLERY · LEAVE THE RING',3,3),

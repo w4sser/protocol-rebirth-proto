@@ -48,24 +48,44 @@ test('textured rusher GLB attaches grounded, feet below each hip, without a rest
   }
 });
 
-test('walking swing rotates each hip about its lateral axis and idle returns to the authored pose',async()=>{
-  const v=await attached({attackPhase:'idle'});
-  for(const phase of ['stalk','charge','idle']){
-    v.enemy.attackPhase=phase;animateEnemyModel(v,100);
-    LEGS.forEach((name,i)=>{
-      const pivot=v.enemyModel.parts[name];
-      const expected=phase==='idle'?0:Math.sin(100/(phase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35;
-      assert.ok(Math.abs(pivot.rotation.y-expected)<1e-9,`${name}: ${phase}`);
-      assert.ok(Math.abs(pivot.rotation.x)<1e-12&&Math.abs(pivot.rotation.z)<1e-12,`${name}: swing stays on the lateral axis`);
-    });
+function footVertex(pivot){ // lowest vertex of the leg at its current pose: track that one vertex in world space
+  const mesh=pivot.children.find(c=>c.isMesh);mesh.updateWorldMatrix(true,false);
+  const pos=mesh.geometry.attributes.position,v=new THREE.Vector3();let best=0,low=Infinity;
+  for(let k=0;k<pos.count;k++){v.fromBufferAttribute(pos,k).applyMatrix4(mesh.matrixWorld);if(v.y<low){low=v.y;best=k;}}
+  return k=>{mesh.updateWorldMatrix(true,false);return new THREE.Vector3().fromBufferAttribute(pos,best).applyMatrix4(mesh.matrixWorld);};
+}
+function place(v){v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=v.enemy.facing;v.group.updateMatrixWorld(true);}
+
+test('rusher feet stay planted while the body walks forward (no moonwalk)',async()=>{
+  const v=await attached({attackPhase:'stalk',x:0,z:0,facing:0});
+  place(v);animateEnemyModel(v,0);v.group.updateMatrixWorld(true);
+  // front-left and rear-right share phase offset 0: both start their stance at distance 0.
+  for(const name of ['leg_front_left_pivot','leg_rear_right_pivot']){
+    const pivot=v.enemyModel.parts[name],at=footVertex(pivot),start=at();
+    const stance=v.enemyModel.gait.cycle*v.enemyModel.gait.stance;
+    v.enemy.z=stance*.8;place(v);animateEnemyModel(v,16);v.group.updateMatrixWorld(true);
+    const end=at(),slide=Math.hypot(end.x-start.x,end.z-start.z);
+    assert.ok(slide<.03,`${name} foot slid ${slide.toFixed(3)} while the body moved ${(stance*.8).toFixed(3)}`);
+    v.enemy.z=0;place(v);animateEnemyModel(v,32);
   }
 });
 
+test('legs only move when the body moves, and settle back to planted when it stops',async()=>{
+  const v=await attached({attackPhase:'stalk',x:0,z:0,facing:0});
+  animateEnemyModel(v,0);
+  const pose=LEGS.map(n=>v.enemyModel.parts[n].quaternion.clone());
+  animateEnemyModel(v,500);animateEnemyModel(v,900); // time passes, no movement
+  LEGS.forEach((n,i)=>assert.ok(v.enemyModel.parts[n].quaternion.angleTo(pose[i])<1e-9,`${n} moved without the body moving`));
+  v.enemy.z=v.enemyModel.gait.cycle*.3;animateEnemyModel(v,950);
+  assert.ok(LEGS.some((n,i)=>v.enemyModel.parts[n].quaternion.angleTo(pose[i])>1e-3),'walking moves the legs');
+});
+
 test('rusher clones keep independent leg poses',async()=>{
-  const a=await attached({attackPhase:'idle'}),b=await attached({attackPhase:'idle'});
-  a.enemy.attackPhase='charge';animateEnemyModel(a,100);animateEnemyModel(b,100);
-  for(const name of LEGS){
-    assert.notEqual(a.enemyModel.parts[name],b.enemyModel.parts[name]);
-    assert.ok(Math.abs(b.enemyModel.parts[name].rotation.y)<1e-12);
-  }
+  const a=await attached({attackPhase:'idle',x:0,z:0,facing:0}),b=await attached({attackPhase:'idle',x:0,z:0,facing:0});
+  animateEnemyModel(b,0);const pose=LEGS.map(n=>b.enemyModel.parts[n].quaternion.clone());
+  a.enemy.z=.2;animateEnemyModel(a,100);animateEnemyModel(b,100);
+  LEGS.forEach((n,i)=>{
+    assert.notEqual(a.enemyModel.parts[n],b.enemyModel.parts[n]);
+    assert.ok(b.enemyModel.parts[n].quaternion.angleTo(pose[i])<1e-9);
+  });
 });

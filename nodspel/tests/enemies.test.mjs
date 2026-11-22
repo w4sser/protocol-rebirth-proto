@@ -206,8 +206,10 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   a.enemy.shieldDownUntil=400;animateEnemyModel(a,200);assert.equal(pa.shield_arc.visible,false);
   animateEnemyModel(a,400);assert.equal(pa.shield_arc.visible,true);
   a.enemy.attackPhase='burst';a.enemy.burstStartedAt=400;const rest=pa.cannon.position.x;animateEnemyModel(a,401);assert.ok(pa.cannon.position.x<rest);
-  const r=visual({type:'rusher',health:3,attackPhase:'stalk'});await attachEnemyModel(r,()=>false,loader);
-  animateEnemyModel(r,100);assert.notEqual(r.enemyModel.parts.leg_front_left_pivot.rotation.y,0);
+  const r=visual({type:'rusher',health:3,attackPhase:'stalk',x:0,z:0,facing:0});await attachEnemyModel(r,()=>false,loader);
+  const legRest=r.enemyModel.parts.leg_front_left_pivot.quaternion.clone();
+  animateEnemyModel(r,100);r.enemy.z=.1;animateEnemyModel(r,116); // legs follow distance moved, not the clock
+  assert.ok(r.enemyModel.parts.leg_front_left_pivot.quaternion.angleTo(legRest)>1e-3);
   r.enemy.windupAt=1000;animateEnemyModel(r,500);assert.ok(r.enemyModel.mount.rotation.x>0);
   assert.ok(r.enemyModel.parts.back_battery.material.emissiveIntensity>1);
   const g=visual({type:'grunt',x:0,z:0,facing:0,health:3}),g2=visual({...g.enemy});
