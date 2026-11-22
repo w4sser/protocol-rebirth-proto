@@ -31,6 +31,9 @@ export const OP01_CHARACTER=Object.freeze({
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
   rim:{color:'#b6c4ca',strength:.16,power:2.6},
+  // Brightness lift (v2.28.67): extra environment-map reflection on OP01's PBR materials plus a small
+  // texture-tinted emissive floor, so the dark coat/gear still reads in the moody bunker rigs.
+  light:{envMapIntensity:1.6,emissiveLift:.16},
   accessories:false
 });
 
@@ -79,12 +82,27 @@ function addRim(material,strengthUniform){
   material.customProgramCacheKey=()=>"op01-neutral-rim-adjustable-v2";
   material.needsUpdate=true;
 }
+const lifted=new WeakSet();
+function liftMaterial(mat){
+  if(lifted.has(mat)||!mat.isMeshStandardMaterial)return;
+  lifted.add(mat);
+  const {envMapIntensity,emissiveLift}=OP01_CHARACTER.light;
+  mat.envMapIntensity=envMapIntensity;
+  // Authored glows (cyan light strip etc.) keep their own emissive. Otherwise tint the lift by the albedo
+  // so it brightens the authored colours instead of greying them out.
+  if(mat.emissive.getHex()===0){
+    if(mat.map&&!mat.emissiveMap){mat.emissiveMap=mat.map;mat.emissive.setScalar(emissiveLift);}
+    else if(!mat.map)mat.emissive.copy(mat.color).multiplyScalar(emissiveLift);
+  }
+  mat.needsUpdate=true;
+}
 function tuneMaterials(mesh,low=false,strengthUniform){
   mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
     if(!mat)return;
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
+    liftMaterial(mat);
     if(mesh.isSkinnedMesh)addRim(mat,strengthUniform);
   }
 }

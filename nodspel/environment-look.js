@@ -4,6 +4,43 @@ import * as THREE from './vendor/three.module.js';
 export const LIGHT_RIGS={
   bunker:{sky:'#9caccd',ground:'#242438',fill:1.15,key:'#bac9df',keyPower:1.5,exposure:1.18},
 };
+// PBR environment fill (v2.28.67). The textured enemies and OP01 use metal/roughness materials, which only
+// get their ambient fill and reflections from scene.environment; with hemi + sun alone they read near-black.
+// A tiny procedural studio room is baked once through PMREM at start-up (no per-frame cost, no extra lights).
+// Turn off with enabled:false here, or per session with ?envmap=0 for an A/B comparison.
+export const ENVIRONMENT_MAP={enabled:true,intensity:.65};
+export function environmentMapEnabled(search=''){
+  const q=new URLSearchParams(search).get('envmap');
+  return q==null?ENVIRONMENT_MAP.enabled:q!=='0';
+}
+function studioRoom(){
+  const room=new THREE.Scene(),box=new THREE.BoxGeometry(1,1,1);
+  const walls=new THREE.Mesh(box,new THREE.MeshBasicMaterial({color:'#4a5260',side:THREE.BackSide}));
+  walls.scale.set(12,8,12);walls.position.y=3;room.add(walls);
+  // HDR panels (colour > 1) act as soft area lights: a cool key above, a warmer fill and a low rim.
+  const panel=(color,intensity,pos,scale)=>{
+    const m=new THREE.Mesh(box,new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(intensity)}));
+    m.position.set(...pos);m.scale.set(...scale);room.add(m);
+  };
+  panel('#dfe8f2',6,[0,6.8,0],[6,.1,6]);
+  panel('#f2dcc4',3,[-5.8,3,1],[.1,3,5]);
+  panel('#bcd2e6',2.5,[5.8,2.5,-2],[.1,2.5,4]);
+  panel('#9aa6b4',1.5,[0,1,-5.8],[6,1.5,.1]);
+  return room;
+}
+export function createEnvironmentMap(renderer){
+  const pmrem=new THREE.PMREMGenerator(renderer),room=studioRoom();
+  const target=pmrem.fromScene(room,.04);
+  room.traverse(n=>{n.geometry?.dispose();n.material?.dispose();});pmrem.dispose();
+  return target.texture;
+}
+export function applyEnvironmentMap(scene,renderer,search=''){
+  if(!environmentMapEnabled(search))return null;
+  try{
+    scene.environment=createEnvironmentMap(renderer);scene.environmentIntensity=ENVIRONMENT_MAP.intensity;
+    return scene.environment;
+  }catch(e){console.warn('Environment map skipped',e);return null;}
+}
 export function applyEnvironmentLight(area,{hemi,sun,renderer}){
   const r=LIGHT_RIGS[area]??LIGHT_RIGS.bunker;
   hemi.color.set(r.sky);hemi.groundColor.set(r.ground);hemi.intensity=r.fill;

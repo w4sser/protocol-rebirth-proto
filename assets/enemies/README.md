@@ -15,4 +15,15 @@ Eight standalone low-poly GLB assets for the Protocol Rebirth raid. Each model u
 
 Swarm is one reusable unit; spawn several instances for a group. Models are kept deliberately lightweight (all under 150 KB). Scale is normalized around a compact enemy footprint; adjust the root transform to match the raid's existing world units.
 
-`patrol_grunt.glb` is the exception to the vertex-colour style: a textured mesh (one 1024 px base-colour JPEG, ~20k tris, ~1.3 MB) cleaned up from a generated model to match the four-wheel bunker patrol reference. It keeps the same node contract as before (+X forward, +Z up, the part names in `nodspel/enemies.js`, wheels baked in model space, `sensor_head_pivot` at the turret axis carrying `sensor_head`, `optic` and `short_machine_gun`). `optic` has its own red emissive material. `upper_frame`, `front_plate`, `side_panel_*`, `hub_*`, `battery_cage`, `sensor_face` and `head_turntable` are kept as empty nodes so the loader's part check still passes.
+## Textured models (v2.28.67)
+
+`patrol_grunt`, `shield_turret`, `tank`, `rusher`, `swarm_bot`, `artillery` and `sniper` are textured meshes cleaned up from generated models to match the art-direction references: ~16-26k tris each, one 1024 px base-colour JPEG, 1.3-1.7 MB per file (they replace the old vertex-colour blockouts, so the "under 150 KB" note above now only holds for `scout` and `repair`). They keep the node contract in `nodspel/enemies.js`: +X forward, +Z up, lowest vertex at z=0, named parts and pivots. Pivot children are rigid meshes positioned relative to the pivot; `patrol_grunt` wheels are baked in model space (see `wheelRollPivots()`).
+
+Differences from the table above:
+- `swarm_bot` has eight legs: `leg_01_pivot` .. `leg_08_pivot`, counter-clockwise from the front.
+- `sniper` stands on four legs: `tripod_leg_01` .. `tripod_leg_04` (one per quadrant).
+- `rusher` legs are authored in their crouched rest pose, so its spec has no `legRest`.
+- `shield_arc` is the outer shell of the shield; with it hidden (`turret`) the inner face reads as a curved front plate.
+- `optic` on `swarm_bot`, `rusher`, `artillery` and `sniper` is a separate red emissive material. `tank` and `shield_turret` keep `optic` (and `front_armor`) as empty nodes: their eyes are painted into the texture.
+- `weakpoint` / `back_battery` meshes use the base texture as an emissive map so the amber cells glow.
+- `patrol_grunt` keeps `upper_frame`, `front_plate`, `side_panel_*`, `hub_*`, `battery_cage`, `sensor_face` and `head_turntable` as empty nodes so the loader's part check still passes.

@@ -3,7 +3,7 @@ import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} fr
 import {loadEnemyModel} from './enemy-models.js?v=2.28.67';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
-const SWARM_LEG_PIVOTS=Array.from({length:6},(_,i)=>`leg_0${i+1}_pivot`);
+const SWARM_LEG_PIVOTS=Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`); // eight-legged textured swarm_bot
 const Y_AXIS=new THREE.Vector3(0,1,0);
 const SWING_Q=new THREE.Quaternion();
 
@@ -77,7 +77,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
     mount.add(yaw);yaw.add(up);up.add(model.root);mount.scale.setScalar(spec.scale*(visual.scale??1));
     for(const name of visual.hideParts??[])if(model.parts[name])model.parts[name].visible=false;
     if(id==='rusher'){
-      restRusherLegs(model.parts,spec.legRest);
+      if(spec.legRest)restRusherLegs(model.parts,spec.legRest); // only for GLBs whose authored legs need a rest pose
       // Rest-posing the legs moves the lowest point, so re-ground from the actual geometry
       // instead of trusting the authored groundOffset alone.
       mount.updateMatrixWorld(true);

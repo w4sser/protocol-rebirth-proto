@@ -64,7 +64,7 @@ import {powerPadBitLine} from './pad-intro.js?v=2.28.67';
 import {fuelDrumBitLine} from './drum-intro.js?v=2.28.67';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.67';
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.67';
-import {applyEnvironmentLight} from './environment-look.js?v=2.28.67';
+import {applyEnvironmentLight,applyEnvironmentMap} from './environment-look.js?v=2.28.67';
 import {createRaidProfiler} from './raid-profiler.js?v=2.28.67';
 import {createPostFX,tagBloom} from './postfx.js?v=2.28.67';
 import {createDustField} from './dust.js?v=2.28.67';
@@ -141,6 +141,7 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFi
 // thread until the driver has finished every shader (a visible hitch on phones). Keep it for ?debug only.
 renderer.debug.checkShaderErrors=new URLSearchParams(location.search).has('debug');
 $('#game').appendChild(renderer.domElement);
+applyEnvironmentMap(scene,renderer,location.search); // PBR fill for textured enemies + OP01 (environment-look.js)
 const camera=new THREE.OrthographicCamera(-RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,-RAID_CAMERA.halfHeight,RAID_CAMERA.near,RAID_CAMERA.far);
 const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(RAID_CAMERA.offset.x,RAID_CAMERA.offset.y,RAID_CAMERA.offset.z);
 // v2.9.0 mood pass, v2.28.53 selective bloom: dust/grade/vignette stay High-only (weak-device Low/Medium
