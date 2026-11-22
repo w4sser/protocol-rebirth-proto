@@ -9,9 +9,14 @@ RAID_DEPTH_ROOT.DATA.raidDepth = Object.freeze({
   // round timer as the HUD clock in depth mode; the global timer keeps running underneath but
   // never fails the raid (nodspel/round.js tickRound).
   zoneTimerMs: [90000, 90000, 120000],
-  // Prototype tuning: after the player chooses EXTRACT, walk into the beam, then this long
-  // cancellable countdown (approved D2.3) before the bag actually secures.
-  extractCountdownMs: 5000,
+  // After EXTRACT is chosen, walking into the open beam secures the bag immediately
+  // (v2.28.63). The earlier 5s silent countdown felt like a broken hatch: Robert stood
+  // in the lit beam and did not extract (21 Nov / 22 Nov 2026).
+  extractCountdownMs: 0,
+  // Must match the open-beam ground pad / fence in nodspel/vfx-extract-beam.js
+  // (EXTRACT_PAD_RADIUS). Wider than RULES.exit.r (1) so the trigger covers the
+  // visible footprint; a player on the glowing pad used to be outside the r=1 check.
+  extractRadius: 1.45,
   // Prototype tuning: Area 3's full-clear bonus, paid on top of the existing RULES.extractScrapBonus
   // ladder (5/10/15 for areas reached) -- not a replacement for it.
   z3ClearBonusScrap: 25,

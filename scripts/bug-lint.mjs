@@ -555,6 +555,23 @@ export const RULES=[
      if(!html.includes('id="depth-extract-guide"'))out.push('nodspel/index.html: #depth-extract-guide marker is missing');
      if(!data.includes('extractFinal')||!data.includes('finalArea')||!data.includes('enemyCountAdd: 2')||!data.includes('enemyCountAdd: 3')||!data.includes('healthMul: 1.25')||!data.includes('healthMul: 1.5')||!data.includes('damageMul: 1.15')||!data.includes('damageMul: 1.3'))out.push('data/raid-depth.js: area 2/3 scale numbers and extract BIT lines must stay in the prototype tuning');
      return out;}},
+  {id:'depth-extract-pad-trigger',pr:'v2.28.63 depth-extract-trigger',why:"Robert 22 Nov 2026: walked into the lit Depth Raid extract beam and did not extract. The visible pad/fence is 1.45/1.15 m, but the trigger used r=1, and a silent 5s countdown cancelled if you drifted. A gear/equip label over the hatch hid the EXTRACT prompt.",
+   check(ctx={}){const data=ctx.raidDepthSrc??read('data/raid-depth.js'),raid=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),vfx=ctx.beamSrc??read('nodspel/vfx-extract-beam.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!/extractCountdownMs:\s*0/.test(data)||!data.includes('extractRadius: 1.45'))out.push('data/raid-depth.js: extract must fire on entry (countdown 0) and use extractRadius 1.45, matching the visible pad');
+     if(!raid.includes('export function inDepthExtract(')||!raid.includes('DEPTH.extractRadius')||!raid.includes('if((DEPTH.extractCountdownMs??0)>0)return \'extract-started\''))out.push('nodspel/depth-raid.js: inDepthExtract must use extractRadius and extract immediately when the countdown is 0');
+     if(!depth.includes('r:DEPTH.extractRadius'))out.push('nodspel/depth-level.js: each depth exit must use DEPTH.extractRadius so the gameplay radius matches the pad');
+     if(!vfx.includes('export const EXTRACT_PAD_RADIUS=1.45')||!vfx.includes('RingGeometry(PAD_INNER,EXTRACT_PAD_RADIUS'))out.push('nodspel/vfx-extract-beam.js: the ground pad outer radius must be EXTRACT_PAD_RADIUS 1.45');
+     if(!game.includes('hideForExtract')||!game.includes('extractRadiusOf(round)+1.2'))out.push('nodspel/game.mjs: loot/equip labels on an open extract pad must hide so they cannot cover the hatch');
+     return out;}},
+  {id:'area-notice-no-overlap',pr:'v2.28.63 depth-extract-trigger',why:"On a 667-wide phone the ROOM CLEAR pill sat on top of the EXTRACT OPEN toast and hid the text. Both used the same bottom slot, and the Depth Raid copy wrapped onto two lines. The one-line/nowrap path then made the longer NODE-raid toast overflow into the sticks at 667x375.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),css=ctx.cssSrc??read('nodspel/style.css');const out=[];
+     if(!game.includes('function layoutBottomNotices(')||!game.includes('layoutBottomNotices()'))out.push('nodspel/game.mjs: bottom toasts must be stacked by layoutBottomNotices so they never overlap');
+     if(!game.includes("EXTRACT OPEN · walk into the lit hatch"))out.push('nodspel/game.mjs: the Depth Raid EXTRACT OPEN toast must stay short enough for one line at 667px');
+     if(!game.includes('function fitExtractToast(')||!game.includes('scrollWidth>el.clientWidth')||!game.includes("el.classList.remove('one-line')"))out.push('nodspel/game.mjs: one-line nowrap must apply only when the extract toast fits between the sticks');
+     if(!game.includes('function extractToastLane(')||!game.includes("getElementById('move-stick')")||!game.includes("getElementById('aim-stick')"))out.push('nodspel/game.mjs: the extract toast lane must be measured from the move and aim sticks');
+     if(!/#extract-toast\{[^}]*max-width:calc\(100vw - var\(--sl,0px\) - var\(--sr,0px\) - 280px\)[^}]*white-space:\s*normal/.test(css.replace(/\s+/g,' ')))out.push('nodspel/style.css: a wrapping EXTRACT OPEN toast must use a stick-safe max-width (280px reserved)');
+     if(!/#extract-toast\.one-line\{[^}]*white-space:\s*nowrap/.test(css))out.push('nodspel/style.css: one-line EXTRACT OPEN must use nowrap only as a class, not as the default');
+     return out;}},
 ];
 
 

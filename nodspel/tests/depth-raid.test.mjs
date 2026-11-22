@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage} from '../round.js';
+import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage,collectLoot} from '../round.js';
 import {extractScrapBonus,generateLevel} from '../levels.js';
 import {walkMap} from '../encounters.js';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,DEPTH} from '../depth-raid.js';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.62';
+import '../../data/bit-lines.js?v=2.28.63';
 
 function startDepth(seed,now=0,ctx={}){
   const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});
@@ -93,7 +93,7 @@ test('the area clock does not tick while the choice is open', () => {
   assert.equal(r.over,false);
 });
 
-test('EXTRACT opens the beam after a clear; walk-in is a 5s cancellable countdown; Z1 extract pays no Z3 bonus', () => {
+test('EXTRACT opens the beam after a clear; walking onto the lit pad extracts immediately; Z1 extract pays no Z3 bonus', () => {
   const r=startDepth('extract-choice',0);
   r.bag.scrap_alloy=2;
   killArea(r,1);
@@ -106,12 +106,13 @@ test('EXTRACT opens the beam after a clear; walk-in is a 5s cancellable countdow
   assert.equal(exitIsOpen(r),true);
   assert.equal(door.locked,true,'EXTRACT does not unlock the depth door');
   const beam=r.level.exit;
-  assert.equal(stepDepthRaid(r,1200,beam),'extract-started');
-  assert.equal(stepDepthRaid(r,2200,{x:beam.x+50,z:beam.z+50}),'extract-canceled');
-  assert.equal(r.over,false);
-  assert.equal(stepDepthRaid(r,3000,beam),'extract-started');
-  assert.equal(stepDepthRaid(r,3000+DEPTH.extractCountdownMs-1,beam),null);
-  assert.equal(stepDepthRaid(r,3000+DEPTH.extractCountdownMs,beam),'zone-extracted');
+  assert.equal(extractRadiusOf(r),DEPTH.extractRadius);
+  assert.equal(beam.r,DEPTH.extractRadius);
+  // 1.2 m is on the glowing pad / inside the fence, but was outside the old r=1 trigger.
+  const onPad={x:beam.x+1.2,z:beam.z};
+  assert.equal(inDepthExtract(r,onPad),true);
+  assert.equal(inDepthExtract(r,{x:beam.x+1.6,z:beam.z}),false);
+  assert.equal(stepDepthRaid(r,1200,onPad),'zone-extracted');
   assert.equal(r.over,true);assert.equal(r.reason,'extract');assert.equal(r.levelsCleared,1);
   assert.equal(buildRaidResult(r).depthBonus,undefined,'the Z3 clear bonus never pays out on a Z1 extract');
 });
@@ -176,8 +177,7 @@ test('Area 3 clear offers extract with the 25 Scrap bonus and banks the bag plus
   assert.equal(goDeeper(r,1700),null);
   chooseExtract(r,1800);
   const beam=r.level.exit;
-  assert.equal(stepDepthRaid(r,1900,beam),'extract-started');
-  assert.equal(stepDepthRaid(r,1900+DEPTH.extractCountdownMs,beam),'zone3-complete');
+  assert.equal(stepDepthRaid(r,1900,beam),'zone3-complete');
   assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.cleared,true);
   assert.equal(r.levelsCleared,3);
   assert.equal(r.extracted.scrap_alloy,2);assert.equal(r.bag.scrap_alloy,0);
@@ -294,8 +294,7 @@ test('progressed Depth Raid (5 completed raids) walks A1 through A3 and extracts
   const room=r.level.rooms.find(rm=>Math.abs(beam.x-rm.x)<=rm.w/2&&Math.abs(beam.z-rm.z)<=rm.d/2);
   assert.equal(room?.depthArea,3);
   assert.equal(exitIsOpen(r),true);
-  assert.equal(stepDepthRaid(r,1900,beam),'extract-started');
-  assert.equal(stepDepthRaid(r,1900+DEPTH.extractCountdownMs,beam),'zone3-complete');
+  assert.equal(stepDepthRaid(r,1900,beam),'zone3-complete');
   assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.cleared,true);assert.equal(r.levelsCleared,3);
 });
 
@@ -334,4 +333,26 @@ test('Depth Raid keeps area 1 at stock difficulty and ramps HP, damage and enemy
   }
   assert.ok(extras2>=seeds.length,`expected extras in area 2 across seeds, got ${extras2}`);
   assert.ok(extras3>=seeds.length,`expected extras in area 3 across seeds, got ${extras3}`);
+});
+
+test('the open extract trigger covers the visible pad, fires on entry, and is not blocked by a gear crate in the beam', () => {
+  assert.equal(DEPTH.extractCountdownMs,0);
+  assert.equal(DEPTH.extractRadius,1.45);
+  const r=startDepth('gear-on-pad',0,{completedRaids:5});
+  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
+  killArea(r,2);
+  assert.equal(stepDepthRaid(r,1300,r.level.depthStarts[1]),'choice-opened');
+  // Before EXTRACT is chosen the beam must not extract, even if you stand on the hatch.
+  const hatch=r.level.depthExits[1];
+  assert.equal(inDepthExtract(r,hatch),false);
+  assert.equal(stepDepthRaid(r,1400,hatch),null);
+  chooseExtract(r,1500);
+  assert.equal(r.level.exit.r,DEPTH.extractRadius);
+  assert.ok(Math.hypot(r.level.exit.x-hatch.x,r.level.exit.z-hatch.z)<1e-6,'area 2 extract uses the area-2 hatch');
+  r.level.lootBoxes.push({id:'cloak-on-beam',x:hatch.x+.8,z:hatch.z,item:'dampener_cloak',collected:false,revealed:true,marked:false});
+  collectLoot(r,{x:hatch.x+.8,z:hatch.z},1600,null);
+  const onPad={x:hatch.x+1.2,z:hatch.z};
+  assert.equal(inDepthExtract(r,onPad),true,'the visible pad (1.2 m from centre) must count as in the beam');
+  assert.equal(stepDepthRaid(r,1700,onPad),'zone-extracted');
+  assert.equal(r.over,true);assert.equal(r.reason,'extract');assert.equal(r.levelsCleared,2);
 });

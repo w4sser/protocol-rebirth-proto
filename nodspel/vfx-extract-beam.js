@@ -6,8 +6,8 @@
 // never reads or writes round/level state beyond the {open,progress} the caller computes from existing
 // gameplay data -- the extraction radius/logic stay in round.js/levels.js, untouched.
 import * as THREE from './vendor/three.module.js';
-import {EXTRACT_COLOR,PALETTE} from './art.js?v=2.28.62';
-import {softDotTexture} from './vfx-textures.js?v=2.28.62';
+import {EXTRACT_COLOR,PALETTE} from './art.js?v=2.28.63';
+import {softDotTexture} from './vfx-textures.js?v=2.28.63';
 
 const beamVert=`
 varying vec2 vUv;varying vec3 vNormalV;varying vec3 vViewDir;
@@ -45,26 +45,30 @@ function makeBeamMaterial(noise){
 
 // Quality tiers: low drops the scrolling noise bands (a shader branch, not a texture) and halves the particle count.
 const TIERS={low:{particles:40,noise:false,height:3.2},high:{particles:72,noise:true,height:6}};
+// Ground-pad outer radius and beam/fence base. Must stay equal to DATA.raidDepth.extractRadius
+// so a player standing on the lit pad is inside the Depth Raid extract trigger (v2.28.63).
+export const EXTRACT_PAD_RADIUS=1.45;
+const PAD_INNER=.45,FENCE_R=1.15,BEAM_TOP=.78,CONTACT_OUTER=2.05,RIM_INNER=1.10,RIM_OUTER=1.19;
 
 export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
   let tier=TIERS[quality]||TIERS.high;
   const dot=softDotTexture();
   const group=new THREE.Group();
-  const padGeo=new THREE.RingGeometry(.45,1.45,40);
+  const padGeo=new THREE.RingGeometry(PAD_INNER,EXTRACT_PAD_RADIUS,40);
   const pad=new THREE.Mesh(padGeo,new THREE.MeshBasicMaterial({map:dot,color,transparent:true,opacity:0,
     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true,toneMapped:false,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
   pad.rotation.x=-Math.PI/2;pad.position.y=.022;group.add(pad);
-  const contactGeo=new THREE.RingGeometry(1.45,2.05,40);
+  const contactGeo=new THREE.RingGeometry(EXTRACT_PAD_RADIUS,CONTACT_OUTER,40);
   const contact=new THREE.Mesh(contactGeo,new THREE.MeshBasicMaterial({map:dot,color:PALETTE.bg,transparent:true,opacity:0,
     depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true,
     polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}));
   contact.rotation.x=-Math.PI/2;contact.position.y=.02;group.add(contact);
-  const rimGeo=new THREE.RingGeometry(1.10,1.19,48);
+  const rimGeo=new THREE.RingGeometry(RIM_INNER,RIM_OUTER,48);
   const rim=new THREE.Mesh(rimGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.85,
     depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true,blending:THREE.AdditiveBlending,toneMapped:false}));
   rim.rotation.x=-Math.PI/2;rim.position.y=.035;group.add(rim);
-  const fenceGeo=new THREE.CylinderGeometry(1.15,1.15,.25,48,1,true);
+  const fenceGeo=new THREE.CylinderGeometry(FENCE_R,FENCE_R,.25,48,1,true);
   const fenceMaterial=new THREE.ShaderMaterial({vertexShader:beamVert,fragmentShader:`
     uniform vec3 uColor;varying vec2 vUv;
     void main(){gl_FragColor=vec4(uColor,(1.0-vUv.y)*(1.0-vUv.y)*.8);}`,
@@ -76,7 +80,7 @@ export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
     const m=new THREE.Mesh(pulseGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,side:THREE.DoubleSide,forceSinglePass:true,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-5}));
     m.rotation.x=-Math.PI/2;m.position.y=.03;group.add(m);return m;
   });
-  const beamGeo=new THREE.CylinderGeometry(.78,1.15,1,48,1,true);
+  const beamGeo=new THREE.CylinderGeometry(BEAM_TOP,FENCE_R,1,48,1,true);
   const beamMaterial=makeBeamMaterial(tier.noise);
   beamMaterial.uniforms.uColor.value.set(color);
   const beam=new THREE.Mesh(beamGeo,beamMaterial);

@@ -2,11 +2,11 @@
 // cleared, then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door and the player
 // walks into the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area
 // extract. Area-clock timeout is a loss. NODE RAID is untouched (opt-in via depthModeEnabled).
-import '../data/raid-depth.js?v=2.28.62';
-import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules} from './depth-level.js?v=2.28.62';
-import {timeoutRound,extractDepthZone} from './round.js?v=2.28.62';
-import {pausePick,resumePick} from './perks.js?v=2.28.62';
-import {rarityOf} from './rarity.js?v=2.28.62';
+import '../data/raid-depth.js?v=2.28.63';
+import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules} from './depth-level.js?v=2.28.63';
+import {timeoutRound,extractDepthZone} from './round.js?v=2.28.63';
+import {pausePick,resumePick} from './perks.js?v=2.28.63';
+import {rarityOf} from './rarity.js?v=2.28.63';
 
 export const DEPTH=globalThis.DATA.raidDepth;
 export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules};
@@ -73,7 +73,7 @@ export function chooseExtract(round,now){
   const zone=d.zone;
   d.extractOpen=true;d.extracting=null;d.choice=null;d.phase='combat';
   const exit=round.level.depthExits?.[zone-1];
-  if(exit){round.level.exit={x:exit.x,z:exit.z,r:exit.r??1};}
+  if(exit){round.level.exit={x:exit.x,z:exit.z,r:exit.r??DEPTH.extractRadius};}
   resumePick(round,now);
   return {kind:'extract',zone};
 }
@@ -102,6 +102,18 @@ export function enterArea(round,now,area){
   return 'area-entered';
 }
 
+
+// True when the EXTRACT hatch is open and the player is inside its visible footprint
+// (DEPTH.extractRadius, not the tighter RULES.exit.r=1 used by Node Raid).
+export function extractRadiusOf(round){
+  return round?.level?.exit?.r??DEPTH.extractRadius;
+}
+export function inDepthExtract(round,position){
+  const beam=round?.level?.exit;
+  if(!round?.depth?.extractOpen||!beam||!position)return false;
+  return Math.hypot(position.x-beam.x,position.z-beam.z)<=extractRadiusOf(round);
+}
+
 // Advances the area timer / clear-check / walk-in extract countdown by one frame. Mirrors
 // round.js's own tick-then-act functions: combat ticking is guarded on pauseAt, but the
 // clear check must still run (and travel must still detect the next area) using the same
@@ -117,13 +129,16 @@ export function stepDepthRaid(round,now,position){
   }
   if(round.pauseAt!=null)return null;
   if(d.extractOpen){
-    const beam=round.level.exit,inBeam=beam&&Math.hypot(position.x-beam.x,position.z-beam.z)<=(beam.r??1);
+    const inBeam=inDepthExtract(round,position);
     if(!inBeam){
       if(d.extracting){d.extracting=null;return 'extract-canceled';}
       return null;
     }
-    if(!d.extracting){d.extracting={startedAt:now};return 'extract-started';}
-    if(now-d.extracting.startedAt<DEPTH.extractCountdownMs)return null;
+    // Countdown 0 = extract on entry (v2.28.63). A positive value still starts, then completes.
+    if(!d.extracting){
+      d.extracting={startedAt:now};
+      if((DEPTH.extractCountdownMs??0)>0)return 'extract-started';
+    }else if(now-d.extracting.startedAt<(DEPTH.extractCountdownMs??0))return null;
     const zone=d.zone,complete=zone>=3;
     d.extracting=null;
     if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;

@@ -1,8 +1,8 @@
 // Depth Raid v2.28.58: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
 // with locked doors. Cheapest credible "same level, next area" — existing layouts translated
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.62';
-import '../data/raid-depth.js?v=2.28.62';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.63';
+import '../data/raid-depth.js?v=2.28.63';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
@@ -249,7 +249,7 @@ export function generateDepthLevel(seed,opts={}){
   placeSupplyShelves(parts[1],completedRaids,ftue);
   for(let i=0;i<parts.length;i++)applyDepthAreaScale(parts[i],i+1);
   const rules=parts.map(snapshotRules);
-  const exits=parts.map(p=>({x:p.exit.x,z:p.exit.z,r:p.exit.r??1,depthArea:p.number}));
+  const exits=parts.map(p=>({x:p.exit.x,z:p.exit.z,r:DEPTH.extractRadius,depthArea:p.number}));
   const starts=parts.map(p=>({x:p.start.x,z:p.start.z,depthArea:p.number}));
   for(let i=0;i<parts.length;i++)retagPart(parts[i],i+1);
   // retag does not move exits/starts; they stay on the part objects and will be offset with the part.
@@ -261,7 +261,7 @@ export function generateDepthLevel(seed,opts={}){
   // linkParts(parts[1], parts[2]) offsets parts[2] and adds door/corridor onto parts[1].
   // When we merge, both links come along. Good.
   // But exits/starts snapshots were taken BEFORE offset — must recapture after offset.
-  const depthExits=parts.map((p,i)=>({x:p.exit.x,z:p.exit.z,r:p.exit.r??1,depthArea:i+1}));
+  const depthExits=parts.map((p,i)=>({x:p.exit.x,z:p.exit.z,r:DEPTH.extractRadius,depthArea:i+1}));
   const depthStarts=parts.map((p,i)=>({x:p.start.x,z:p.start.z,depthArea:i+1}));
   const level={
     number:1,seed,title:'Depth Raid',theme:parts[0].theme,depth:true,
