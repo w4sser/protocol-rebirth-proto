@@ -6,7 +6,7 @@ export const LIGHT_RIGS={
 };
 // PBR environment fill (v2.28.67). The textured enemies, OP01 and BIT use metal/roughness materials, which only
 // get their ambient fill and reflections from an environment map; with hemi + sun alone they read near-black.
-// A tiny procedural studio room is baked once through PMREM (on first use, no per-frame cost, no extra lights)
+// A tiny procedural studio room is baked once through PMREM (deferred until idle after boot, no per-frame cost, no extra lights)
 // and assigned per material to those PBR models only (pbrEnvironment), never as scene.environment, so the
 // vertex-coloured world keeps its authored bunker/outdoor look.
 // Turn off with enabled:false here, or per session with ?envmap=0 for an A/B comparison.
@@ -36,22 +36,35 @@ export function createEnvironmentMap(renderer){
   room.traverse(n=>{n.geometry?.dispose();n.material?.dispose();});pmrem.dispose();
   return target.texture;
 }
-let pbrEnvMap=null,pbrRenderer=null,pbrFailed=false;
-// Register the renderer at start-up; the PMREM bake itself is deferred to the first PBR model that asks for
-// it (pbrEnvironment), so it never sits on the boot path. On software WebGL (CI) the bake takes seconds.
+let pbrEnvMap=null,pbrRenderer=null,pbrFailed=false,bakeScheduled=false;
+const pendingPbr=new Map(); // material -> intensity, waiting for the deferred bake
+// Register the renderer at start-up; the PMREM bake itself is deferred until the browser is idle after boot,
+// so it never sits on the boot path (OP01 and BIT ask for it while loading). On software WebGL (CI) the bake
+// takes seconds; on a phone GPU it is a few tens of milliseconds. Materials that ask early are queued and
+// receive the map as soon as it exists.
 export function applyEnvironmentMap(renderer,search=''){
   pbrRenderer=environmentMapEnabled(search)?renderer:null;
   return pbrRenderer!=null;
 }
-function environmentTexture(){
-  if(pbrEnvMap||pbrFailed||!pbrRenderer)return pbrEnvMap;
+function bakeNow(){
+  if(pbrEnvMap||pbrFailed||!pbrRenderer)return;
   try{pbrEnvMap=createEnvironmentMap(pbrRenderer);}catch(e){console.warn('Environment map skipped',e);pbrFailed=true;}
-  return pbrEnvMap;
+  for(const [material,intensity] of pendingPbr)assignEnv(material,intensity);
+  pendingPbr.clear();
+}
+function scheduleBake(){
+  if(bakeScheduled)return;bakeScheduled=true;
+  const idle=globalThis.requestIdleCallback;
+  if(idle)idle(()=>bakeNow(),{timeout:4000});else setTimeout(bakeNow,1500);
+}
+function assignEnv(material,intensity){
+  if(!pbrEnvMap)return false;
+  material.envMap=pbrEnvMap;material.envMapIntensity=intensity;material.needsUpdate=true;return true;
 }
 export function pbrEnvironment(material,intensity=ENVIRONMENT_MAP.intensity){
-  if(!material?.isMeshStandardMaterial)return false;
-  const env=environmentTexture();if(!env)return false;
-  material.envMap=env;material.envMapIntensity=intensity;material.needsUpdate=true;return true;
+  if(!material?.isMeshStandardMaterial||!pbrRenderer||pbrFailed)return false;
+  if(pbrEnvMap)return assignEnv(material,intensity);
+  pendingPbr.set(material,intensity);scheduleBake();return true;
 }
 export function applyEnvironmentLight(area,{hemi,sun,renderer}){
   const r=LIGHT_RIGS[area]??LIGHT_RIGS.bunker;
