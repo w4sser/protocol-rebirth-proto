@@ -593,13 +593,26 @@ export const RULES=[
      const shootBody=shootStart<0?'':gen.slice(shootStart,shootEnd<0?shootStart+400:shootEnd);
      if(shootStart<0||!gen.includes('def gunshot(')||/return tone\(|np\.sin\(/.test(shootBody))out.push('tools/audio/gen-sfx.py shoot cues must be noise-burst gunpowder or air reports, not sine tone sweeps');
      return out;}},
-  {id:'aim-stick-instant-fire',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: the aim stick only fired on pointerup, so every shot felt laggy; and the document-level touch router treated floating, pointer-events:none HUD labels (ammo/weapon/health/shield), which track the player's screen position, as covered obstacles, so they could silently swallow a touch meant to start the aim stick in the right zone.",
+  {id:'aim-stick-instant-fire',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: the document-level touch router treated floating, pointer-events:none HUD labels (ammo/weapon/health/shield), which track the player's screen position, as covered obstacles, so they could silently swallow a touch meant to start the aim stick in the right zone. v2.28.67 removed this rule's original pointerdown-fire requirement (Robert's follow-up correction: the aim stick must be Brawl Stars, release-only -- see aim-stick-brawl-stars-release-only below) but the generous right-zone floating origin and low deadzone from this same pass must stay.",
    check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),levels=ctx.levelsSrc??read('nodspel/levels.js');const out=[];
-     if(!/if\(onShot&&!inputPaused\(round\)\)onShot\(true\);/.test(game))out.push('nodspel/game.mjs: setupStick must fire an instant auto-target shot on pointerdown, not wait for pointerup');
      const covered=(game.match(/const covered=\[\.\.\.document\.querySelectorAll\('([^']*)'\)\]/)||[])[1];
      if(!covered)out.push('nodspel/game.mjs: setupStick must have a covered-controls selector for the document-level touch router');
      else if(/#ammo-hud|#weapon-name|#player-health|#player-shield|#quest-chip|\.round-hud|#level-corner/.test(covered))out.push('nodspel/game.mjs: floating HUD labels must not be treated as covered controls that block an aim-stick touch');
      if(!/deadZonePx:(\d+)/.test(levels)||+(levels.match(/deadZonePx:(\d+)/)||[])[1]>=20)out.push('nodspel/levels.js: RULES.aimControls.deadZonePx must stay below the old 20px so a touch just past center still counts as a drag');
+     return out;}},
+  {id:'aim-stick-brawl-stars-release-only',pr:'v2.28.67 aim-stick-brawl-stars',why:"Robert 22 Nov 2026 correction: an earlier brief called for twin-stick hold-to-spray; ignore it -- the aim stick must match Brawl Stars exactly, one auto-aimed or aimed shot per touch, fired only on release. v2.28.66 called onShot(true) on pointerdown and, when dragged, a second onShot(false) on release, so every real drag double-fired.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     const stickStart=game.indexOf('function setupStick(');
+     if(stickStart<0){out.push('nodspel/game.mjs: setupStick is missing');return out;}
+     let i=game.indexOf('{',stickStart),depth=0;
+     for(;i<game.length;i++){if(game[i]==='{')depth++;else if(game[i]==='}'){depth--;if(depth===0)break;}}
+     const body=game.slice(stickStart,i+1);
+     const startFnStart=body.indexOf('function start(');
+     const startFnEnd=startFnStart<0?-1:body.indexOf('\n  }',startFnStart);
+     const startFn=startFnStart>=0&&startFnEnd>startFnStart?body.slice(startFnStart,startFnEnd):'';
+     if(!startFn||/onShot\(/.test(startFn))out.push('nodspel/game.mjs: setupStick.start() must never call onShot -- Brawl Stars fires on release only, not on pointerdown');
+     if(!/if\(direction===.tap.\)onShot\(true\);\s*\n\s*else if\(direction\)\{[^}]*onShot\(false\);/.test(body))out.push('nodspel/game.mjs: release() must fire at most one shot per gesture -- a tap xor an aimed drag, never both');
+     if(!/const cancelled=e\.type!==.pointerup.;/.test(body))out.push("nodspel/game.mjs: release() must treat any non-pointerup terminal event (pointercancel, and the lostpointercapture fallback once recapture fails) as a cancel, so a drag released back inside the deadzone or interrupted never fires");
      return out;}},
   {id:'depth-jamb-assist-corridors-not-openings',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest: walking through a Depth Raid doorway/corridor gap felt like tar, an invisible wall slowing the player. depthJambAssist()'s wide/thin-axis math is built for a door plane (one axis is a thin wall thickness); feeding it full corridor floor segments (wide only up to the 2.4 m clear width, but many metres long) made it read the whole corridor as one giant doorway and fight the player's forward movement along its entire length.",
    check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];

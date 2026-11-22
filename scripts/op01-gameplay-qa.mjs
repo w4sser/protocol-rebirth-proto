@@ -74,9 +74,9 @@ try{
         dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
       checks.push(report);
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
-      if(Math.abs((idle.visualScale||0)-1.10)>.001 ||
-         Math.abs((idle.visualHeight||0)-1.958)>.01)
-        failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
+      if(Math.abs((idle.visualScale||0)-1.30)>.001 ||
+         Math.abs((idle.visualHeight||0)-2.314)>.01)
+        failures.push(tag+': OP01 gameplay silhouette is not 30% larger');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
       if(aim.faceLocked)failures.push(tag+': aim preview marked as fired');
@@ -127,21 +127,21 @@ try{
           button.click();
           return button.getAttribute('aria-pressed');
         },label);
-        if(Math.abs(scaled.visualScale-1.485)>.001||scaled.rimStrength!==.24)
+        if(Math.abs(scaled.visualScale-1.755)>.001||scaled.rimStrength!==.24)
           failures.push(tag+': experiment start presets not applied');
         if(await press('150%')!=='true'||await press('0.32')!=='true')
           failures.push(tag+': experiment buttons do not select active variants');
         await pause(120);
         const enlarged=await snapshot();
         await capture('experiment-150-rim032');
-        if(Math.abs(enlarged.visualScale-1.65)>.001||enlarged.rimStrength!==.32)
+        if(Math.abs(enlarged.visualScale-1.95)>.001||enlarged.rimStrength!==.32)
           failures.push(tag+': scale and rim controls did not update together');
-        if(await press('100%')!=='true'||await press('0.16')!=='true')
+        if(await press('100%')!=='true'||await press('0.32')!=='true')
           failures.push(tag+': unable to restore experiment baseline');
         await pause(120);
         const restored=await snapshot();
-        await capture('experiment-100-rim016');
-        if(Math.abs(restored.visualScale-1.10)>.001||restored.rimStrength!==.16)
+        await capture('experiment-100-rim032');
+        if(Math.abs(restored.visualScale-1.30)>.001||restored.rimStrength!==.32)
           failures.push(tag+': experiment did not restore original OP01 presentation');
         report.experiment={scaled:{visualScale:scaled.visualScale,rim:scaled.rimStrength},
           enlarged:{visualScale:enlarged.visualScale,rim:enlarged.rimStrength},

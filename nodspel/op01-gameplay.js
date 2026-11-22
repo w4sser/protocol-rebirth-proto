@@ -18,19 +18,19 @@ export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD2.glb'
 ]);
 const REQUIRED_CLIPS=Object.freeze(['idle','run','aim','shoot','hit','dash','death','hero_pose']);
-// Opt-in visual-only A/B variants. 100% is today's shipped 1.10x OP01 silhouette.
+// Opt-in visual-only A/B variants. 100% is today's shipped 1.30x OP01 silhouette.
 // Never use this value for physics, aiming, movement or player collision.
 export const OP01_SCALE_PERCENTAGES=Object.freeze([100,120,135,150]);
 // Rim is shader lighting, not an always-visible geometric outline or gameplay effect.
 export const OP01_RIM_STRENGTHS=Object.freeze([.16,.24,.32]);
 export const OP01_CHARACTER=Object.freeze({
-  // Slightly larger silhouette in top-down gameplay; does not change physics.
-  id:'op01',height:1.78,scale:1.10,
+  // Larger silhouette in top-down gameplay; does not change physics.
+  id:'op01',height:1.78,scale:1.30,
   clips:Object.fromEntries(REQUIRED_CLIPS.map(id=>[id,id])),
   rig:{spine:'mixamorig:Spine',head:'mixamorig:Head',forearm:'mixamorig:RightForeArm',
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
-  rim:{color:'#b6c4ca',strength:.16,power:2.6},
+  rim:{color:'#b6c4ca',strength:.32,power:2.6},
   accessories:false
 });
 
@@ -394,7 +394,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   }
   function healthAnchor(target){
     // Follow the actual animated hood/head, not just the logical player XZ
-    // center. This continues to work with the 10%-larger OP01 visual root.
+    // center. This continues to work with the 1.30x OP01 visual root.
     root.updateMatrixWorld(true);
     head.getWorldPosition(target);
     target.y+=.32*root.scale.y;

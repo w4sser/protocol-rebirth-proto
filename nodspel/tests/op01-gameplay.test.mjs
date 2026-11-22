@@ -85,7 +85,7 @@ test('OP01 size experiment scales presentation only and is reversible',async()=>
   const gltf=await parse('OP01_Game_LOD0.glb');
   const op=createOP01GameplayOperator(gltf);
   const base=op.root.scale.x;
-  assert.equal(base,1.10);
+  assert.equal(base,1.30);
   assert.equal(op.root.userData.operatorScalePercent,100);
   for(const percent of [120,135,150,100]){
     assert.equal(op.setVisualScalePercent(percent),true);
@@ -108,7 +108,7 @@ test('OP01 live rim strength is a shared shader uniform across LODs, not added g
     if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);
   });
   assert.deepEqual([...OP01_RIM_STRENGTHS],[.16,.24,.32]);
-  assert.equal(op.root.userData.op01RimStrength,.16);
+  assert.equal(op.root.userData.op01RimStrength,.32);
   const initialChildren=op.model.children.length;
   function compileRim(material){
     assert.equal(typeof material.onBeforeCompile,'function');
@@ -155,7 +155,7 @@ test('OP01 presentation does not modify core movement, collision or weapon rules
   for(const key of keys)assert(!Object.hasOwn(OP01_CHARACTER,key),
     'character art should not introduce a game mechanic '+key);
   assert.equal(OP01_CHARACTER.height,1.78,'authored asset remains 1.78m');
-  assert.equal(OP01_CHARACTER.scale,1.10,'gameplay silhouette is ten percent larger');
+  assert.equal(OP01_CHARACTER.scale,1.30,'gameplay silhouette is thirty percent larger');
   assert.equal(OP01_CHARACTER.weapon.muzzle,'muzzle');
 });
 
@@ -333,7 +333,7 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   op.root.updateMatrixWorld(true);
   const source=new THREE.Box3().setFromObject(op.root).getSize(new THREE.Vector3());
   for(const axis of ['x','y','z']){
-    assert(Math.abs(larger[axis]/source[axis]-1.10)<.01,'uniform visual scale on '+axis);
+    assert(Math.abs(larger[axis]/source[axis]-1.30)<.01,'uniform visual scale on '+axis);
   }
   op.root.scale.setScalar(OP01_CHARACTER.scale);
   op.root.updateMatrixWorld(true);
@@ -342,8 +342,8 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   assert.equal(parent.scale.x,1,'gameplay player remains unscaled');
   assert.equal(op.character.height,1.78,'authoring and physics contract is unchanged');
   const diag=op.poseDiagnostics();
-  assert.equal(diag.visualScale,1.10);
-  assert(Math.abs(diag.visualHeight-1.958)<.001);
+  assert.equal(diag.visualScale,1.30);
+  assert(Math.abs(diag.visualHeight-2.314)<.001);
 });
 
 test('OP01 aims immediately, then eases toward movement without snapping',async()=>{

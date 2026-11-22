@@ -540,12 +540,27 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 {
  const rule=by('aim-stick-instant-fire');
  assert.equal(rule.check().length,0,'aim-stick instant fire holds on real source');
- assert.equal(rule.check({gameSrc:'',levelsSrc:''}).length,3,'all aim-stick-instant-fire guards fire');
+ assert.equal(rule.check({gameSrc:'',levelsSrc:''}).length,2,'all aim-stick-instant-fire guards fire');
  const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
  const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
- assert.equal(rule.check({gameSrc:game.replace('if(onShot&&!inputPaused(round))onShot(true);','')}).length,1,'dropping the instant pointerdown fire call fires');
  assert.equal(rule.check({gameSrc:game.replace("'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice'","'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice,#player-health,#player-shield,#ammo-hud,#weapon-name'")}).length,1,'treating floating HUD labels as covered controls fires');
  assert.equal(rule.check({levelsSrc:levels.replace('deadZonePx:8','deadZonePx:20')}).length,1,'raising the deadzone back to 20px fires');
+}
+
+{
+ const rule=by('aim-stick-brawl-stars-release-only');
+ assert.equal(rule.check().length,0,'aim-stick Brawl Stars release-only holds on real source');
+ assert.equal(rule.check({gameSrc:''}).length,1,'a missing setupStick fires (one combined guard since nothing can be extracted)');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({gameSrc:game.replace(
+   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);\n  }",
+   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);\n    if(onShot&&!inputPaused(round))onShot(true);\n  }"
+ )}).length,1,'restoring the v2.28.66 instant pointerdown fire fires');
+ assert.equal(rule.check({gameSrc:game.replace(
+   "if(direction==='tap')onShot(true);\n      else if(direction){aim=screenToWorld(direction.x,direction.y);onShot(false);}",
+   "if(direction==='tap')onShot(true);\n      if(direction){aim=screenToWorld(direction.x,direction.y);onShot(false);}"
+ )}).length,1,'an independent if (not else-if) that can double-fire tap and aimed shots fires');
+ assert.equal(rule.check({gameSrc:game.replace("const cancelled=e.type!=='pointerup';","const cancelled=false;")}).length,1,'dropping the non-pointerup-is-a-cancel guard fires');
 }
 
 {
