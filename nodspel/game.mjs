@@ -206,7 +206,22 @@ if(DEBUG){
     ftueDebugEl.textContent=`FTUE step:${ftue.step||'-'} attempts:${ftue.attempts||0}\nplay:${fmt('play')} raidStart:${fmt('raidStart')} firstShot:${fmt('firstShot')} firstKill:${fmt('firstKill')} firstExtract:${fmt('firstExtract')}`;
   },500);
 }
+function extractToastLane(){
+  const move=document.getElementById('move-stick'),aim=document.getElementById('aim-stick'),gap=8;
+  if(move&&aim){const mr=move.getBoundingClientRect(),al=aim.getBoundingClientRect();if(mr.width>2&&al.width>2&&al.left>mr.right)return Math.max(80,Math.floor(al.left-mr.right-gap*2));}
+  const root=getComputedStyle(document.documentElement);
+  const sl=parseFloat(root.getPropertyValue('--sl'))||0,sr=parseFloat(root.getPropertyValue('--sr'))||0;
+  return Math.max(80,Math.floor(innerWidth-sl-sr-280));
+}
+function fitExtractToast(el){
+  if(!el)return;
+  el.style.maxWidth=extractToastLane()+'px';
+  el.classList.add('one-line');
+  if(el.scrollWidth>el.clientWidth)el.classList.remove('one-line');
+}
 function layoutBottomNotices(){
+  const toast=document.getElementById('extract-toast');
+  if(toast&&toast.isConnected&&!toast.hidden)fitExtractToast(toast);
   const list=[...document.querySelectorAll('.area-notice')].filter(el=>el.isConnected&&!el.hidden&&(el.id==='extract-toast'||el.classList.contains('room-clear')));
   list.sort((a,b)=>(a.id==='extract-toast'?0:1)-(b.id==='extract-toast'?0:1));
   const sb=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||0;
@@ -1143,7 +1158,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   if(label.caption.textContent!==text)label.caption.textContent=text;if(!door&&done)setIconText(label.shortEl,'check','');else setIconText(label.shortEl,'',door?(done?'':'DOOR'):'SEARCH');
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
   label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&gameClock()-ref.openedAt>1500;}}
-function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className=round.depth?'area-notice one-line':'area-notice';t.setAttribute('role','status');t.textContent=round.depth?'EXTRACT OPEN · walk into the lit hatch':'EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);layoutBottomNotices();setTimeout(()=>{t.remove();layoutBottomNotices();},6000);}
+function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent=round.depth?'EXTRACT OPEN · walk into the lit hatch':'EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);layoutBottomNotices();setTimeout(()=>{t.remove();layoutBottomNotices();},6000);}
 // Shared by the level-load roster and v2.7.0 hunter waves (nodspel/stakes.js), which add enemies mid-raid.
 function labelEnemyVisual(v){
   v.maxHealth=v.enemy.health;

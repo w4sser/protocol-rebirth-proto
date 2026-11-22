@@ -425,5 +425,8 @@ The ROOM CLEAR pill and the EXTRACT OPEN toast shared the same bottom
 anchor, so on a 667-wide phone the pill sat on top of the wrapped extract
 copy and hid the text. `area-notice-no-overlap` requires
 `layoutBottomNotices()` to stack bottom toasts, and the Depth Raid extract
-copy to stay short and nowrap so it fits one line at 667x375.
+copy to stay short enough for one line at 667x375. Nowrap is applied only
+when that line fits between the sticks; otherwise the toast wraps inside a
+stick-safe max-width (280px reserved for the sticks), so the longer NODE
+raid copy cannot overflow into the move or aim stick.
 

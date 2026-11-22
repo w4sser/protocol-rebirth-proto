@@ -101,7 +101,7 @@ html{background:#0b1418;height:100%}
 /* full-bleed 3D: the canvas + world labels escape the safe rect back to the screen edges */
 #viewport #game,#viewport #world-labels{position:fixed!important;inset:auto;top:calc(-1*var(--st))!important;right:calc(-1*var(--sr))!important;bottom:calc(-1*var(--sb))!important;left:calc(-1*var(--sl))!important}
 html,body{background:#07151c}
-#extract-toast{background:#0d2a22ee;border-color:#75cfcc88;color:#d7efea;white-space:nowrap}
+#extract-toast{background:#0d2a22ee;border-color:#75cfcc88;color:#d7efea}
 
 /* v1.40.5: non-intrusive full bag */
 .bag-toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:9;background:#3a1416e8;color:#ffd2d2;border:1px solid #E4705F88;border-radius:14px;padding:5px 12px;font-size:12px;pointer-events:none;animation:bagtoast 1.8s ease forwards}
@@ -415,7 +415,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,#depth-extract-guide,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer and both sticks. */
-#extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:max-content;max-width:calc(100vw - var(--sl,0px) - var(--sr,0px) - 200px);white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
+#extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:max-content;max-width:calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px);white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
 #extract-toast.one-line{white-space:nowrap}
 /* Playtest 2026-11-08 item 2: on a short phone screen the bag/NEED panel (backpack count, tool slots, upgrade
    material chips) stacked tall enough to eat close to half the viewport. Landscape phones have width to spare,
