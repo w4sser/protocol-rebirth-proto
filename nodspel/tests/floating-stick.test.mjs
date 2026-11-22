@@ -1,4 +1,4 @@
-// Floating stick gesture logic (docs/design-combat-feel-oct28.md §2.2a, PR-A acceptance; v2.28.66 made the
+// Floating stick gesture logic (docs/design-combat-feel-oct28.md §2.2a, PR-A acceptance; v2.28.67 made the
 // first shot fire on touchdown instead of release, see AGENTS.md bug-fix notes): exercises the real
 // setupStick() from game.mjs (brace-matched extraction, same technique as perk-exit.test.mjs) in a jsdom
 // sandbox with synthetic pointer events, instead of re-implementing the gesture rules in parallel (which could
@@ -8,8 +8,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.66';
-import {RULES} from '../levels.js?v=2.28.66';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.67';
+import {RULES} from '../levels.js?v=2.28.67';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){

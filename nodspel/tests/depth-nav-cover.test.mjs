@@ -159,7 +159,7 @@ test('every combat room in a depth area has cover between the entry and the enem
   assert.ok(blocked>=rooms);
 });
 
-// v2.28.66 (Robert 22 Nov 2026 playtest): walking through a doorway/corridor mouth felt like
+// v2.28.67 (Robert 22 Nov 2026 playtest): walking through a doorway/corridor mouth felt like
 // tar -- an invisible wall slowed the player in the gap. Exercises the real depthJambAssist()
 // from game.mjs (same brace-matched extraction technique as floating-stick.test.mjs) so a
 // regression in the shipped function, not a re-implementation, fails this test.

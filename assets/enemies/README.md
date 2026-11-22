@@ -14,3 +14,5 @@ Eight standalone low-poly GLB assets for the Protocol Rebirth raid. Each model u
 | `sniper.glb` | `core`, `armor_panel`, `optic`, `weakpoint`, `barrel_pivot`, `tripod_leg_01` through `tripod_leg_03` |
 
 Swarm is one reusable unit; spawn several instances for a group. Models are kept deliberately lightweight (all under 150 KB). Scale is normalized around a compact enemy footprint; adjust the root transform to match the raid's existing world units.
+
+`patrol_grunt.glb` is the exception to the vertex-colour style: a textured mesh (one 1024 px base-colour JPEG, ~20k tris, ~1.3 MB) cleaned up from a generated model to match the four-wheel bunker patrol reference. It keeps the same node contract as before (+X forward, +Z up, the part names in `nodspel/enemies.js`, wheels baked in model space, `sensor_head_pivot` at the turret axis carrying `sensor_head`, `optic` and `short_machine_gun`). `optic` has its own red emissive material. `upper_frame`, `front_plate`, `side_panel_*`, `hub_*`, `battery_cage`, `sensor_face` and `head_turntable` are kept as empty nodes so the loader's part check still passes.
