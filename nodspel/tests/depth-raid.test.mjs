@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage,collectLoot} from '../round.js';
-import {extractScrapBonus,generateLevel} from '../levels.js';
+import {extractScrapBonus,generateLevel,RULES} from '../levels.js';
 import {walkMap} from '../encounters.js';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,DEPTH} from '../depth-raid.js';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,canPushDeeper,pushDeeper,nearDepthDoor,combatRoomsWithCover,depthConnectorPaths,DEPTH_CLEAR_WIDTH,LINK_WIDTH,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.63';
+import '../../data/bit-lines.js?v=2.28.64';
 
 function startDepth(seed,now=0,ctx={}){
   const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});
@@ -207,12 +207,13 @@ test('FTUE raid 1 is unaffected: depth mode never attaches, and its short L1 ext
 });
 
 test('the depth BIT lines are unique, never reuse an existing BIT line, and the intro has a stable seen-flag id', () => {
-  const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.goDeeper,DEPTH.bitLines.extract,DEPTH.bitLines.extractFinal,DEPTH.bitLines.finalArea];
+  const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.goDeeper,DEPTH.bitLines.extract,DEPTH.bitLines.extractFinal,DEPTH.bitLines.finalArea,DEPTH.bitLines.push];
   const known=new Set([POWER_PAD_BIT_LINE,SHELF_BIT_LINE]);
   for(const pool of Object.values(globalThis.DATA.bitSummary.pools))for(const line of pool.lines)known.add(line);
   for(const line of lines){assert.ok(line.length>0);assert.ok(!known.has(line),`reused an existing BIT line: ${line}`);}
   assert.equal(new Set(lines).size,lines.length);
   assert.equal(DEPTH.bitLines.introId,'depth_choice_intro');
+  assert.equal(DEPTH.bitLines.pushId,'depth_push_intro');
 });
 
 test('stitched depth layouts keep areas apart, lock two depth doors, and become walkable after each unlock', () => {
@@ -355,4 +356,57 @@ test('the open extract trigger covers the visible pad, fires on entry, and is no
   assert.equal(inDepthExtract(r,onPad),true,'the visible pad (1.2 m from centre) must count as in the beam');
   assert.equal(stepDepthRaid(r,1700,onPad),'zone-extracted');
   assert.equal(r.over,true);assert.equal(r.reason,'extract');assert.equal(r.levelsCleared,2);
+});
+
+test('pushing through the door without a clear is GO DEEPER and forfeits extract in that area', () => {
+  const r=startDepth('push-without-clear',0);
+  assert.equal(areaIsCleared(r,1),false);
+  assert.equal(canPushDeeper(r),true);
+  assert.equal(goDeeper(r,0),null,'the cleared-area GO DEEPER choice is still gated on the popup');
+  const door=depthDoor(r.level,1);
+  assert.equal(door.locked,true);
+  assert.ok(nearDepthDoor(r,{x:door.x,z:door.z},1.7));
+  const res=pushDeeper(r,500);
+  assert.ok(res?.pushed);
+  assert.equal(res.nextZone,2);
+  assert.equal(door.locked,false);
+  assert.equal(r.depth.phase,'travel');
+  assert.equal(r.depth.extractOpen,false);
+  assert.equal(r.depth.forfeitZones[0],1);
+  assert.equal(canPushDeeper(r),false);
+  assert.equal(walkTo(r,600,2),'area-entered');
+  assert.equal(r.depth.zone,2);
+  assert.equal(exitIsOpen(r),false);
+  // leftover area-1 loot cannot be extracted: even standing on the old hatch does nothing
+  const a1=r.level.depthExits[0];
+  assert.equal(stepDepthRaid(r,700,a1),null);
+  assert.equal(r.over,false);
+  assert.equal(r.depth.extractOpen,false);
+});
+
+test('extract still requires a clear: pushing is the risky path, clearing still opens the choice', () => {
+  const r=startDepth('clear-still-prompts',0);
+  assert.equal(canPushDeeper(r),true);
+  killArea(r,1);
+  assert.equal(canPushDeeper(r),false);
+  assert.equal(stepDepthRaid(r,1000,r.level.start),'choice-opened');
+  assert.equal(r.depth.choice.canGoDeeper,true);
+  assert.equal(pushDeeper(r,1100),null,'once the area is clear, the player uses the EXTRACT / GO DEEPER popup');
+});
+
+test('depth corridors keep at least 2.4 m of clear width', () => {
+  assert.equal(DEPTH_CLEAR_WIDTH,2.4);
+  assert.ok(LINK_WIDTH-2*RULES.wallThickness>=2.4-1e-9);
+  const seeds=['probe-seed','alpha','bravo','charlie','delta','echo','foxtrot','golf','layout','gear-on-pad'];
+  for(const seed of seeds){
+    const L=generateDepthLevel(seed);
+    const corridors=[...(L.corridors??[]),...(L.deadEnds??[])];
+    assert.ok(corridors.length>=2,seed);
+    for(const c of corridors){
+      // Cross-section, not length: a short dead-end can be shorter than it is wide.
+      const width=c.width??(c.dir?(c.dir.x?c.d:c.w):Math.min(c.w,c.d));
+      assert.ok(width+1e-9>=LINK_WIDTH,`${seed} corridor slab ${width} < ${LINK_WIDTH} at ${c.x},${c.z}`);
+      assert.ok(width-2*RULES.wallThickness+1e-9>=2.4,`${seed} clear width ${width-2*RULES.wallThickness} < 2.4`);
+    }
+  }
 });

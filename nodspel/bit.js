@@ -1,7 +1,7 @@
-import {hasPerk,PERKS,logCombat} from './perks.js?v=2.28.63';
-import {RULES} from './levels.js?v=2.28.63';
-import {movePlayer} from './physics.mjs?v=2.28.63';
-import {heal} from './stakes.js?v=2.28.63';
+import {hasPerk,PERKS,logCombat} from './perks.js?v=2.28.64';
+import {RULES} from './levels.js?v=2.28.64';
+import {movePlayer} from './physics.mjs?v=2.28.64';
+import {heal} from './stakes.js?v=2.28.64';
 export function createBIT(position){return {...position,lastPlayer:{...position},trail:[],healing:false,healCarry:0};}
 export function stepBIT(bit,round,position,dt,moving,solids,floors){
   if(round.pauseAt!=null){bit.healing=false;return false;}

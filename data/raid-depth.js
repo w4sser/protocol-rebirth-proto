@@ -2,6 +2,8 @@
 // enemies are dead, then a paused EXTRACT / GO DEEPER popup; GO DEEPER unlocks a door into
 // the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area extract.
 // Timeout of an area clock before a clear is a loss. All tuning is prototype, not a final pass.
+// v2.28.64: the next-area door is usable without a clear (push = GO DEEPER, forfeit remaining
+// loot and extract in that area). Extract still requires a clear.
 var RAID_DEPTH_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_DEPTH_ROOT.DATA = RAID_DEPTH_ROOT.DATA || {};
 RAID_DEPTH_ROOT.DATA.raidDepth = Object.freeze({
@@ -40,6 +42,10 @@ RAID_DEPTH_ROOT.DATA.raidDepth = Object.freeze({
     introId: 'depth_choice_intro',
     intro: "Area's clear. Take the loot home like a reasonable person, or walk through that door like the other kind. I'm professionally curious either way.",
     goDeeper: "Deeper it is. Harder toys in the next rooms. Try not to donate them back to the floor.",
+    // First time the player walks through a still-uncleared door (v2.28.64). New introId so
+    // profiles that already heard goDeeper still get this once.
+    pushId: "depth_push_intro",
+    push: "Leaving live hostiles in the rear-view. The hatch in this wing just became decor. Try not to miss it.",
     extractId: 'depth_extract_intro',
     extract: "The hatch is in this area, under the beam. The ones you already walked past stay shut. Try not to walk in circles about it.",
     extractFinal: "That's the way out. The hatch is in this last area, under the beam — not back the way you came.",

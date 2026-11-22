@@ -572,6 +572,14 @@ export const RULES=[
      if(!/#extract-toast\{[^}]*max-width:calc\(100vw - var\(--sl,0px\) - var\(--sr,0px\) - 280px\)[^}]*white-space:\s*normal/.test(css.replace(/\s+/g,' ')))out.push('nodspel/style.css: a wrapping EXTRACT OPEN toast must use a stick-safe max-width (280px reserved)');
      if(!/#extract-toast\.one-line\{[^}]*white-space:\s*nowrap/.test(css))out.push('nodspel/style.css: one-line EXTRACT OPEN must use nowrap only as a class, not as the default');
      return out;}},
+  {id:'depth-push-cover-nav',pr:'v2.28.64 depth-push-cover',why:"Robert 22 Nov 2026: had to kill every enemy to move on, got stuck in a narrow corridor doorway, and met enemies in an empty under-lit area 3 with no cover. He wanted to push forward without a clear, wider corridors, and tactical cover.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),raid=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),data=ctx.raidDepthSrc??read('data/raid-depth.js'),html=ctx.htmlSrc??read('nodspel/index.html'),css=ctx.cssSrc??read('nodspel/style.css'),bunker=ctx.bunkerSrc??read('nodspel/bunker.js'),world=ctx.worldSrc??read('nodspel/world.js');const out=[];
+     if(!raid.includes('export function pushDeeper(')||!raid.includes('export function canPushDeeper(')||!raid.includes('forfeitZones'))out.push('nodspel/depth-raid.js: pushing through the next-area door without a clear must be GO DEEPER and forfeit extract in that area');
+     if(!data.includes('pushId')||!data.includes('depth_push_intro')||!data.includes('Leaving live hostiles in the rear-view'))out.push('data/raid-depth.js: the first uncleared push needs a unique dry BIT line and a stable pushId');
+     if(!depth.includes('DEPTH_CLEAR_WIDTH=2.4')||!depth.includes('function chamferOpening(')||!depth.includes('export function placeDepthCover(')||!depth.includes('export function depthConnectorPaths('))out.push('nodspel/depth-level.js: depth corridors must be 2.4 m clear with chamfered joints, cover in combat rooms, and a connector nav path');
+     if(!game.includes('GO DEEPER · skip remaining enemies')||!html.includes('id="depth-push"')||!game.includes('onDepthPushConfirm'))out.push('the first uncleared push must show a small GO DEEPER confirm on the door');
+     if(!bunker.includes('if(level.depth)')||!world.includes('if(level.depth)'))out.push('nodspel/bunker.js / world.js: Depth Raid must light every area, not only the first Q.lights anchors');
+     return out;}},
 ];
 
 

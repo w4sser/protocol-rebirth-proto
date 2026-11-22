@@ -1,19 +1,19 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.63';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.63';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.64';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.64';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.63';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.63';
-import {buildTown} from './town.js?v=2.28.63';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.63';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.63-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.63-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.63';
-import {controlCablePath} from './control-cables.js?v=2.28.63';
-import {extractAvailable} from './big-level.js?v=2.28.63';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.63';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.63';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.63';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.64';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.64';
+import {buildTown} from './town.js?v=2.28.64';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.64';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.64-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.64-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.64';
+import {controlCablePath} from './control-cables.js?v=2.28.64';
+import {extractAvailable} from './big-level.js?v=2.28.64';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.64';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.64';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.64';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -475,7 +475,25 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     }
   }
   if(isArch)spots.splice(0,spots.length,...props.map(p=>({x:p.position.x,z:p.position.z})));
-  for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
+  if(!isArch){
+    const pool=spots.slice();
+    const chosen=[];
+    if(level.depth){
+      const per=Math.max(Q.lights===0?1:Q.lights,2);
+      for(const area of [1,2,3]){
+        const rooms=(level.rooms??[]).filter(r=>r.depthArea===area);
+        const inArea=s=>rooms.some(r=>Math.abs(s.x-r.x)<=r.w/2&&Math.abs(s.z-r.z)<=r.d/2);
+        const list=pool.filter(inArea);
+        chosen.push(...list.slice(0,per));
+        if(list.length===0){
+          for(const r of rooms.slice(0,per))chosen.push({x:r.x,z:r.z});
+        }
+      }
+    }else{
+      chosen.push(...pool.slice(0,Q.lights));
+    }
+    for(const s of chosen){const l=new THREE.PointLight(PALETTE.neon,4,level.depth?8:6,1.8);l.position.set(s.x,1.4,s.z);group.add(l);}
+  }
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
   // v2.22.3 perf: every MeshStandardMaterial shader is built for an exact number of visible lights. Lights used to
   // sit inside groups that get hidden at runtime (nodes out of line of sight, sleeping rooms on big levels), so the
