@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.67';
 import {loadEnemyModel} from './enemy-models.js?v=2.28.67';
+import {pbrEnvironment} from './environment-look.js?v=2.28.67';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 const SWARM_LEG_PIVOTS=Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`); // eight-legged textured swarm_bot
@@ -177,7 +178,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
       if(n.material)for(const m of Array.isArray(n.material)?n.material:[n.material]){m.userData.shared=true;m.fog=false;
         // Vertex-colour GLBs default to a fully metallic material without an environment map.
         // Match the existing procedural enemies so bunker light reveals their authored colours.
-        if(m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}}
+        if(m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;if(m.map)pbrEnvironment(m);}}
     });
     const animatedMaterials=[];
     for(const name of ['shield_arc','back_battery','weakpoint_battery']){

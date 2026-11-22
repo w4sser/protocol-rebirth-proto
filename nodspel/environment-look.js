@@ -4,11 +4,13 @@ import * as THREE from './vendor/three.module.js';
 export const LIGHT_RIGS={
   bunker:{sky:'#9caccd',ground:'#242438',fill:1.15,key:'#bac9df',keyPower:1.5,exposure:1.18},
 };
-// PBR environment fill (v2.28.67). The textured enemies and OP01 use metal/roughness materials, which only
-// get their ambient fill and reflections from scene.environment; with hemi + sun alone they read near-black.
-// A tiny procedural studio room is baked once through PMREM at start-up (no per-frame cost, no extra lights).
+// PBR environment fill (v2.28.67). The textured enemies, OP01 and BIT use metal/roughness materials, which only
+// get their ambient fill and reflections from an environment map; with hemi + sun alone they read near-black.
+// A tiny procedural studio room is baked once through PMREM at start-up (no per-frame cost, no extra lights)
+// and assigned per material to those PBR models only (pbrEnvironment), never as scene.environment, so the
+// vertex-coloured world keeps its authored bunker/outdoor look.
 // Turn off with enabled:false here, or per session with ?envmap=0 for an A/B comparison.
-export const ENVIRONMENT_MAP={enabled:true,intensity:.65};
+export const ENVIRONMENT_MAP={enabled:true,intensity:1};
 export function environmentMapEnabled(search=''){
   const q=new URLSearchParams(search).get('envmap');
   return q==null?ENVIRONMENT_MAP.enabled:q!=='0';
@@ -34,12 +36,16 @@ export function createEnvironmentMap(renderer){
   room.traverse(n=>{n.geometry?.dispose();n.material?.dispose();});pmrem.dispose();
   return target.texture;
 }
-export function applyEnvironmentMap(scene,renderer,search=''){
+let pbrEnvMap=null;
+// Bake once at start-up; models attached later pick it up through pbrEnvironment().
+export function applyEnvironmentMap(renderer,search=''){
   if(!environmentMapEnabled(search))return null;
-  try{
-    scene.environment=createEnvironmentMap(renderer);scene.environmentIntensity=ENVIRONMENT_MAP.intensity;
-    return scene.environment;
-  }catch(e){console.warn('Environment map skipped',e);return null;}
+  try{pbrEnvMap=createEnvironmentMap(renderer);}catch(e){console.warn('Environment map skipped',e);pbrEnvMap=null;}
+  return pbrEnvMap;
+}
+export function pbrEnvironment(material,intensity=ENVIRONMENT_MAP.intensity){
+  if(!pbrEnvMap||!material?.isMeshStandardMaterial)return false;
+  material.envMap=pbrEnvMap;material.envMapIntensity=intensity;material.needsUpdate=true;return true;
 }
 export function applyEnvironmentLight(area,{hemi,sun,renderer}){
   const r=LIGHT_RIGS[area]??LIGHT_RIGS.bunker;

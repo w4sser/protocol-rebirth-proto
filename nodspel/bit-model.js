@@ -7,12 +7,15 @@
 // existing recipe as a change relative to idle (bit-expression.js FACES), never a redesigned face.
 import * as THREE from './vendor/three.module.js';
 import {bitExpressionFace,mouthDepth} from './bit-expression.js?v=2.28.67';
+import {pbrEnvironment} from './environment-look.js?v=2.28.67';
+import {tagBloom} from './postfx.js?v=2.28.67';
 
 export const BIT_MODEL=Object.freeze({
   url:'../assets/bit/bit-companion.glb?v=2.28.67',
-  scale:1, // the GLB is authored at game scale: ~0.72 m wide casing, ~0.92 m to the antenna tip
+  scale:1.3, // GLB casing is ~0.72 m wide; 1.3 reads at least as large as the old 0.78 m box at top-down scale
   lift:.3, // hover base height, matching the procedural BIT's lowest part (y=.34 minus its .04 skirt)
-  faceHeight:.92, // fraction of the screen height the 875 U face box fills
+  faceHeight:.98, // fraction of the screen height the 875 U face box fills
+  faceIntensity:1.35, // emissive multiplier so the #75CFCC face reads on a phone (restrained bloom on top)
   canvasHeight:256,
 });
 
@@ -73,10 +76,12 @@ export async function attachBitModel(bitModel,{procedural=[],load,doc}={}){
   const size=screen.geometry.boundingBox.getSize(new THREE.Vector3());
   const face=createBitFace(size.x/Math.max(1e-6,size.y),doc);
   const material=new THREE.MeshStandardMaterial({color:'#05080a',roughness:.25,metalness:0,emissive:'#75cfcc',
-    emissiveMap:face.texture,emissiveIntensity:1});
+    emissiveMap:face.texture,emissiveIntensity:BIT_MODEL.faceIntensity});
+  pbrEnvironment(material,.4); // faint glass reflection only
   material.toneMapped=false; // the locked #75CFCC must reach the screen unchanged by ACES tone mapping
   screen.material=material;
-  root.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=false;}});
+  root.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=false;if(n!==screen)pbrEnvironment(n.material);}});
+  tagBloom(screen); // standard materials bloom by emission only: the face glows, the dark glass does not
   const mount=new THREE.Group();mount.add(root);mount.scale.setScalar(BIT_MODEL.scale);mount.position.y=BIT_MODEL.lift;
   for(const part of procedural)part.visible=false;
   bitModel.add(mount);face.set('idle');

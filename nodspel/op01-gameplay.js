@@ -10,6 +10,7 @@
  * and the hand-mounted weapon stays aligned while LODs switch.
  */
 import * as THREE from './vendor/three.module.js';
+import {pbrEnvironment} from './environment-look.js?v=2.28.67';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 
 export const OP01_GAME_PATHS=Object.freeze([
@@ -31,9 +32,10 @@ export const OP01_CHARACTER=Object.freeze({
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
   rim:{color:'#b6c4ca',strength:.16,power:2.6},
-  // Brightness lift (v2.28.67): extra environment-map reflection on OP01's PBR materials plus a small
-  // texture-tinted emissive floor, so the dark coat/gear still reads in the moody bunker rigs.
-  light:{envMapIntensity:1.6,emissiveLift:.16},
+  // Brightness lift (v2.28.67): OP01's albedo is near-black (coat ~3% grey), so the PBR environment fill
+  // alone is not enough at top-down scale. colorBoost multiplies the albedo (keeps the lighting and shading),
+  // envMapIntensity scales the environment fill/reflections and emissiveLift adds a small texture-tinted floor.
+  light:{colorBoost:2.2,envMapIntensity:1.8,emissiveLift:.12,untexturedFloor:'#2c3238'},
   accessories:false
 });
 
@@ -86,13 +88,14 @@ const lifted=new WeakSet();
 function liftMaterial(mat){
   if(lifted.has(mat)||!mat.isMeshStandardMaterial)return;
   lifted.add(mat);
-  const {envMapIntensity,emissiveLift}=OP01_CHARACTER.light;
-  mat.envMapIntensity=envMapIntensity;
+  const {colorBoost,envMapIntensity,emissiveLift,untexturedFloor}=OP01_CHARACTER.light;
+  pbrEnvironment(mat,envMapIntensity);
+  mat.color.multiplyScalar(colorBoost);
   // Authored glows (cyan light strip etc.) keep their own emissive. Otherwise tint the lift by the albedo
   // so it brightens the authored colours instead of greying them out.
   if(mat.emissive.getHex()===0){
     if(mat.map&&!mat.emissiveMap){mat.emissiveMap=mat.map;mat.emissive.setScalar(emissiveLift);}
-    else if(!mat.map)mat.emissive.copy(mat.color).multiplyScalar(emissiveLift);
+    else if(!mat.map)mat.emissive.set(untexturedFloor).multiplyScalar(emissiveLift*2); // flat-colour gear (pack, weapon)
   }
   mat.needsUpdate=true;
 }
