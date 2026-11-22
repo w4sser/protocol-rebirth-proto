@@ -394,7 +394,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   }
   function healthAnchor(target){
     // Follow the actual animated hood/head, not just the logical player XZ
-    // center. This continues to work with the 10%-larger OP01 visual root.
+    // center. This continues to work with the 1.30x OP01 visual root.
     root.updateMatrixWorld(true);
     head.getWorldPosition(target);
     target.y+=.32*root.scale.y;
