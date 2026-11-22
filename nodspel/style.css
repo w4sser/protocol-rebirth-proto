@@ -412,7 +412,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .pause-settings{display:flex;flex-direction:column;flex:1;min-width:0;height:100%}
 .pause-settings .audio-menu-body{flex:1;min-height:0;overscroll-behavior:contain}
 .pause-settings .raid-settings-actions{flex-shrink:0;flex-wrap:nowrap;margin-top:8px;padding-top:8px}
-body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,#depth-extract-guide,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
+body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,#depth-extract-guide,.area-notice,#encounter-hint,.pickup-toast,#depth-push){visibility:hidden}
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer and both sticks. */
 #extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:max-content;max-width:calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px);white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
@@ -448,6 +448,12 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
 .depth-choice-tiles{display:flex;gap:10px}
 .depth-choice-tile{flex:1 1 0;min-width:0;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:10px;cursor:pointer;font:800 14px/1.1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ad-bone);background:color-mix(in srgb,var(--ad-ink) 80%,transparent)}
 .depth-choice-tile .pr-ic{width:28px;height:28px}
+.depth-push{position:fixed;left:50%;bottom:calc(86px + var(--sb,0px));transform:translateX(-50%);z-index:21;pointer-events:auto;width:min(280px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px))}
+.depth-push[hidden]{display:none}
+.depth-push-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 10px 10px;background:color-mix(in srgb,var(--ad-night) 93%,transparent);border:1px solid color-mix(in srgb,var(--ad-bit) 53%,transparent);border-radius:8px;text-align:center}
+#depth-push-copy{margin:0;color:var(--ad-bone);font:700 11px/1.25 'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.04em}
+#depth-push-confirm{min-height:40px;min-width:140px;padding:6px 14px;border-radius:6px;border:1px solid color-mix(in srgb,var(--ad-bit) 67%,transparent);background:color-mix(in srgb,var(--ad-night) 55%,var(--ad-bit));color:var(--ad-bit);font:800 12px/1 system-ui,sans-serif;letter-spacing:.08em;cursor:pointer}
+
 .depth-choice-tile small{font:600 10px/1.25 system-ui,sans-serif;letter-spacing:.02em;text-transform:none;text-align:center;color:var(--ad-bone);opacity:.85}
 .depth-choice-tile.extract{border:2px solid var(--ad-cyan);color:var(--ad-cyan)}
 .depth-choice-tile.extract .pr-ic{color:var(--ad-cyan)}

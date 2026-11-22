@@ -2,10 +2,10 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.63';
-import {loadKit,instance} from './town.js?v=2.28.63';
-import {rngFrom} from './art.js?v=2.28.63';
-import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.63';
+import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.64';
+import {loadKit,instance} from './town.js?v=2.28.64';
+import {rngFrom} from './art.js?v=2.28.64';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.64';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -99,7 +99,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.63`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.64`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
@@ -233,7 +233,26 @@ export function buildBunker(level,group,assets,Q){
     for(const im of instance(group,assets[k],list,{cast:!low&&!decal,receive:true}))if(decal&&!k.startsWith('floor')){
       // decals: pulled toward the camera in depth instead of relying on a few mm of height
       const m=im.material.clone();m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-4;m.depthWrite=false;m.userData.shared=true;im.material=m;im.renderOrder=1;}}
-  // warm/cyan practical lights at the lamp anchors (q=low: none, like the prop lights)
-  for(const a of [...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights)){const l=new THREE.PointLight(a.color,5,7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
+  // warm/cyan practical lights at the lamp anchors (q=low: none, like the prop lights).
+  // Depth Raid is three stitched areas; a global cap of Q.lights=2 left later wings dark
+  // (Robert 22 Nov 2026, area 3). Keep the cap for Node Raid, but light every depth area.
+  const picked=[];
+  if(level.depth){
+    const per=Math.max(Q.lights===0?1:Q.lights,2);
+    for(const area of [1,2,3]){
+      const rooms=(level.rooms??[]).filter(r=>r.depthArea===area);
+      const inArea=a=>rooms.some(r=>Math.abs(a.lightX-r.x)<=r.w/2+1&&Math.abs(a.lightZ-r.z)<=r.d/2+1);
+      const list=anchors.filter(inArea).sort((a,b)=>a.z-b.z);
+      picked.push(...list.slice(0,per));
+      if(list.length===0){
+        for(const r of rooms.slice(0,per)){
+          picked.push({lightX:r.x,lightZ:r.z,y:1.5,color:'#FF9D4D'});
+        }
+      }
+    }
+  }else{
+    picked.push(...[...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights));
+  }
+  for(const a of picked){const l=new THREE.PointLight(a.color,5,level.depth?9:7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
   return {instancedKinds:[...by.keys()],anchors,floorTiles};
 }

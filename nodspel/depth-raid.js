@@ -2,14 +2,14 @@
 // cleared, then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door and the player
 // walks into the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area
 // extract. Area-clock timeout is a loss. NODE RAID is untouched (opt-in via depthModeEnabled).
-import '../data/raid-depth.js?v=2.28.63';
-import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules} from './depth-level.js?v=2.28.63';
-import {timeoutRound,extractDepthZone} from './round.js?v=2.28.63';
-import {pausePick,resumePick} from './perks.js?v=2.28.63';
-import {rarityOf} from './rarity.js?v=2.28.63';
+import '../data/raid-depth.js?v=2.28.64';
+import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH} from './depth-level.js?v=2.28.64';
+import {timeoutRound,extractDepthZone} from './round.js?v=2.28.64';
+import {pausePick,resumePick} from './perks.js?v=2.28.64';
+import {rarityOf} from './rarity.js?v=2.28.64';
 
 export const DEPTH=globalThis.DATA.raidDepth;
-export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules};
+export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH};
 
 // Opt-in game mode. Default OFF: ordinary raids stay Node Raid (the existing loop). The Raid Prep
 // selector (NODE RAID / DEPTH RAID) passes ?depth=1 only when the player picks DEPTH RAID on Bunker
@@ -78,6 +78,32 @@ export function chooseExtract(round,now){
   return {kind:'extract',zone};
 }
 
+export function canPushDeeper(round){
+  const d=round?.depth;
+  if(!d||round.over||d.zone>=3)return false;
+  if(d.phase!=='combat'||d.extractOpen)return false;
+  return !areaIsCleared(round,d.zone);
+}
+export function nearDepthDoor(round,position,reach=1.7){
+  const door=depthDoor(round?.level,round?.depth?.zone);
+  if(!door||!position)return null;
+  return Math.hypot(position.x-door.x,position.z-door.z)<=reach?door:null;
+}
+// Walk through the still-locked door without a clear: same travel/unlock as GO DEEPER,
+// but the leftover loot and the extract in this area are forfeited.
+export function pushDeeper(round,now){
+  const d=round.depth;
+  if(!canPushDeeper(round))return null;
+  const zoneLeft=d.zone;
+  const door=depthDoor(round.level,zoneLeft);
+  if(door){door.locked=false;door.openedAt=now;}
+  round.levelsCleared=Math.max(round.levelsCleared,zoneLeft);
+  d.phase='travel';d.choice=null;d.extractOpen=false;d.extracting=null;
+  d.goDeeperUsed={zone:zoneLeft,nextZone:zoneLeft+1,at:now,pushed:true};
+  d.forfeitZones=[...d.forfeitZones??[],zoneLeft];
+  return {zoneLeft,nextZone:zoneLeft+1,doorId:door?.id,pushed:true};
+}
+
 export function goDeeper(round,now){
   const d=round.depth;
   if(!d||round.over||d.phase!=='choice'||d.zone>=3||!d.choice?.canGoDeeper)return null;
@@ -140,6 +166,7 @@ export function stepDepthRaid(round,now,position){
       if((DEPTH.extractCountdownMs??0)>0)return 'extract-started';
     }else if(now-d.extracting.startedAt<(DEPTH.extractCountdownMs??0))return null;
     const zone=d.zone,complete=zone>=3;
+    if((d.forfeitZones??[]).includes(zone)){d.extracting=null;d.extractOpen=false;return 'extract-forfeit';}
     d.extracting=null;
     if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;
     extractDepthZone(round,now,zone,complete);

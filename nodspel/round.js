@@ -1,16 +1,16 @@
 // @hot stepShelves
-import {applyFtueLevel} from './ftue.js?v=2.28.63-ftue-opening-v1';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.63';
-import {extractAvailable} from './big-level.js?v=2.28.63';
-import {rarityOf} from './rarity.js?v=2.28.63';
-import {audioEvent} from './audio.js?v=2.28.63';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.63';
-import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.63';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.63';
-import {emptyBag,bagItems} from './raid.js?v=2.28.63';
-import {traceTargets,movePlayer} from './physics.mjs?v=2.28.63';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.28.63';
-import {createStakesState,heal} from './stakes.js?v=2.28.63-ftue-opening-v1';
+import {applyFtueLevel} from './ftue.js?v=2.28.64-ftue-opening-v1';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.64';
+import {extractAvailable} from './big-level.js?v=2.28.64';
+import {rarityOf} from './rarity.js?v=2.28.64';
+import {audioEvent} from './audio.js?v=2.28.64';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.64';
+import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.64';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.64';
+import {emptyBag,bagItems} from './raid.js?v=2.28.64';
+import {traceTargets,movePlayer} from './physics.mjs?v=2.28.64';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.28.64';
+import {createStakesState,heal} from './stakes.js?v=2.28.64-ftue-opening-v1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

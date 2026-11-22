@@ -1,13 +1,19 @@
-// Depth Raid v2.28.58: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
+// Depth Raid v2.28.64: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
 // with locked doors. Cheapest credible "same level, next area" — existing layouts translated
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.63';
-import '../data/raid-depth.js?v=2.28.63';
+// v2.28.64: corridors are at least 2.4 m clear with chamfered joints so the capsule does not
+// snag, and every combat room gets 2-4 cover pieces between the entry and the enemies.
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.64';
+import '../data/raid-depth.js?v=2.28.64';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
 const LINK_GAP=10;
-const LINK_WIDTH=2.2;
+// Clear walkable width is LINK_WIDTH minus the two wall thicknesses that sit on the
+// corridor floor. 2.4 m clear => floor slab 2.4 + 2*WALL_T (0.4) = 3.2 m (v2.28.64).
+export const DEPTH_CLEAR_WIDTH=2.4;
+export const DEPTH_CHAMFER=0.7;
+export const LINK_WIDTH=DEPTH_CLEAR_WIDTH+2*WALL_T;
 const DOOR_T=RULES.encounters.door.thickness;
 const DOOR_H=RULES.encounters.door.height;
 
@@ -148,7 +154,22 @@ function punchInto(level,room,toward){
   const dx=toward.x-room.x,dz=toward.z-room.z;
   const dir=Math.abs(dx)>Math.abs(dz)?{x:Math.sign(dx),z:0}:{x:0,z:Math.sign(dz)};
   punchOpening(level,room,dir,LINK_WIDTH);
+  chamferOpening(level,room,dir,LINK_WIDTH);
   return dir;
+}
+// Cut the 90-degree jamb that used to snag the player capsule: flare the
+// opening toward the room by DEPTH_CHAMFER and drop a square floor pad so
+// corner samples stay on a floor while the walls no longer meet at a point.
+function chamferOpening(level,room,dir,mouth){
+  const isX=dir.x!==0,c=DEPTH_CHAMFER;
+  const edgeX=room.x+dir.x*(room.w/2),edgeZ=room.z+dir.z*(room.d/2);
+  const pad={x:edgeX-dir.x*(c/2),z:edgeZ-dir.z*(c/2),
+    w:isX?c+WALL_T:mouth+2*c,d:isX?mouth+2*c:c+WALL_T};
+  level.floors.push({...pad,depthChamfer:true,depthArea:room.depthArea});
+}
+function addBendPad(from,x,z){
+  const s=LINK_WIDTH+DEPTH_CHAMFER*2;
+  from.floors.push({x,z,w:s,d:s,depthChamfer:true,depthLink:true});
 }
 function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
   const roomA=roomOf(from,from.exit)??from.rooms.at(-1);
@@ -166,8 +187,8 @@ function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
   const doorId=`depth-door-${fromArea}`;
   let doorX=roomA.x,doorZ=aSouth-1.2,doorW=LINK_WIDTH,doorD=DOOR_T;
   if(straight){
-    punchOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);
-    punchOpening(to,roomB,{x:0,z:1},LINK_WIDTH);
+    punchOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);chamferOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);
+    punchOpening(to,roomB,{x:0,z:1},LINK_WIDTH);chamferOpening(to,roomB,{x:0,z:1},LINK_WIDTH);
     addLinkSegment(from,roomA.x,aSouth,roomA.x,bNorth,fromArea,toArea,doorId);
   }else{
     // Walk around `to`'s bounding box so winding L3 rooms/corridors cannot block the aisle.
@@ -177,17 +198,138 @@ function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
     const aisleX=side>0?bb.maxX+2:bb.minX-2;
     const arriveX=roomB.x+side*(roomB.w/2);
     const arriveZ=roomB.z;
-    punchOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);
-    punchOpening(to,roomB,{x:side,z:0},LINK_WIDTH);
+    punchOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);chamferOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);
+    punchOpening(to,roomB,{x:side,z:0},LINK_WIDTH);chamferOpening(to,roomB,{x:side,z:0},LINK_WIDTH);
     addLinkSegment(from,roomA.x,aSouth,roomA.x,clearZ,fromArea,toArea,doorId);
+    addBendPad(from,roomA.x,clearZ);
     if(Math.abs(aisleX-roomA.x)>0.05)addLinkSegment(from,roomA.x,clearZ,aisleX,clearZ,fromArea,toArea,doorId);
+    addBendPad(from,aisleX,clearZ);
     addLinkSegment(from,aisleX,clearZ,aisleX,arriveZ,fromArea,toArea,doorId);
+    addBendPad(from,aisleX,arriveZ);
     if(Math.abs(arriveX-aisleX)>0.05)addLinkSegment(from,aisleX,arriveZ,arriveX,arriveZ,fromArea,toArea,doorId);
     doorX=roomA.x;doorZ=Math.min(aSouth-1.2,clearZ+1);
   }
   const door={id:doorId,x:doorX,z:doorZ,w:doorW,d:doorD,h:DOOR_H,locked:true,depth:true,depthAreaFrom:fromArea,depthAreaTo:toArea};
   (from.doors??=[]).push(door);
   return {from:fromArea,to:toArea,doorId,x:doorX,z:doorZ,w:doorW,d:8,axis:'z',sign:-1,door};
+}
+
+
+// v2.28.64: L2/L3 bunker passages are authored at 1.8–2.2 m (≈1.0–1.4 m clear once
+// side walls sit on the floor). Depth Raid widens every corridor, doorway and
+// partition gap to the same 2.4 m clear / 3.2 m slab as the inter-area links.
+export function widenDepthPassages(level){
+  const target=LINK_WIDTH,t=WALL_T;
+  const isRoomFloor=f=>(level.rooms??[]).some(r=>Math.abs(r.x-f.x)<.25&&Math.abs(r.z-f.z)<.25&&Math.abs(r.w-f.w)<.35&&Math.abs(r.d-f.d)<.35);
+  const passages=[...(level.corridors??[]),...(level.deadEnds??[])];
+  const floors=level.floors??[];
+  const widenOne=(body,oldShort)=>{
+    const alongX=Math.abs(body.dir?.x||0)>=Math.abs(body.dir?.z||0)?!!(body.dir&&body.dir.x):body.w>=body.d;
+    const short=alongX?body.d:body.w;
+    if(short>=target-0.01)return short;
+    const old=oldShort??short;
+    if(alongX)body.d=target;else body.w=target;
+    body.width=target;
+    const delta=(target-old)/2;
+    const oldSide=old/2-t/2;
+    for(const w of level.walls??[]){
+      const thin=alongX?(Math.abs(w.d-t)<.2):(Math.abs(w.w-t)<.2);
+      if(!thin)continue;
+      const lat=alongX?Math.abs(w.z-body.z):Math.abs(w.x-body.x);
+      const along=alongX?Math.abs(w.x-body.x)<=(Math.max(w.w,body.w)/2+t+0.2):Math.abs(w.z-body.z)<=(Math.max(w.d,body.d)/2+t+0.2);
+      if(!along||Math.abs(lat-oldSide)>0.45)continue;
+      if(alongX)w.z+=Math.sign(w.z-body.z||1)*delta;
+      else w.x+=Math.sign(w.x-body.x||1)*delta;
+    }
+    // Cap walls at a dead-end / closet far end are as wide as the old passage
+    // (thin along the run, wide across it).
+    if(body.end){
+      for(const w of level.walls??[]){
+        const isCap=alongX
+          ?(Math.abs(w.d-old)<.45&&Math.abs(w.w-t)<.2)
+          :(Math.abs(w.w-old)<.45&&Math.abs(w.d-t)<.2);
+        if(!isCap)continue;
+        if(Math.hypot(w.x-body.end.x,w.z-body.end.z)>1.6)continue;
+        if(alongX)w.d=target;else w.w=target;
+      }
+    }
+    return old;
+  };
+  for(const c of passages){
+    const old=Math.min(c.w,c.d);
+    widenOne(c,old);
+    // Matching floor tiles (a slightly padded copy of the corridor).
+    for(const f of floors){
+      if(isRoomFloor(f)||f.depthLink||f.depthChamfer)continue;
+      if(Math.abs(f.x-c.x)>.2||Math.abs(f.z-c.z)>.2)continue;
+      const alongX=c.dir?!!c.dir.x:f.w>=f.d;
+      if(alongX){if(f.d<target)f.d=target;}
+      else if(f.w<target)f.w=target;
+    }
+  }
+  // Room doorway mouths: recut every unit-dir opening to LINK_WIDTH and chamfer it.
+  for(const room of level.rooms??[]){
+    const dirs=(room.doors??[]).filter(d=>d&&typeof d.x==='number'&&Math.abs(d.x)+Math.abs(d.z??0)<=1.01&&!('w' in d)&&!('id' in d));
+    // Unique dirs (punchOpening also pushes the same dir again for depth links).
+    const seen=new Set();
+    for(const dir of dirs){
+      const key=`${dir.x},${dir.z}`;
+      if(seen.has(key))continue;seen.add(key);
+      recutOpening(level,room,dir,target);
+      chamferOpening(level,room,dir,target);
+    }
+  }
+  widenPartitionGaps(level,2.4);
+  return level;
+}
+function recutOpening(level,room,dir,mouth){
+  const isX=dir.x!==0,length=isX?room.d:room.w;
+  const edge={x:room.x+dir.x*(room.w/2-WALL_T/2),z:room.z+dir.z*(room.d/2-WALL_T/2)};
+  const onEdge=w=>{
+    if(w.depthChamfer)return false;
+    if(isX)return Math.abs(w.x-edge.x)<.35&&Math.abs(w.w-WALL_T)<.25&&Math.abs(w.z-room.z)<room.d/2+.3;
+    return Math.abs(w.z-edge.z)<.35&&Math.abs(w.d-WALL_T)<.25&&Math.abs(w.x-room.x)<room.w/2+.3;
+  };
+  level.walls=(level.walls??[]).filter(w=>!onEdge(w));
+  for(const sign of [-1,1])level.walls.push({
+    x:edge.x+(isX?0:sign*(length+mouth)/4),
+    z:edge.z+(isX?sign*(length+mouth)/4:0),
+    w:isX?WALL_T:(length-mouth)/2,
+    d:isX?(length-mouth)/2:WALL_T,
+    h:.85,
+  });
+}
+function widenPartitionGaps(level,minClear){
+  for(const room of level.rooms??[]){
+    const inner=(level.walls??[]).filter(w=>{
+      if(w.depthChamfer)return false;
+      const inX=Math.abs(w.x-room.x)+w.w/2<room.w/2-0.05;
+      const inZ=Math.abs(w.z-room.z)+w.d/2<room.d/2-0.05;
+      return inX&&inZ&&(w.h??1)>=1.2;
+    });
+    // Pair colinear internal walls that leave a narrow gap.
+    for(let i=0;i<inner.length;i++)for(let j=i+1;j<inner.length;j++){
+      const a=inner[i],b=inner[j];
+      if(Math.abs(a.z-b.z)<0.3&&a.d<=.7&&b.d<=.7){
+        const segs=[a,b].sort((u,v)=>u.x-v.x);
+        const gapL=segs[0].x+segs[0].w/2,gapR=segs[1].x-segs[1].w/2,gap=gapR-gapL;
+        if(gap>0.4&&gap<minClear){
+          const need=(minClear-gap)/2;
+          segs[0].w=Math.max(.3,segs[0].w-need);segs[0].x-=need/2;
+          segs[1].w=Math.max(.3,segs[1].w-need);segs[1].x+=need/2;
+        }
+      }
+      if(Math.abs(a.x-b.x)<0.3&&a.w<=.7&&b.w<=.7){
+        const segs=[a,b].sort((u,v)=>u.z-v.z);
+        const gapL=segs[0].z+segs[0].d/2,gapR=segs[1].z-segs[1].d/2,gap=gapR-gapL;
+        if(gap>0.4&&gap<minClear){
+          const need=(minClear-gap)/2;
+          segs[0].d=Math.max(.3,segs[0].d-need);segs[0].z-=need/2;
+          segs[1].d=Math.max(.3,segs[1].d-need);segs[1].z+=need/2;
+        }
+      }
+    }
+  }
 }
 
 
@@ -275,12 +417,14 @@ export function generateDepthLevel(seed,opts={}){
   for(const p of parts)mergeInto(level,p);
   level.start={x:parts[0].start.x,z:parts[0].start.z};
   level.depthExits=depthExits;
+  level.depthStarts=depthStarts;
+  level.depthLinks=links.map(({from,to,doorId,x,z,w,d,axis,sign})=>({from,to,doorId,x,z,w,d,axis,sign}));
+  widenDepthPassages(level);
+  placeDepthCover(level);
   // One hatch per area so EXTRACT in area 3 is visible in area 3, not back at the area-1 pad
   // that buildWorld used to treat as the only exit (Robert, 21 Nov 2026: "jag hittade inte ut").
   level.extracts=depthExits.map(e=>({x:e.x,z:e.z,r:e.r??1,depthArea:e.depthArea}));
   level.exit={x:depthExits[0].x,z:depthExits[0].z,r:depthExits[0].r,depthArea:1};
-  level.depthStarts=depthStarts;
-  level.depthLinks=links.map(({from,to,doorId,x,z,w,d,axis,sign})=>({from,to,doorId,x,z,w,d,axis,sign}));
   level.depthAreaRules=rules;
   level.hard=hard||undefined;
   return level;
@@ -334,3 +478,342 @@ export function scaleDepthRules(level,knobs={}){
 }
 
 export function levelBounds(level){return boundsOf(level);}
+
+function inRoom(room,p,pad=0){
+  return Math.abs(p.x-room.x)<=room.w/2-pad&&Math.abs(p.z-room.z)<=room.d/2-pad;
+}
+function snapToRoom(room,p,pad=0.6){
+  return {
+    x:Math.max(room.x-room.w/2+pad,Math.min(room.x+room.w/2-pad,p.x)),
+    z:Math.max(room.z-room.d/2+pad,Math.min(room.z+room.d/2-pad,p.z)),
+  };
+}
+function roomEntry(level,room){
+  const area=room.depthArea,start=(level.depthStarts??[]).find(s=>s.depthArea===area);
+  const incoming=area>1?depthDoor(level,area-1):null;
+  let at=null;
+  if(start&&inRoom(room,start,0)&&incoming)at={x:incoming.x,z:incoming.z};
+  else if(start&&inRoom(room,start,0))at={x:start.x,z:start.z};
+  else{
+    const target=start??level.start??{x:room.x,z:room.z};
+    const dirs=(room.doors??[]).filter(d=>d&&typeof d.x==='number'&&Math.abs(d.x)+Math.abs(d.z??0)<=1.01&&!('w' in d)&&!('id' in d));
+    if(dirs.length){
+      let best=null,bestD=Infinity;
+      for(const dir of dirs){
+        const p={x:room.x+dir.x*(room.w/2),z:room.z+dir.z*(room.d/2)};
+        const d=Math.hypot(p.x-target.x,p.z-target.z);
+        if(d<bestD){best=p;bestD=d;}
+      }
+      if(best)at=best;
+    }
+  }
+  if(!at)at={x:room.x,z:room.z+(room.d/2)};
+  // Depth doors sit in the corridor, not in the room. Plan cover from the
+  // doorway on the room's inside edge so pieces actually land in the room.
+  return snapToRoom(room,at,0.6);
+}
+function coverBetween(entry,enemies,box){
+  if(!enemies.length)return false;
+  return enemies.some(e=>{
+    const dx=e.x-entry.x,dz=e.z-entry.z,len=Math.hypot(dx,dz);
+    if(len<.8)return false;
+    // Closest point on the entry-to-enemy segment to the box center.
+    const t=Math.max(0.12,Math.min(0.88,((box.x-entry.x)*dx+(box.z-entry.z)*dz)/(len*len)));
+    const px=entry.x+t*dx,pz=entry.z+t*dz;
+    // Offset pieces with an open flank still count as "between" if they sit
+    // in the approach lane (about a capsule-and-a-half off the line).
+    const lat=Math.hypot(box.x-px,box.z-pz);
+    return lat<=Math.max(box.w,box.d)/2+1.65;
+  });
+}
+// Every combat room (a room that has enemies) gets 2-4 cover pieces between
+// the player entry and those enemies, with an open flank on one side.
+export function placeDepthCover(level){
+  const reserved=reservedNavPath(level);
+  const rooms=level.rooms??[];
+  for(const room of rooms){
+    const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
+    if(!enemies.length)continue;
+    const entry=roomEntry(level,room);
+    const existing=(level.boxes??[]).filter(b=>inRoom(room,b,0.2));
+    const useful=existing.filter(b=>coverBetween(entry,enemies,b));
+    const want=Math.max(2,Math.min(4,useful.length>=2?useful.length:2+(enemies.length>2?1:0)+(room.w*room.d>80?1:0)));
+    if(useful.length>=want)continue;
+    const cx=enemies.reduce((s,e)=>s+e.x,0)/enemies.length;
+    const cz=enemies.reduce((s,e)=>s+e.z,0)/enemies.length;
+    const dx=cx-entry.x,dz=cz-entry.z,len=Math.hypot(dx,dz)||1;
+    const ux=dx/len,uz=dz/len,px=-uz,pz=ux;
+    const rng=mulberry(`${level.seed||''}:depth-cover:${room.x.toFixed(1)},${room.z.toFixed(1)}`);
+    const flank=rng()<.5?-1:1;
+    const ok=p=>{
+      if(!inRoom(room,p,0.65))return false;
+      if(!coverSpotFree(level,p,0.7))return false;
+      if(inWallOpening(level,p,0.9))return false;
+      if(reserved.near(p,0.65))return false;
+      if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<2.0))return false;
+      if(Math.hypot(p.x-entry.x,p.z-entry.z)<1.45)return false;
+      return true;
+    };
+    const candidates=[];
+    for(const fl of [flank,-flank]){
+      for(let i=0;i<18;i++){
+        const t=0.25+0.55*(i/17);
+        const side=fl*(0.95+0.55*(i%4)/3);
+        candidates.push({x:entry.x+ux*len*t+px*side,z:entry.z+uz*len*t+pz*side});
+      }
+    }
+    for(let t=0.28;t<=0.8;t+=0.08){
+      for(let s=-2.4;s<=2.4;s+=0.4){
+        if(Math.abs(s)<0.7)continue;
+        candidates.push({x:entry.x+ux*len*t+px*s,z:entry.z+uz*len*t+pz*s});
+      }
+    }
+    // Wall-hugging last resort: sit a low wall just inside a long side, still between entry and enemies.
+    for(const fl of [flank,-flank]){
+      for(const t of [0.35,0.5,0.65]){
+        const side=fl*((Math.abs(ux)>Math.abs(uz)?room.w:room.d)/2-1.05);
+        candidates.push({x:entry.x+ux*len*t+px*side,z:entry.z+uz*len*t+pz*side});
+      }
+    }
+    let added=0,need=want-useful.length;
+    const place=(p,along)=>{
+      const box={x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,
+        w:along?1.25:.55,d:along?.55:1.25,h:.95,depthCover:true,depthArea:room.depthArea};
+      (level.boxes??=[]).push(box);added++;
+    };
+    const along=Math.abs(ux)>Math.abs(uz);
+    for(const raw of candidates){
+      if(added>=need)break;
+      if(!ok(raw))continue;
+      place(raw,along);
+    }
+    // Deterministic last try: two flank spots on the approach, slightly looser.
+    if(added<need){
+      const loose=p=>inRoom(room,p,0.5)&&coverSpotFree(level,p,0.55)&&!inWallOpening(level,p,0.8)
+        &&!(level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.8)
+        &&Math.hypot(p.x-entry.x,p.z-entry.z)>=1.2;
+      for(const t of [0.4,0.55,0.7]){
+        if(added>=need)break;
+        for(const fl of [1,-1]){
+          if(added>=need)break;
+          const p={x:entry.x+ux*len*t+px*fl*1.35,z:entry.z+uz*len*t+pz*fl*1.35};
+          if(loose(p))place(p,along);
+        }
+      }
+    }
+  }
+  pruneCoverThatBlocksNav(level);
+  topUpRoomCover(level,reserved);
+  return level;
+}
+function topUpRoomCover(level,reserved){
+  for(const room of level.rooms??[]){
+    const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
+    if(!enemies.length)continue;
+    const entry=roomEntry(level,room);
+    const between=(level.boxes??[]).filter(b=>inRoom(room,b,0.2)&&coverBetween(entry,enemies,b));
+    if(between.length>=2)continue;
+    const cx=enemies.reduce((s,e)=>s+e.x,0)/enemies.length;
+    const cz=enemies.reduce((s,e)=>s+e.z,0)/enemies.length;
+    const dx=cx-entry.x,dz=cz-entry.z,len=Math.hypot(dx,dz)||1;
+    const ux=dx/len,uz=dz/len,px=-uz,pz=ux;
+    const along=Math.abs(ux)>Math.abs(uz);
+    const clear=p=>{
+      if(!inRoom(room,p,0.45))return false;
+      if(inWallOpening(level,p,0.75))return false;
+      const solids=[...(level.walls??[]),...(level.boxes??[])];
+      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5&&Math.abs(p.z-o.z)<(o.d||0)/2+0.5))return false;
+      if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.6))return false;
+      return true;
+    };
+    let need=2-between.length;
+    for(const t of [0.35,0.5,0.65,0.8,0.25]){
+      if(need<=0)break;
+      for(const fl of [1.15,1.7,2.1,-1.15,-1.7,-2.1]){
+        if(need<=0)break;
+        const p={x:entry.x+ux*len*t+px*fl,z:entry.z+uz*len*t+pz*fl};
+        if(!clear(p))continue;
+        if(reserved?.near?.(p,0.5)&&need>0&&between.length+ (2-need)>0){
+          // Prefer off the nav spine, but take it if the room is otherwise packed.
+        }
+        (level.boxes??=[]).push({x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,
+          w:along?1.2:.55,d:along?.55:1.2,h:.95,depthCover:true,depthArea:room.depthArea});
+        need--;
+      }
+    }
+  }
+}
+function coverSpotFree(level,p,r=0.7){
+  const solids=[...(level.walls??[]),...(level.boxes??[])];
+  if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+r&&Math.abs(p.z-o.z)<(o.d||0)/2+r))return false;
+  const keep=[level.start,level.exit,...(level.lootBoxes??[]),...(level.enemies??[]),...(level.hazards??[]),...(level.nodes??[]),...(level.doors??[])];
+  if(keep.some(o=>o&&typeof o.x==='number'&&Math.hypot(p.x-o.x,p.z-o.z)<1.25))return false;
+  return (level.rooms??[]).some(rm=>Math.abs(p.x-rm.x)<=rm.w/2-0.7&&Math.abs(p.z-rm.z)<=rm.d/2-0.7);
+}
+function reservedNavPath(level){
+  const locks=new Map((level.doors??[]).filter(d=>d.depth).map(d=>[d,d.locked]));
+  for(const d of level.doors??[])if(d.depth)d.locked=false;
+  // Build a walkable grid and mark the union of shortest paths start to each area start and room center.
+  const F=level.floors??[],solids=[...(level.walls??[]),...(level.boxes??[])];
+  const step=.25,R=.4,pts=[];
+  if(!F.length||!level.start){
+    for(const d of level.doors??[])if(d.depth)d.locked=locks.get(d)??true;
+    return {near:()=>false};
+  }
+  const x0=Math.min(...F.map(f=>f.x-f.w/2)),z0=Math.min(...F.map(f=>f.z-f.d/2));
+  const x1=Math.max(...F.map(f=>f.x+f.w/2)),z1=Math.max(...F.map(f=>f.z+f.d/2));
+  const nx=Math.ceil((x1-x0)/step)+1,nz=Math.ceil((z1-z0)/step)+1,free=new Uint8Array(nx*nz);
+  const on=(x,z)=>F.some(f=>Math.abs(x-f.x)<=f.w/2+.06&&Math.abs(z-f.z)<=f.d/2+.06);
+  const blocked=(x,z)=>solids.some(o=>Math.abs(x-o.x)<(o.w||0)/2+R&&Math.abs(z-o.z)<(o.d||0)/2+R);
+  for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){
+    const x=x0+i*step,z=z0+j*step;
+    if(on(x,z)&&!blocked(x,z))free[i*nz+j]=1;
+  }
+  const cell=q=>{const i=Math.round((q.x-x0)/step),j=Math.round((q.z-z0)/step);return [i,j];};
+  const nearest=q=>{
+    const [si,sj]=cell(q);let best=-1,bd=Infinity;
+    for(let i=si-4;i<=si+4;i++)for(let j=sj-4;j<=sj+4;j++)if(i>=0&&j>=0&&i<nx&&j<nz&&free[i*nz+j]){const d=(i-si)**2+(j-sj)**2;if(d<bd){bd=d;best=i*nz+j;}}
+    return best;
+  };
+  const startK=nearest(level.start);
+  const dests=[...(level.depthStarts??[])];
+  for(const r of level.rooms??[])dests.push({x:r.x,z:r.z});
+  const marked=new Uint8Array(nx*nz);
+  const markPath=(goal)=>{
+    if(startK<0||goal<0)return;
+    const prev=new Int32Array(nx*nz).fill(-1);
+    const seen=new Uint8Array(nx*nz);seen[startK]=1;
+    const q=[startK];
+    for(let qi=0;qi<q.length;qi++){
+      const c=q[qi];if(c===goal)break;
+      const i=Math.floor(c/nz),j=c%nz;
+      for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const a=i+di,b=j+dj;if(a<0||b<0||a>=nx||b>=nz)continue;
+        const k=a*nz+b;if(!free[k]||seen[k])continue;seen[k]=1;prev[k]=c;q.push(k);
+      }
+    }
+    for(let c=goal,h=0;c>=0&&h<8000;c=prev[c],h++)marked[c]=1;
+  };
+  if(startK>=0)for(const d of dests)markPath(nearest(d));
+  for(const d of level.doors??[])if(d.depth)d.locked=locks.get(d)??true;
+  return {near:(p,r)=>{
+    const [i,j]=cell(p);const span=Math.ceil(r/step);
+    for(let a=i-span;a<=i+span;a++)for(let b=j-span;b<=j+span;b++)if(a>=0&&b>=0&&a<nx&&b<nz&&marked[a*nz+b])return true;
+    return false;
+  }};
+}
+
+function inWallOpening(level,p,r=1){
+  const walls=level.walls??[];
+  for(let i=0;i<walls.length;i++)for(let j=i+1;j<walls.length;j++){
+    const a=walls[i],b=walls[j];
+    if(Math.abs(a.z-b.z)<0.35&&a.d<=.7&&b.d<=.7){
+      if(Math.abs(p.z-a.z)>r+Math.max(a.d,b.d)/2)continue;
+      const segs=[a,b].sort((u,v)=>u.x-v.x);
+      const gapL=segs[0].x+segs[0].w/2,gapR=segs[1].x-segs[1].w/2;
+      if(gapR>gapL+0.35&&gapR-gapL<5&&p.x>gapL-r&&p.x<gapR+r)return true;
+    }
+    if(Math.abs(a.x-b.x)<0.35&&a.w<=.7&&b.w<=.7){
+      if(Math.abs(p.x-a.x)>r+Math.max(a.w,b.w)/2)continue;
+      const segs=[a,b].sort((u,v)=>u.z-v.z);
+      const gapL=segs[0].z+segs[0].d/2,gapR=segs[1].z-segs[1].d/2;
+      if(gapR>gapL+0.35&&gapR-gapL<5&&p.z>gapL-r&&p.z<gapR+r)return true;
+    }
+  }
+  return false;
+}
+function navReachable(level){
+  // Local flood, same idea as walkMap, so we can prune without a circular import.
+  const F=level.floors??[],solids=[...(level.walls??[]),...(level.boxes??[]),...((level.doors??[]).filter(d=>d.locked).map(d=>({x:d.x,z:d.z,w:d.w,d:d.d})))];
+  if(!F.length||!level.start)return ()=>false;
+  const step=.2,R=.36;
+  const x0=Math.min(...F.map(f=>f.x-f.w/2)),z0=Math.min(...F.map(f=>f.z-f.d/2));
+  const x1=Math.max(...F.map(f=>f.x+f.w/2)),z1=Math.max(...F.map(f=>f.z+f.d/2));
+  const nx=Math.ceil((x1-x0)/step)+1,nz=Math.ceil((z1-z0)/step)+1,seen=new Uint8Array(nx*nz),free=new Uint8Array(nx*nz);
+  const on=(x,z)=>F.some(f=>Math.abs(x-f.x)<=f.w/2+.06&&Math.abs(z-f.z)<=f.d/2+.06);
+  const blocked=(x,z)=>solids.some(o=>Math.abs(x-o.x)<(o.w||0)/2+R&&Math.abs(z-o.z)<(o.d||0)/2+R);
+  for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){
+    const x=x0+i*step,z=z0+j*step;
+    if(on(x,z)&&on(x-R,z-R)&&on(x+R,z-R)&&on(x-R,z+R)&&on(x+R,z+R)&&!blocked(x,z))free[i*nz+j]=1;
+  }
+  const cell=q=>[Math.round((q.x-x0)/step),Math.round((q.z-z0)/step)];
+  const [si,sj]=cell(level.start);let best=-1,bd=Infinity;
+  for(let i=si-3;i<=si+3;i++)for(let j=sj-3;j<=sj+3;j++)if(i>=0&&j>=0&&i<nx&&j<nz&&free[i*nz+j]){const d=(i-si)**2+(j-sj)**2;if(d<bd){bd=d;best=i*nz+j;}}
+  if(best>=0){seen[best]=1;const st=[best];while(st.length){const c=st.pop(),i=Math.floor(c/nz),j=c%nz;for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=nx||b>=nz)continue;const k=a*nz+b;if(free[k]&&!seen[k]){seen[k]=1;st.push(k);}}}}
+  return q=>{const [i,j]=cell(q);return i>=0&&j>=0&&i<nx&&j<nz&&seen[i*nz+j]===1;};
+}
+function pruneCoverThatBlocksNav(level){
+  const unlock=()=>{for(const d of level.doors??[])if(d.depth)d.locked=false;};
+  const relock=locks=>{for(const d of level.doors??[])if(d.depth)d.locked=locks.get(d)??true;};
+  const locks=new Map((level.doors??[]).filter(d=>d.depth).map(d=>[d,d.locked]));
+  unlock();
+  const dests=(level.depthStarts??[]).slice();
+  const blocked=()=>{const walk=navReachable(level);return dests.some(s=>s&&!walk(s));};
+  if(!blocked()){relock(locks);return;}
+  const covers=(level.boxes??[]).filter(b=>b.depthCover);
+  // Drop covers nearest doors/openings first until every area start is reachable.
+  covers.sort((a,b)=>{
+    const doorDist=o=>Math.min(...(level.doors??[]).filter(d=>d.depth).map(d=>Math.hypot(o.x-d.x,o.z-d.z)),...dests.map(s=>Math.hypot(o.x-s.x,o.z-s.z)));
+    return doorDist(a)-doorDist(b);
+  });
+  for(const box of covers){
+    if(!blocked())break;
+    const i=(level.boxes??[]).indexOf(box);
+    if(i>=0)level.boxes.splice(i,1);
+  }
+  relock(locks);
+}
+export function combatRoomsWithCover(level){
+  return (level.rooms??[]).map(room=>{
+    const enemies=(level.enemies??[]).filter(e=>e.health>0&&inRoom(room,e,0.2));
+    if(!enemies.length)return null;
+    const entry=roomEntry(level,room);
+    const boxes=(level.boxes??[]).filter(b=>inRoom(room,b,0.2));
+    const between=boxes.filter(b=>coverBetween(entry,enemies,b));
+    return {room,entry,enemies,boxes,between};
+  }).filter(Boolean);
+}
+// Centerline waypoints for every depth connector (door + corridor floors), plus
+// the start of each area, so a nav walk can prove the capsule is never snagged.
+export function depthConnectorPaths(level){
+  const paths=[];
+  for(const link of level.depthLinks??[]){
+    const door=(level.doors??[]).find(d=>d.id===link.doorId);
+    const from=(level.depthStarts??[]).find(s=>s.depthArea===link.from);
+    const to=(level.depthStarts??[]).find(s=>s.depthArea===link.to);
+    const floors=(level.floors??[]).filter(f=>f.doorId===link.doorId||(f.depthLink&&f.depthAreaFrom===link.from&&f.depthAreaTo===link.to));
+    const points=[];
+    if(from)points.push({x:from.x,z:from.z,kind:'start'});
+    if(door)points.push({x:door.x,z:door.z,kind:'door'});
+    // Greedy walk along corridor floors so L-bends stay in order.
+    let cursor=door?{x:door.x,z:door.z}:(from??{x:link.x,z:link.z});
+    const left=floors.slice();
+    while(left.length){
+      let best=-1,bestD=Infinity,bestPt=null;
+      for(let i=0;i<left.length;i++){
+        const f=left[i],alongX=f.w>=f.d;
+        const ends=alongX?[{x:f.x-f.w/2,z:f.z},{x:f.x+f.w/2,z:f.z}]:[{x:f.x,z:f.z-f.d/2},{x:f.x,z:f.z+f.d/2}];
+        for(const e of ends){
+          const d=Math.hypot(e.x-cursor.x,e.z-cursor.z);
+          if(d<bestD){bestD=d;best=i;bestPt=e;}
+        }
+      }
+      if(best<0)break;
+      const f=left.splice(best,1)[0];
+      const alongX=f.w>=f.d;
+      const a=alongX?{x:f.x-f.w/2,z:f.z}:{x:f.x,z:f.z-f.d/2};
+      const b=alongX?{x:f.x+f.w/2,z:f.z}:{x:f.x,z:f.z+f.d/2};
+      const da=Math.hypot(a.x-cursor.x,a.z-cursor.z),db=Math.hypot(b.x-cursor.x,b.z-cursor.z);
+      const first=da<=db?a:b,second=da<=db?b:a;
+      points.push({x:first.x,z:first.z,kind:'corridor'});
+      points.push({x:f.x,z:f.z,kind:'corridor'});
+      points.push({x:second.x,z:second.z,kind:'corridor'});
+      cursor=second;
+    }
+    if(to)points.push({x:to.x,z:to.z,kind:'start'});
+    paths.push({from:link.from,to:link.to,doorId:link.doorId,points});
+  }
+  return paths;
+}
+
+export function depthCorridorClearWidth(){return DEPTH_CLEAR_WIDTH;}

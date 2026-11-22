@@ -504,3 +504,19 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({cssSrc:css.replaceAll(' - 280px)',' - 200px)')}).length,1,'a toast max-width that is not stick-safe fires');
  assert.equal(rule.check({cssSrc:css.replaceAll('#extract-toast.one-line{white-space:nowrap}','#extract-toast.one-line{white-space:normal}')}).length,1,'a wrapping extract toast fires');
 }
+
+{
+ const rule=by('depth-push-cover-nav');
+ assert.equal(rule.check().length,0,'depth push/cover/nav holds on real source');
+ assert.equal(rule.check({gameSrc:'',depthRaidSrc:'',depthLevelSrc:'',raidDepthSrc:'',htmlSrc:'',cssSrc:'',bunkerSrc:'',worldSrc:''}).length,5,'all depth-push-cover-nav guards fire');
+ const raid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const data=fs.readFileSync(new URL('../data/raid-depth.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const bunker=fs.readFileSync(new URL('../nodspel/bunker.js',import.meta.url),'utf8');
+ assert.equal(rule.check({depthRaidSrc:raid.replaceAll('pushDeeper','walkAway')}).length,1,'dropping pushDeeper fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replaceAll('DEPTH_CLEAR_WIDTH=2.4','DEPTH_CLEAR_WIDTH=1.4')}).length,1,'narrower corridors fire');
+ assert.equal(rule.check({raidDepthSrc:data.replaceAll('depth_push_intro','depth_gone')}).length,1,'dropping the push BIT id fires');
+ assert.equal(rule.check({gameSrc:game.replaceAll('GO DEEPER · skip remaining enemies','LOCKED · CLEAR THE AREA')}).length,1,'dropping the door confirm copy fires');
+ assert.equal(rule.check({bunkerSrc:bunker.replaceAll('if(level.depth)','if(false)')}).length,1,'lighting only the first lamps fires');
+}
