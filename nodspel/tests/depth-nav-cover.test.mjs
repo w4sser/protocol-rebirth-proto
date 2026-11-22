@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import {RULES} from '../levels.js';
 import {moveWithActors,movePlayer,traceTargets} from '../physics.mjs';
 import {doorSolids} from '../round.js';
-import {generateDepthLevel,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH} from '../depth-raid.js';
+import {generateDepthLevel,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF} from '../depth-raid.js';
 
 const SEEDS=['probe-seed','alpha','bravo','charlie','delta','echo','foxtrot','golf','layout','gear-on-pad',
   'clear-prompts','go-deeper-walk','push-without-clear','seed0','seed7','seed19','repro-depth'];
@@ -155,4 +157,98 @@ test('every combat room in a depth area has cover between the entry and the enem
   }
   assert.ok(rooms>=SEEDS.length*3,`expected a combat room in each area, got ${rooms}`);
   assert.ok(blocked>=rooms);
+});
+
+// v2.28.66 (Robert 22 Nov 2026 playtest): walking through a doorway/corridor mouth felt like
+// tar -- an invisible wall slowed the player in the gap. Exercises the real depthJambAssist()
+// from game.mjs (same brace-matched extraction technique as floating-stick.test.mjs) so a
+// regression in the shipped function, not a re-implementation, fails this test.
+function extractDepthJambAssist(){
+  const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('function depthJambAssist(');
+  let i=source.indexOf('{',start),depth=0;
+  for(;i<source.length;i++){
+    if(source[i]==='{')depth++;
+    else if(source[i]==='}'){depth--;if(depth===0){
+      const ctx=vm.createContext({});
+      vm.runInContext(source.slice(start,i+1)+'\nthis.depthJambAssist=depthJambAssist;',ctx);
+      return ctx.depthJambAssist;
+    }}
+  }
+  throw new Error('depthJambAssist not found in game.mjs');
+}
+const depthJambAssist=extractDepthJambAssist();
+
+// Every depth-connector door plane and every room doorway gap, as a centerline point plus the
+// direction you walk through it (the short/thin axis of the rectangle is the travel direction).
+// Node-Raid's own keycard doors (non-depth, legitimately locked until the player finds the key)
+// are excluded on purpose -- being blocked there is intended gameplay, not the snagging bug.
+function openingsOf(level){
+  const openings=[];
+  for(const door of level.doors??[]){
+    if(!door||typeof door.x!=='number'||!door.depth)continue;
+    const alongX=door.w>=door.d;
+    openings.push({id:door.id??`door@${door.x.toFixed(1)},${door.z.toFixed(1)}`,point:{x:door.x,z:door.z},dir:alongX?{x:0,z:1}:{x:1,z:0}});
+  }
+  const gatedDoors=(level.doors??[]).filter(d=>d&&!d.depth&&d.locked);
+  for(const room of level.rooms??[]){
+    for(const d of room.doors??[]){
+      if(!d||typeof d.x!=='number'||'w' in d||'id' in d)continue;
+      if(Math.abs(d.x)+Math.abs(d.z??0)>1.01)continue;
+      const point={x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2};
+      if(gatedDoors.some(gd=>Math.hypot(gd.x-point.x,gd.z-point.z)<1.5))continue;
+      openings.push({id:`room@${room.x.toFixed(1)},${room.z.toFixed(1)}:${d.x},${d.z}`,point,dir:{x:d.x,z:d.z}});
+    }
+  }
+  return openings;
+}
+
+test('walking straight through every doorway and corridor opening stays at full speed (>=95% retained)', () => {
+  const SPEED=RULES.playerStats.base.speed,dt=1/60,half=1.5;
+  const failures=[];
+  for(const seed of SEEDS){
+    const L=generateDepthLevel(seed);
+    const solids=solidsOf(L);
+    for(const op of openingsOf(L)){
+      // Nudge off any incidental overlap with tactical cover placed near the doorway (a real
+      // player walking up to the opening is never teleported inside a crate) -- this test is
+      // about the doorway's own collision geometry, not about dodging furniture elsewhere.
+      const start=nudge({x:op.point.x-op.dir.x*half,z:op.point.z-op.dir.z*half},solids,L.floors,R);
+      const end=nudge({x:op.point.x+op.dir.x*half,z:op.point.z+op.dir.z*half},solids,L.floors,R);
+      if(!start||!end)continue;
+      const intended=Math.hypot(end.x-start.x,end.z-start.z);
+      if(intended<0.3)continue;
+      const ux=(end.x-start.x)/intended,uz=(end.z-start.z)/intended;
+      const steps=Math.ceil(intended/(SPEED*dt));
+      let p={...start},traveled=0;
+      for(let s=0;s<steps;s++){
+        const delta={x:ux*SPEED*dt,z:uz*SPEED*dt};
+        const assisted=depthJambAssist(L,p,delta);
+        const before=p;
+        p=moveWithActors(p,assisted,[],solids,L.floors,R);
+        traveled+=Math.hypot(p.x-before.x,p.z-before.z);
+      }
+      const retention=traveled/intended,reached=Math.hypot(p.x-end.x,p.z-end.z)<=0.3;
+      if(retention<0.95||!reached)failures.push(`${seed} ${op.id} retention ${retention.toFixed(2)} reached=${reached} at ${p.x.toFixed(2)},${p.z.toFixed(2)}`);
+    }
+  }
+  assert.equal(failures.length,0,failures.join('\n'));
+});
+
+test('placeDepthCover never narrows the main-route lane between a combat room entry and its far door below 2.4 m', () => {
+  const failures=[];
+  for(const seed of SEEDS){
+    const L=generateDepthLevel(seed);
+    const reports=combatRoomsWithCover(L);
+    for(const r of reports){
+      if(!r.exit)continue;
+      for(const box of r.boxes.filter(b=>b.depthCover)){
+        const dx=r.exit.x-r.entry.x,dz=r.exit.z-r.entry.z,len2=dx*dx+dz*dz||1;
+        const t=Math.max(0,Math.min(1,((box.x-r.entry.x)*dx+(box.z-r.entry.z)*dz)/len2));
+        const lateral=Math.hypot(box.x-(r.entry.x+t*dx),box.z-(r.entry.z+t*dz));
+        if(lateral<DEPTH_COVER_LANE_HALF)failures.push(`${seed} room ${r.room.x},${r.room.z} cover at ${box.x},${box.z} sits only ${lateral.toFixed(2)}m off the entry-exit lane (need >= ${DEPTH_COVER_LANE_HALF.toFixed(2)}m)`);
+      }
+    }
+  }
+  assert.equal(failures.length,0,failures.join('\n'));
 });

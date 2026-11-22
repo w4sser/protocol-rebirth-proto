@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.28.65';
+import {inputPaused} from '../perks.js?v=2.28.66';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -52,19 +52,20 @@ test('active Transmitter supply has a visible guaranteed Archipelago radio crate
   assert.ok(!generateLevel(1,'inactive-radio','archipelago').lootBoxes.some(b=>b.item==='transmitter'));
 });
 
-test('held aim gesture is cleared on modal entry and its release cannot fire after close',()=>{
+test('held aim gesture is cleared on modal entry and its release cannot fire after close (v2.28.66: touchdown fires instantly, so a stale post-modal release must not add an extra shot)',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),handlers={},state={shots:0},thumb={style:{},getBoundingClientRect:()=>({width:36})};
   const el={style:{setProperty(){}},querySelector:()=>thumb,classList:{add(){},remove(){},toggle(){}},getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:100}),addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture(){},hasPointerCapture:()=>true,releasePointerCapture(id){handlers.lostpointercapture({pointerId:id,type:'lostpointercapture'});}};
   const ctx={viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390})},inputPaused,stickOffset,finishGesture,document:{addEventListener(){}},sticks:[],round:{pauseAt:null,over:false},tutorialOpen:false,$:selector=>selector==='#inventory'?{hidden:true}:el,keys:new Set(['Space']),mouseDown:true,screenToWorld:(x,y)=>({x,z:y}),beginAim:(x,y)=>({origin:{x,y},direction:null,target:{x:1,y:0}}),dragAim:(g,x,y)=>g.direction={x:x-g.origin.x,y:y-g.origin.y},releaseAim:(g,cancelled)=>cancelled?null:g.direction,aim:null,shot:()=>state.shots++,
     RULES:{aimControls:{deadZonePx:20,stickRadiusPx:48}},TAP_MS:200,performance:{now:()=>0},setTimeout:fn=>fn(),tapAimDirection:()=>({x:0,z:-1})};
   vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('function setupStick('),source.indexOf("setupStick('#move-stick'"))+'\n'+source.match(/function clearInput\(\)\{[^\n]+/)[0]+"\nsetupStick('#aim-stick',{},shot)",ctx);
   const event=type=>({type,pointerId:9,clientX:70,clientY:50,preventDefault(){}});
-  handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});
+  handlers.pointerdown(event('pointerdown'));assert.equal(state.shots,1,'touchdown fires the reactive shot instantly, before the modal opens');
+  handlers.pointermove({...event('pointermove'),clientX:90});
   ctx.round.pauseAt=100;vm.runInContext('clearInput()',ctx);
   assert.equal(ctx.sticks[0].state.pointer,null);assert.equal(ctx.sticks[0].state.gesture,null);assert.equal(ctx.mouseDown,false);assert.equal(ctx.keys.size,0);
   handlers.pointerdown(event('pointerdown'));assert.equal(ctx.sticks[0].state.pointer,null,'aim press blocked while modal open');
-  ctx.round.pauseAt=null;vm.runInContext('clearInput()',ctx);handlers.pointerup(event('pointerup'));assert.equal(state.shots,0);
-  handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});handlers.pointerup({...event('pointerup'),clientX:90});assert.equal(state.shots,1,'fresh aim gesture still fires');
+  ctx.round.pauseAt=null;vm.runInContext('clearInput()',ctx);handlers.pointerup(event('pointerup'));assert.equal(state.shots,1,'the stale release after modal close must not add another shot');
+  handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});handlers.pointerup({...event('pointerup'),clientX:90});assert.equal(state.shots,3,'fresh aim gesture still fires: instant tap on touchdown, plus the dragged release shot');
 });
 
 test('full-budget touch HUD pointer tap heals at 40 HP, spends one kit and reports success',()=>{
