@@ -474,3 +474,19 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({htmlSrc:html.replace('id="depth-extract-guide"','id="no-guide"')}).length,1,'missing guide markup fires');
  assert.equal(rule.check({raidDepthSrc:data.replaceAll('extractFinal','extractGone')}).length,1,'dropping the final-area BIT line fires');
 }
+
+{
+ const rule=by('depth-extract-pad-trigger');
+ assert.equal(rule.check().length,0,'depth extract pad trigger holds on real source');
+ assert.equal(rule.check({raidDepthSrc:'',depthRaidSrc:'',depthLevelSrc:'',beamSrc:'',gameSrc:''}).length,5,'all depth-extract pad trigger guards fire');
+ const data=fs.readFileSync(new URL('../data/raid-depth.js',import.meta.url),'utf8');
+ const raid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const vfx=fs.readFileSync(new URL('../nodspel/vfx-extract-beam.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({raidDepthSrc:data.replace('extractCountdownMs: 0','extractCountdownMs: 5000')}).length,1,'restoring the silent 5s countdown fires');
+ assert.equal(rule.check({depthRaidSrc:raid.replaceAll('inDepthExtract','inSomethingElse')}).length,1,'dropping inDepthExtract fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replaceAll('r:DEPTH.extractRadius','r:1')}).length,1,'exits that keep r=1 fire');
+ assert.equal(rule.check({beamSrc:vfx.replaceAll('EXTRACT_PAD_RADIUS=1.45','EXTRACT_PAD_RADIUS=1')}).length,1,'a smaller visual pad fires');
+ assert.equal(rule.check({gameSrc:game.replaceAll('hideForExtract','hideNothing')}).length,1,'loot labels that stay over the open hatch fire');
+}
