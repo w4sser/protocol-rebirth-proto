@@ -1,15 +1,17 @@
 // Floating stick gesture logic (docs/design-combat-feel-oct28.md §2.2a, PR-A acceptance; v2.28.66 made the
-// first shot fire on touchdown instead of release, see AGENTS.md bug-fix notes): exercises the real
-// setupStick() from game.mjs (brace-matched extraction, same technique as perk-exit.test.mjs) in a jsdom
-// sandbox with synthetic pointer events, instead of re-implementing the gesture rules in parallel (which could
-// silently drift from the shipped behaviour).
+// first shot fire on touchdown instead of release, see AGENTS.md bug-fix notes; Robert's 22 Nov 2026
+// correction reverted that -- the aim stick must match Brawl Stars exactly: a tap or a drag earns exactly
+// one shot, fired on release, never on pointerdown, and never twice): exercises the real setupStick() from
+// game.mjs (brace-matched extraction, same technique as perk-exit.test.mjs) in a jsdom sandbox with
+// synthetic pointer events, instead of re-implementing the gesture rules in parallel (which could silently
+// drift from the shipped behaviour).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.67';
-import {RULES} from '../levels.js?v=2.28.67';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.68';
+import {RULES} from '../levels.js?v=2.28.68';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -45,50 +47,51 @@ function buildStick(mode='aim'){
     base:el.querySelector('.stick-base'),thumb:el.querySelector('.thumb')};
 }
 
-test('touchdown fires an auto-target tap shot immediately, with no wait for release',()=>{
+test('a quick tap (pointerdown + pointerup inside the deadzone, under tapMs) fires exactly one auto-target shot, on release, not on pointerdown',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1,'the reactive shot must fire in the pointerdown turn, not on release');
-  assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null,'auto-target picks its direction at fire time, not from the gesture');
+  assert.equal(s.shots(),0,'pointerdown alone must never fire -- Brawl Stars fires on release only');
   s.setWall(120);
   s.fireEvent('pointerup',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1,'an undragged release must not fire a second shot');
+  assert.equal(s.shots(),1,'the tap must fire exactly once, on release');
+  assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null,'auto-target picks its direction at fire time, not from the gesture');
 });
-test('a long hold that never leaves the deadzone fires once on touchdown and not again on release',()=>{
+test('a long hold that never leaves the deadzone fires nothing -- it is neither a quick tap nor a drag',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1);
-  s.setWall(900); // long hold, well past the tap window
+  assert.equal(s.shots(),0);
+  s.setWall(900); // long hold, well past the tap window, never dragged
   s.fireEvent('pointerup',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1,'holding still must not add a second shot on release');
+  assert.equal(s.shots(),0,'holding still past tapMs without dragging must not fire');
 });
-test('off-center stationary tap fires immediately on touchdown and keeps the knob relative to the ring',()=>{
+test('off-center stationary tap fires exactly once on release (not on touchdown) and keeps the knob relative to the ring',()=>{
   const s=buildStick();
   s.fireEvent('pointerdown',{clientX:140,clientY:100});
-  assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
+  assert.equal(s.shots(),0);
   assert.equal(s.value.x,0);assert.equal(s.value.y,0);
   assert.equal(s.thumb.style.transform,'translate(calc(-50% + 40px),calc(-50% + 0px))');
   s.setWall(120);
   s.fireEvent('pointerup',{clientX:140,clientY:100});
-  assert.equal(s.shots(),1,'no additional shot without a drag');
+  assert.equal(s.shots(),1,'the tap must still fire once on release');assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
 });
-test('off-center movement inside the touchdown deadzone remains an auto-aim tap, fired once on touchdown',()=>{
+test('off-center movement inside the touchdown deadzone remains an auto-aim tap, fired once on release',()=>{
   const s=buildStick();
   s.fireEvent('pointerdown',{clientX:140,clientY:100});
-  assert.equal(s.shots(),1);
   s.fireEvent('pointermove',{clientX:144,clientY:98});
+  assert.equal(s.shots(),0,'no fire before release');
   s.setWall(120);
   s.fireEvent('pointerup',{clientX:144,clientY:98});
   assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
 });
-test('off-center drag beyond the low deadzone fires a second, aimed shot on release (screen -> world)',()=>{
+test('a drag beyond the low deadzone fires exactly one aimed shot on release, none during the drag (screen -> world)',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:140,clientY:100});
-  assert.equal(s.shots(),1,'the instant tap always fires first');
+  assert.equal(s.shots(),0,'no fire on touchdown');
   s.fireEvent('pointermove',{clientX:140,clientY:160});
+  assert.equal(s.shots(),0,'no fire while dragging');
   s.setWall(50);
   s.fireEvent('pointerup',{clientX:140,clientY:160});
-  assert.equal(s.shots(),2,'a real drag earns a second, aimed shot on release');
+  assert.equal(s.shots(),1,'exactly one aimed shot fires on release');
   assert.equal(s.lastTap(),false);
   assert.deepEqual(s.lastAim(),{x:0,z:1});
 });
@@ -104,31 +107,51 @@ test('move stick starts at rest off-center and moves relative to touchdown',()=>
   s.fireEvent('pointerup',{clientX:140,clientY:160});
   assert.equal(s.value.x,0);assert.equal(s.value.y,0);
 });
-test('drag past the low deadzone and release fires the dragged direction as a second shot (screen -> world)',()=>{
+test('drag past the low deadzone and release fires the dragged direction as the only shot (screen -> world)',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
   s.fireEvent('pointermove',{clientX:160,clientY:100}); // 60 px right, well past the low deadzone
+  assert.equal(s.shots(),0,'no fire while dragging');
   s.setWall(50);
   s.fireEvent('pointerup',{clientX:160,clientY:100});
-  assert.equal(s.lastTap(),false);assert.equal(s.shots(),2);assert.deepEqual(s.lastAim(),{x:1,z:0});
+  assert.equal(s.lastTap(),false);assert.equal(s.shots(),1);assert.deepEqual(s.lastAim(),{x:1,z:0});
 });
-test('dragging back into the deadzone and releasing cancels the second shot (Brawl Stars behaviour)',()=>{
+test('dragging back into the deadzone and releasing cancels the whole gesture -- zero shots (Brawl Stars behaviour)',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1,'the instant tap still fires');
+  assert.equal(s.shots(),0);
   s.fireEvent('pointermove',{clientX:160,clientY:100});
   s.fireEvent('pointermove',{clientX:104,clientY:100}); // back inside the deadzone
   s.setWall(50);
   s.fireEvent('pointerup',{clientX:104,clientY:100});
-  assert.equal(s.shots(),1,'a stale latched direction must not fire a second shot once the thumb is back in the deadzone');
+  assert.equal(s.shots(),0,'a stale latched direction must not fire once the thumb is back in the deadzone, and no tap fires either since the thumb dragged');
 });
-test('pointercancel cancels the second shot, but not the instant tap already fired on touchdown',()=>{
+test('pointercancel cancels the whole gesture, even after a drag -- zero shots',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1);
+  assert.equal(s.shots(),0);
   s.fireEvent('pointermove',{clientX:160,clientY:100});
   s.fireEvent('pointercancel',{clientX:160,clientY:100});
-  assert.equal(s.shots(),1,'cancelling mid-drag cannot un-fire the shot already requested on touchdown');
+  assert.equal(s.shots(),0,'cancelling mid-drag must not fire the shot that would have fired on a real release');
+});
+test('no double fire: a tap never calls fire() more than once',()=>{
+  const s=buildStick();s.setWall(0);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.setWall(50);
+  s.fireEvent('pointerup',{clientX:100,clientY:100});
+  assert.equal(s.shots(),1);
+  s.fireEvent('pointercancel',{clientX:100,clientY:100}); // stray event after release must not re-fire
+  assert.equal(s.shots(),1);
+});
+test('no double fire: a drag-release never calls fire() more than once',()=>{
+  const s=buildStick();s.setWall(0);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:160,clientY:100});
+  s.setWall(50);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1);
+  s.fireEvent('pointerup',{clientX:160,clientY:100}); // stray repeated pointerup for the same gesture
+  assert.equal(s.shots(),1);
 });
 test('different landing points keep the base centered and clamp knob travel',()=>{
   for(const origin of [{x:100,y:100},{x:260,y:40}]){
@@ -139,7 +162,7 @@ test('different landing points keep the base centered and clamp knob travel',()=
   }
 });
 
-test('open playfield touches use the floating right zone, fire immediately, and never intercept buttons',()=>{
+test('open playfield touches use the floating right zone, start the stick on touchdown, but only fire on release, and never intercept buttons',()=>{
   const s=buildStick();
   function down(target,x,y){const e=new s.dom.window.Event('pointerdown',{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});target.dispatchEvent(e);return e;}
   const canvas=s.dom.window.document.getElementById('world');
@@ -148,25 +171,27 @@ test('open playfield touches use the floating right zone, fire immediately, and 
   assert.equal(down(s.dom.window.document.getElementById('dash'),700,180).defaultPrevented,false,'action buttons keep their events');
   assert.equal(s.shots(),0,'none of the excluded touches may fire');
   assert.equal(down(canvas,700,180).defaultPrevented,true,'right playfield starts floating aim');
-  assert.equal(s.shots(),1,'starting the floating stick anywhere in the right zone fires immediately');
-  s.setWall(80);s.fireEvent('pointerup',{clientX:700,clientY:180});assert.equal(s.shots(),1,'no drag, no second shot');
+  assert.equal(s.shots(),0,'starting the floating stick must not fire until release');
+  s.setWall(80);s.fireEvent('pointerup',{clientX:700,clientY:180});assert.equal(s.shots(),1,'an undragged release fires the one tap shot');
 });
 
-test('a touch starting outside the visual ring, still inside the right zone, fires immediately',()=>{
+test('a touch starting outside the visual ring, still inside the right zone, starts the stick and fires on release',()=>{
   const s=buildStick();
   function down(target,x,y){const e=new s.dom.window.Event('pointerdown',{bubbles:true,cancelable:true});Object.assign(e,{pointerId:1,pointerType:'touch',clientX:x,clientY:y});target.dispatchEvent(e);return e;}
   const canvas=s.dom.window.document.getElementById('world');
   // The visual ring is the 50..150 rect from getBoundingClientRect(); 700,180 lands nowhere near it.
   const ev=down(canvas,700,180);
   assert.equal(ev.defaultPrevented,true);
-  assert.equal(s.shots(),1,'touches just outside the ring must still start the aim stick and fire');
+  assert.equal(s.shots(),0,'touches just outside the ring must still start the aim stick without firing yet');
+  s.setWall(80);s.fireEvent('pointerup',{clientX:700,clientY:180});
+  assert.equal(s.shots(),1,'and fire once the gesture releases');
 });
 
-test('time from touchdown to the first fire() call is zero -- requested in the pointerdown turn, not on release',()=>{
+test('fire() is never called while handling the pointerdown event itself',()=>{
   const s=buildStick();
   s.setWall(1000);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(s.shots(),1,'fire() must already have been called while handling the pointerdown event itself');
+  assert.equal(s.shots(),0,'fire() must not be called from pointerdown under the Brawl Stars model');
 });
 
 test('base stays at ring center, knob clamps to radius and returns on release',()=>{
@@ -207,5 +232,45 @@ test('floating HUD labels (ammo/weapon/health/shield) never steal an aim-stick t
   Object.assign(e,{pointerId:3,pointerType:'touch',clientX:700,clientY:180});
   canvas.dispatchEvent(e);
   assert.equal(e.defaultPrevented,true,'a touch over a floating HUD label must still start the aim stick');
+  s.setWall(80);s.fireEvent('pointerup',{clientX:700,clientY:180,pointerId:3});
   assert.equal(s.shots(),1);
+});
+
+// Robert's 22 Nov 2026 real-phone report: after not shooting for a while, the first drag was lost, and
+// the next drag in the same burst double-fired. Root cause: WebKit can revoke pointer capture (firing a
+// spurious `lostpointercapture`) on the very first touch after the page regains focus/visibility, before
+// the real pointerup for that same finger arrives; treating that as an unconditional cancel nulled
+// state.pointer while the finger was still down, so the real pointerup/pointermove that followed no
+// longer matched and silently no-opped -- the gesture, and its shot, were lost. setupStick now re-requests
+// capture on `lostpointercapture` and only falls back to a cancel if that throws (pointer genuinely gone).
+test('first drag after a 5s idle always fires -- a spurious lostpointercapture mid-gesture must not drop the shot, repeated 10 idle cycles',()=>{
+  const s=buildStick();
+  for(let cycle=0;cycle<10;cycle++){
+    s.setWall(cycle*5000); // 5s idle between cycles
+    s.fireEvent('pointerdown',{clientX:100,clientY:100});
+    assert.equal(s.context.sticks[0].state.pointer,1,`cycle ${cycle}: pointerdown must arm the gesture`);
+    // Simulate the spurious WebKit capture loss that follows an idle resume, before any real release.
+    s.fireEvent('lostpointercapture',{clientX:100,clientY:100});
+    assert.equal(s.context.sticks[0].state.pointer,1,`cycle ${cycle}: a recoverable lostpointercapture must not cancel the gesture`);
+    s.fireEvent('pointermove',{clientX:160,clientY:100});
+    s.setWall(cycle*5000+50);
+    s.fireEvent('pointerup',{clientX:160,clientY:100});
+    assert.equal(s.shots(),cycle+1,`cycle ${cycle}: exactly one shot must fire despite the spurious capture loss`);
+  }
+});
+
+test('a genuine lostpointercapture (pointer actually gone, setPointerCapture throws) cancels the gesture cleanly and does not block the next touch',()=>{
+  const s=buildStick();s.setWall(0);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:160,clientY:100});
+  s.el.setPointerCapture=()=>{throw new Error('InvalidPointerId');};
+  s.fireEvent('lostpointercapture',{clientX:160,clientY:100});
+  assert.equal(s.shots(),0,'a genuine capture loss must cancel, not fire the pending aimed shot');
+  assert.equal(s.context.sticks[0].state.pointer,null,'state must reset so the next touch is not blocked');
+  s.el.setPointerCapture=()=>{};
+  s.setWall(5000);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.setWall(5050);
+  s.fireEvent('pointerup',{clientX:100,clientY:100});
+  assert.equal(s.shots(),1,'the next touch must still be able to fire normally');
 });

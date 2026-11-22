@@ -1,4 +1,4 @@
-// Textured BIT companion (v2.28.67). The GLB carries the worn casing only: its CRT glass is a separate
+// Textured BIT companion (v2.28.68). The GLB carries the worn casing only: its CRT glass is a separate
 // dark mesh (`bit_screen`, own material, UVs 0..1 across the glass) and the game draws the face onto it as
 // a swappable emissive canvas texture, so expressions animate without touching the 3D model.
 // Identity rules: docs/bit-character-spec.md. The idle face is the locked v3 master geometry
@@ -6,12 +6,12 @@
 // 370 U span, 115 U depth, 32->64->32 U taper, radius-16 caps) in #75CFCC. Other M40/M42 states keep their
 // existing recipe as a change relative to idle (bit-expression.js FACES), never a redesigned face.
 import * as THREE from './vendor/three.module.js';
-import {bitExpressionFace,mouthDepth} from './bit-expression.js?v=2.28.67';
-import {pbrEnvironment} from './environment-look.js?v=2.28.67';
-import {tagBloom} from './postfx.js?v=2.28.67';
+import {bitExpressionFace,mouthDepth} from './bit-expression.js?v=2.28.68';
+import {pbrEnvironment} from './environment-look.js?v=2.28.68';
+import {tagBloom} from './postfx.js?v=2.28.68';
 
 export const BIT_MODEL=Object.freeze({
-  url:'../assets/bit/bit-companion.glb?v=2.28.67',
+  url:'../assets/bit/bit-companion.glb?v=2.28.68',
   scale:1.3, // GLB casing is ~0.72 m wide; 1.3 reads at least as large as the old 0.78 m box at top-down scale
   lift:.3, // hover base height, matching the procedural BIT's lowest part (y=.34 minus its .04 skirt)
   faceHeight:.98, // fraction of the screen height the 875 U face box fills

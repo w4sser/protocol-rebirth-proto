@@ -4,7 +4,7 @@ import * as THREE from './vendor/three.module.js';
 export const LIGHT_RIGS={
   bunker:{sky:'#9caccd',ground:'#242438',fill:1.15,key:'#bac9df',keyPower:1.5,exposure:1.18},
 };
-// PBR environment fill (v2.28.67). The textured enemies, OP01 and BIT use metal/roughness materials, which only
+// PBR environment fill (v2.28.68). The textured enemies, OP01 and BIT use metal/roughness materials, which only
 // get their ambient fill and reflections from an environment map; with hemi + sun alone they read near-black.
 // A tiny procedural studio room is baked once through PMREM (deferred until idle after boot, no per-frame cost, no extra lights)
 // and assigned per material to those PBR models only (pbrEnvironment), never as scene.environment, so the

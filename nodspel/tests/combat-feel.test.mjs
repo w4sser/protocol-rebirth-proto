@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy,tickRound} from '../round.js?v=2.28.67';
-import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.28.67';
-import {tapTarget,tapDirection} from '../weapon.js?v=2.28.67';
-import {RULES} from '../levels.js?v=2.28.67';
-import {createDash,startDash} from '../dash.js?v=2.28.67';
-import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.28.67';
+import {createRound,hitEnemy,tickRound} from '../round.js?v=2.28.68';
+import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.28.68';
+import {tapTarget,tapDirection} from '../weapon.js?v=2.28.68';
+import {RULES} from '../levels.js?v=2.28.68';
+import {createDash,startDash} from '../dash.js?v=2.28.68';
+import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.28.68';
 const pos={x:0,z:0};
 const enemy=(id,x=2,z=0)=>({id,kind:'enemy',type:'grunt',x,z,r:.48,health:1,active:true});
 function arena(){
@@ -89,7 +89,7 @@ test('a later kill in a cleared room still never opens the picker',()=>{
 
 test('production enemy visuals flash independently, collapse, and remove their kill particles',async()=>{
   const THREE=await import('../vendor/three.module.js');
-  const {buildWorld}=await import('../world.js?v=2.28.67');
+  const {buildWorld}=await import('../world.js?v=2.28.68');
   const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
   const r=createRound('feel-visuals',0),[first,second]=r.level.enemies;
   first.health=2;first.active=second.active=true;
@@ -97,7 +97,7 @@ test('production enemy visuals flash independently, collapse, and remove their k
   try{
     const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
     const start=source.indexOf('function renderEnemyFeedback(clock){'),end=source.indexOf('    if(v.beam)',start);
-    const {animateEnemyModel}=await import('../enemy-animation.js?v=2.28.67');
+    const {animateEnemyModel}=await import('../enemy-animation.js?v=2.28.68');
     const context=vm.createContext({world,position:pos,RULES,animateEnemyModel});
     vm.runInContext(source.slice(start,end)+'\n  }\n}',context);
     hitEnemy(r,first.id,100,1);context.renderEnemyFeedback(100);

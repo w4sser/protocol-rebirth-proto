@@ -15,7 +15,7 @@ Eight standalone low-poly GLB assets for the Protocol Rebirth raid. Each model u
 
 Swarm is one reusable unit; spawn several instances for a group. Models are kept deliberately lightweight (all under 150 KB). Scale is normalized around a compact enemy footprint; adjust the root transform to match the raid's existing world units.
 
-## Textured models (v2.28.67)
+## Textured models (v2.28.68)
 
 `patrol_grunt`, `shield_turret`, `tank`, `rusher`, `swarm_bot`, `artillery` and `sniper` are textured meshes cleaned up from generated models to match the art-direction references: ~16-26k tris each, one 1024 px base-colour JPEG, 1.3-1.7 MB per file (they replace the old vertex-colour blockouts, so the "under 150 KB" note above now only holds for `scout` and `repair`). They keep the node contract in `nodspel/enemies.js`: +X forward, +Z up, lowest vertex at z=0, named parts and pivots. Pivot children are rigid meshes positioned relative to the pivot; `patrol_grunt` wheels are baked in model space (see `wheelRollPivots()`).
 

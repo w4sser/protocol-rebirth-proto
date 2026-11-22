@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.67';
-import {loadEnemyModel} from './enemy-models.js?v=2.28.67';
-import {pbrEnvironment} from './environment-look.js?v=2.28.67';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.68';
+import {loadEnemyModel} from './enemy-models.js?v=2.28.68';
+import {pbrEnvironment} from './environment-look.js?v=2.28.68';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 const SWARM_LEG_PIVOTS=Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`); // eight-legged textured swarm_bot
@@ -65,7 +65,7 @@ function restRusherLegs(parts,legRest){
   }
 }
 
-// Distance-driven gait (v2.28.67). The old walk swung legs on a clock (sin(clock/110)) regardless of how far
+// Distance-driven gait (v2.28.68). The old walk swung legs on a clock (sin(clock/110)) regardless of how far
 // the enemy moved, so feet slid over the floor ("moonwalking"). Here each leg's phase advances with the
 // forward distance travelled, like the patrol_grunt wheels: during stance the planted foot moves backwards
 // (relative to the body) exactly as far as the body moves forwards, then it lifts and swings forward.

@@ -1,13 +1,13 @@
-import '../data/raid-enemies.js?v=2.28.67';
+import '../data/raid-enemies.js?v=2.28.68';
 function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 export const ENEMY_TUNING=freeze(globalThis.DATA.raidEnemies);
 export const ENEMY_COLORS=ENEMY_TUNING.colors; // Approved: coral damage, blue shield, green heal, yellow AoE.
 // Ground offsets correct each GLB's authored origin to its own lowest vertex (measured per-model; most sit
 // within a few cm of 0 already). scout is the one that visibly clips/floats without it; the textured
-// v2.28.67 models (assets/enemies/README.md) are all authored with their lowest vertex at z=0.
+// v2.28.68 models (assets/enemies/README.md) are all authored with their lowest vertex at z=0.
 const GROUND_OFFSET={scout:.37};
 function archetype(id,parts,hint,tier,phase,scale=1){
-  return {id,groundOffset:GROUND_OFFSET[id]??0,model:`../assets/enemies/${id}.glb?v=2.28.67`,scale,
+  return {id,groundOffset:GROUND_OFFSET[id]??0,model:`../assets/enemies/${id}.glb?v=2.28.68`,scale,
     // Apply X rotation first, then Y: local +Z -> world +Y, local +X -> game +Z.
     forwardUpFix:{rotateX:-Math.PI/2,rotateY:-Math.PI/2},parts,stats:ENEMY_TUNING.stats[id],telegraphColors:ENEMY_COLORS,hint,tier,phase};
 }

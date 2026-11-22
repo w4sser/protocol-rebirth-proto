@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.67';
-import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.67';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.68';
+import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.68';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;

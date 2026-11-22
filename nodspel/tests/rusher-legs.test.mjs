@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {ENEMIES} from '../enemies.js?v=2.28.67';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.67';
-import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.67';
+import {ENEMIES} from '../enemies.js?v=2.28.68';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.68';
+import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.68';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
 
-// The textured rusher.glb (v2.28.67) authors its four legs already crouched on the ground, so the spec has
+// The textured rusher.glb (v2.28.68) authors its four legs already crouched on the ground, so the spec has
 // no legRest and attach must not re-pose them; the walk cycle swings each hip pivot about its lateral axis.
 const LEGS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 function visual(enemy){const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial());group.add(body);return {enemy,group,body};}
