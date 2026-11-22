@@ -4,6 +4,68 @@ import * as THREE from './vendor/three.module.js';
 export const LIGHT_RIGS={
   bunker:{sky:'#9caccd',ground:'#242438',fill:1.15,key:'#bac9df',keyPower:1.5,exposure:1.18},
 };
+// PBR environment fill (v2.28.68). The textured enemies, OP01 and BIT use metal/roughness materials, which only
+// get their ambient fill and reflections from an environment map; with hemi + sun alone they read near-black.
+// A tiny procedural studio room is baked once through PMREM (deferred until idle after boot, no per-frame cost, no extra lights)
+// and assigned per material to those PBR models only (pbrEnvironment), never as scene.environment, so the
+// vertex-coloured world keeps its authored bunker/outdoor look.
+// Turn off with enabled:false here, or per session with ?envmap=0 for an A/B comparison.
+export const ENVIRONMENT_MAP={enabled:true,intensity:1};
+export function environmentMapEnabled(search=''){
+  const q=new URLSearchParams(search).get('envmap');
+  return q==null?ENVIRONMENT_MAP.enabled:q!=='0';
+}
+function studioRoom(){
+  const room=new THREE.Scene(),box=new THREE.BoxGeometry(1,1,1);
+  const walls=new THREE.Mesh(box,new THREE.MeshBasicMaterial({color:'#4a5260',side:THREE.BackSide}));
+  walls.scale.set(12,8,12);walls.position.y=3;room.add(walls);
+  // HDR panels (colour > 1) act as soft area lights: a cool key above, a warmer fill and a low rim.
+  const panel=(color,intensity,pos,scale)=>{
+    const m=new THREE.Mesh(box,new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(intensity)}));
+    m.position.set(...pos);m.scale.set(...scale);room.add(m);
+  };
+  panel('#dfe8f2',6,[0,6.8,0],[6,.1,6]);
+  panel('#f2dcc4',3,[-5.8,3,1],[.1,3,5]);
+  panel('#bcd2e6',2.5,[5.8,2.5,-2],[.1,2.5,4]);
+  panel('#9aa6b4',1.5,[0,1,-5.8],[6,1.5,.1]);
+  return room;
+}
+export function createEnvironmentMap(renderer){
+  const pmrem=new THREE.PMREMGenerator(renderer),room=studioRoom();
+  const target=pmrem.fromScene(room,.04);
+  room.traverse(n=>{n.geometry?.dispose();n.material?.dispose();});pmrem.dispose();
+  return target.texture;
+}
+let pbrEnvMap=null,pbrRenderer=null,pbrFailed=false,bakeScheduled=false;
+const pendingPbr=new Map(); // material -> intensity, waiting for the deferred bake
+// Register the renderer at start-up; the PMREM bake itself is deferred until the browser is idle after boot,
+// so it never sits on the boot path (OP01 and BIT ask for it while loading). On software WebGL (CI) the bake
+// takes seconds; on a phone GPU it is a few tens of milliseconds. Materials that ask early are queued and
+// receive the map as soon as it exists.
+export function applyEnvironmentMap(renderer,search=''){
+  pbrRenderer=environmentMapEnabled(search)?renderer:null;
+  return pbrRenderer!=null;
+}
+function bakeNow(){
+  if(pbrEnvMap||pbrFailed||!pbrRenderer)return;
+  try{pbrEnvMap=createEnvironmentMap(pbrRenderer);}catch(e){console.warn('Environment map skipped',e);pbrFailed=true;}
+  for(const [material,intensity] of pendingPbr)assignEnv(material,intensity);
+  pendingPbr.clear();
+}
+function scheduleBake(){
+  if(bakeScheduled)return;bakeScheduled=true;
+  const idle=globalThis.requestIdleCallback;
+  if(idle)idle(()=>bakeNow(),{timeout:4000});else setTimeout(bakeNow,1500);
+}
+function assignEnv(material,intensity){
+  if(!pbrEnvMap)return false;
+  material.envMap=pbrEnvMap;material.envMapIntensity=intensity;material.needsUpdate=true;return true;
+}
+export function pbrEnvironment(material,intensity=ENVIRONMENT_MAP.intensity){
+  if(!material?.isMeshStandardMaterial||!pbrRenderer||pbrFailed)return false;
+  if(pbrEnvMap)return assignEnv(material,intensity);
+  pendingPbr.set(material,intensity);scheduleBake();return true;
+}
 export function applyEnvironmentLight(area,{hemi,sun,renderer}){
   const r=LIGHT_RIGS[area]??LIGHT_RIGS.bunker;
   hemi.color.set(r.sky);hemi.groundColor.set(r.ground);hemi.intensity=r.fill;

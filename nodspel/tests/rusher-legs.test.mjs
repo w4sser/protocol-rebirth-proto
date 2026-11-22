@@ -3,116 +3,89 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.67';
-import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.67';
+import {ENEMIES} from '../enemies.js?v=2.28.68';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.68';
+import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.28.68';
 
-// Stub mirrors rusher.glb's authored leg layout: each pivot is the hip joint, its one mesh
-// child sits at -hip (so the mesh's own geometry carries the hip->foot offset), with a
-// cylinder matching the real asset's splayed-leg footprint
-// (assets/enemies/rusher.glb: hips at (+-0.25,+-0.18,0.45), feet near (+-0.6,+-0.45,0.06)).
-const LEGS=[
-  ['leg_front_left_pivot',0.25,0.18],
-  ['leg_front_right_pivot',0.25,-0.18],
-  ['leg_rear_left_pivot',-0.25,0.18],
-  ['leg_rear_right_pivot',-0.25,-0.18],
-];
-function buildRusherStub(){
-  const root=new THREE.Group();
-  for(const name of ['core','wedge_head','optic','back_battery'])root.add(Object.assign(new THREE.Group(),{name}));
-  for(const [name,hx,hy] of LEGS){
-    const pivot=new THREE.Group();pivot.name=name;pivot.position.set(hx,hy,.45);
-    const sx=Math.sign(hx),sy=Math.sign(hy);
-    const hip=new THREE.Vector3(hx,hy,.45),foot=new THREE.Vector3(sx*.6,sy*.45,.06);
-    const direction=foot.clone().sub(hip);
-    const geometry=new THREE.CylinderGeometry(.03,.03,direction.length(),8);
-    geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize()));
-    const center=hip.clone().add(foot).multiplyScalar(.5);
-    geometry.translate(center.x,center.y,center.z);
-    const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial());
-    mesh.position.set(-hx,-hy,-.45);
-    pivot.add(mesh);root.add(pivot);
-  }
-  return root;
-}
+// GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
+globalThis.self??=globalThis;
+
+// The textured rusher.glb (v2.28.68) authors its four legs already crouched on the ground, so the spec has
+// no legRest and attach must not re-pose them; the walk cycle swings each hip pivot about its lateral axis.
+const LEGS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 function visual(enemy){const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial());group.add(body);return {enemy,group,body};}
-async function attachedRusher(enemy){
-  const loader=createEnemyModelLoader({load:async()=>buildRusherStub()});
+let source;
+async function rusherSource(){
+  if(source)return source;
+  const bytes=readFileSync(new URL('../../assets/enemies/rusher.glb',import.meta.url));
+  source=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
+  return source;
+}
+async function attached(enemy){
+  const src=await rusherSource(),loader=createEnemyModelLoader({load:async()=>src});
   const v=visual({type:'rusher',health:3,...enemy});
   await attachEnemyModel(v,()=>false,loader);
   return v;
 }
-// Measure the center of the distal end from actual vertices, independently of the
-// loader's bbox calculation. Deduplicate shared face vertices before averaging.
-function footFromHip(child,hip){
-  child.updateWorldMatrix(true,false);
-  const pos=child.geometry.attributes.position,v=new THREE.Vector3();
-  const vertices=new Map();let maxDist=0;
-  for(let i=0;i<pos.count;i++){
-    v.fromBufferAttribute(pos,i).applyMatrix4(child.matrixWorld);
-    maxDist=Math.max(maxDist,v.distanceTo(hip));
-    vertices.set(v.toArray().map(n=>n.toFixed(6)).join(','),v.clone());
-  }
-  const distal=[...vertices.values()].filter(v=>v.distanceTo(hip)>maxDist*.7);
-  return distal.reduce((center,v)=>center.add(v),new THREE.Vector3()).multiplyScalar(1/distal.length);
+function lowestBelowHip(pivot){
+  pivot.updateWorldMatrix(true,true);
+  const hip=new THREE.Vector3();pivot.getWorldPosition(hip);
+  return hip.y-new THREE.Box3().setFromObject(pivot).min.y;
 }
 
-function assertGroundedStance(v){
+test('rusher spec has no legRest: its legs are authored in their resting crouch',()=>{
+  assert.equal(ENEMIES.rusher.legRest,undefined);
+});
+
+test('textured rusher GLB attaches grounded, feet below each hip, without a rest re-pose',async()=>{
+  const v=await attached({attackPhase:'idle'});
   const {parts,mount}=v.enemyModel;
   v.group.updateMatrixWorld(true);
-  for(const [name] of LEGS){
-    const pivot=parts[name];
-    assert.ok(pivot.userData.restQuaternion instanceof THREE.Quaternion,`${name} missing rest quaternion`);
-    const hip=new THREE.Vector3();pivot.getWorldPosition(hip);
-    const foot=footFromHip(pivot.children[0],hip);
-    const horizontalGap=Math.hypot(foot.x-hip.x,foot.z-hip.z);
-    assert.ok(horizontalGap<.15,`${name} foot is ${horizontalGap.toFixed(3)} from hip horizontally`);
-    assert.ok(foot.y<hip.y-.4,`${name} foot should hang below its hip`);
-    // forwardUpFix maps model +X to game +Z, and model +Y to game +X.
-    assert.ok((foot.z-hip.z)*pivot.position.x>0,`${name} fore/aft stance should point away from center`);
-    assert.ok((foot.x-hip.x)*pivot.position.y>0,`${name} outward stance should point away from center`);
+  assert.ok(Math.abs(new THREE.Box3().setFromObject(mount).min.y)<.02,'lowest point sits on the ground');
+  for(const name of LEGS){
+    assert.equal(parts[name].userData.restQuaternion,undefined,`${name} must not be re-posed`);
+    assert.ok(lowestBelowHip(parts[name])>.25,`${name} foot should reach well below its hip`);
   }
-  const lowest=new THREE.Box3().setFromObject(mount).min.y;
-  assert.ok(Math.abs(lowest)<.02,`lowest point y=${lowest}`);
+});
+
+function footVertex(pivot){ // lowest vertex of the leg at its current pose: track that one vertex in world space
+  const mesh=pivot.children.find(c=>c.isMesh);mesh.updateWorldMatrix(true,false);
+  const pos=mesh.geometry.attributes.position,v=new THREE.Vector3();let best=0,low=Infinity;
+  for(let k=0;k<pos.count;k++){v.fromBufferAttribute(pos,k).applyMatrix4(mesh.matrixWorld);if(v.y<low){low=v.y;best=k;}}
+  return k=>{mesh.updateWorldMatrix(true,false);return new THREE.Vector3().fromBufferAttribute(pos,best).applyMatrix4(mesh.matrixWorld);};
 }
+function place(v){v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=v.enemy.facing;v.group.updateMatrixWorld(true);}
 
-test('attach rest-poses rusher legs so each foot hangs under its hip and the model is grounded',async()=>{
-  assertGroundedStance(await attachedRusher({attackPhase:'idle'}));
+test('rusher feet stay planted while the body walks forward (no moonwalk)',async()=>{
+  const v=await attached({attackPhase:'stalk',x:0,z:0,facing:0});
+  place(v);animateEnemyModel(v,0);v.group.updateMatrixWorld(true);
+  // front-left and rear-right share phase offset 0: both start their stance at distance 0.
+  for(const name of ['leg_front_left_pivot','leg_rear_right_pivot']){
+    const pivot=v.enemyModel.parts[name],at=footVertex(pivot),start=at();
+    const stance=v.enemyModel.gait.cycle*v.enemyModel.gait.stance;
+    v.enemy.z=stance*.8;place(v);animateEnemyModel(v,16);v.group.updateMatrixWorld(true);
+    const end=at(),slide=Math.hypot(end.x-start.x,end.z-start.z);
+    assert.ok(slide<.03,`${name} foot slid ${slide.toFixed(3)} while the body moved ${(stance*.8).toFixed(3)}`);
+    v.enemy.z=0;place(v);animateEnemyModel(v,32);
+  }
 });
 
-test('walking swing composes on top of the rest pose instead of overwriting it',async()=>{
-  const v=await attachedRusher({attackPhase:'idle'});
-  for(const phase of ['idle','stalk','charge','idle']){
-    v.enemy.attackPhase=phase;
-    animateEnemyModel(v,100);
-    for(const [i,[name]] of LEGS.entries()){
-      const pivot=v.enemyModel.parts[name],rest=pivot.userData.restQuaternion;
-      if(phase==='idle'){
-        assert.ok(pivot.quaternion.equals(rest),'idle pose should equal the rest quaternion exactly');
-      }else{
-        const swingAngle=Math.sin(100/(phase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35;
-        const expected=rest.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),swingAngle));
-        assert.ok(pivot.quaternion.angleTo(expected)<1e-6,`${name}: ${phase} should compose rest and lateral swing`);
-        assert.ok(!pivot.quaternion.equals(rest),'moving pose should differ from rest');
-        const hip=new THREE.Vector3();pivot.getWorldPosition(hip);
-        const foot=footFromHip(pivot.children[0],hip);
-        assert.ok(Math.hypot(foot.x-hip.x,foot.z-hip.z)<.3,'swing should not fling the foot far from the hip');
-      }
-    }
-  }
-  assertGroundedStance(v);
+test('legs only move when the body moves, and settle back to planted when it stops',async()=>{
+  const v=await attached({attackPhase:'stalk',x:0,z:0,facing:0});
+  animateEnemyModel(v,0);
+  const pose=LEGS.map(n=>v.enemyModel.parts[n].quaternion.clone());
+  animateEnemyModel(v,500);animateEnemyModel(v,900); // time passes, no movement
+  LEGS.forEach((n,i)=>assert.ok(v.enemyModel.parts[n].quaternion.angleTo(pose[i])<1e-9,`${n} moved without the body moving`));
+  v.enemy.z=v.enemyModel.gait.cycle*.3;animateEnemyModel(v,950);
+  assert.ok(LEGS.some((n,i)=>v.enemyModel.parts[n].quaternion.angleTo(pose[i])>1e-3),'walking moves the legs');
 });
 
-test('unchanged rusher GLB rests upright and grounded with independent clone poses',async()=>{
-  const bytes=readFileSync(new URL('../../assets/enemies/rusher.glb',import.meta.url));
-  const source=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
-  const loader=createEnemyModelLoader({load:async()=>source});
-  const a=visual({type:'rusher',attackPhase:'idle'}),b=visual({type:'rusher',attackPhase:'idle'});
-  await attachEnemyModel(a,()=>false,loader);
-  await attachEnemyModel(b,()=>false,loader);
-  assertGroundedStance(a);assertGroundedStance(b);
-  a.enemy.attackPhase='charge';animateEnemyModel(a,100);
-  assertGroundedStance(b);
-  for(const [name] of LEGS){
-    assert.notEqual(a.enemyModel.parts[name].userData.restQuaternion,b.enemyModel.parts[name].userData.restQuaternion);
-  }
+test('rusher clones keep independent leg poses',async()=>{
+  const a=await attached({attackPhase:'idle',x:0,z:0,facing:0}),b=await attached({attackPhase:'idle',x:0,z:0,facing:0});
+  animateEnemyModel(b,0);const pose=LEGS.map(n=>b.enemyModel.parts[n].quaternion.clone());
+  a.enemy.z=.2;animateEnemyModel(a,100);animateEnemyModel(b,100);
+  LEGS.forEach((n,i)=>{
+    assert.notEqual(a.enemyModel.parts[n],b.enemyModel.parts[n]);
+    assert.ok(b.enemyModel.parts[n].quaternion.angleTo(pose[i])<1e-9);
+  });
 });

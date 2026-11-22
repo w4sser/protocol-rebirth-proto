@@ -14,3 +14,16 @@ Eight standalone low-poly GLB assets for the Protocol Rebirth raid. Each model u
 | `sniper.glb` | `core`, `armor_panel`, `optic`, `weakpoint`, `barrel_pivot`, `tripod_leg_01` through `tripod_leg_03` |
 
 Swarm is one reusable unit; spawn several instances for a group. Models are kept deliberately lightweight (all under 150 KB). Scale is normalized around a compact enemy footprint; adjust the root transform to match the raid's existing world units.
+
+## Textured models (v2.28.68)
+
+`patrol_grunt`, `shield_turret`, `tank`, `rusher`, `swarm_bot`, `artillery` and `sniper` are textured meshes cleaned up from generated models to match the art-direction references: ~16-26k tris each, one 1024 px base-colour JPEG, 1.3-1.7 MB per file (they replace the old vertex-colour blockouts, so the "under 150 KB" note above now only holds for `scout` and `repair`). They keep the node contract in `nodspel/enemies.js`: +X forward, +Z up, lowest vertex at z=0, named parts and pivots. Pivot children are rigid meshes positioned relative to the pivot; `patrol_grunt` wheels are baked in model space (see `wheelRollPivots()`).
+
+Differences from the table above:
+- `swarm_bot` has eight legs: `leg_01_pivot` .. `leg_08_pivot`, counter-clockwise from the front.
+- `sniper` stands on four legs: `tripod_leg_01` .. `tripod_leg_04` (one per quadrant).
+- `rusher` legs are authored in their crouched rest pose, so its spec has no `legRest`.
+- `shield_arc` is the outer shell of the shield; with it hidden (`turret`) the inner face reads as a curved front plate.
+- `optic` on `swarm_bot`, `rusher`, `artillery` and `sniper` is a separate red emissive material. `tank` and `shield_turret` keep `optic` (and `front_armor`) as empty nodes: their eyes are painted into the texture.
+- `weakpoint` / `back_battery` meshes use the base texture as an emissive map so the amber cells glow.
+- `patrol_grunt` keeps `upper_frame`, `front_plate`, `side_panel_*`, `hub_*`, `battery_cage`, `sensor_face` and `head_turntable` as empty nodes so the loader's part check still passes.

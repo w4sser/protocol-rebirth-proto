@@ -1,15 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+// GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not. Images still
+// fail to decode here (no DOM), which GLTFLoader tolerates - geometry, nodes and materials load fine.
+globalThis.self??=globalThis;
 import * as THREE from '../vendor/three.module.js';
-import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.67';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.67';
-import {createRound,hitEnemy} from '../round.js?v=2.28.67';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.67';
-import {shieldBlocks} from '../encounters.js?v=2.28.67';
-import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.67';
-import {initTool,throwTool} from '../tools.js?v=2.28.67';
-import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.67';
+import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.68';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.68';
+import {createRound,hitEnemy} from '../round.js?v=2.28.68';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.68';
+import {shieldBlocks} from '../encounters.js?v=2.28.68';
+import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.68';
+import {initTool,throwTool} from '../tools.js?v=2.28.68';
+import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.68';
 
 function glbNodeNames(id){
   const bytes=readFileSync(new URL(`../../assets/enemies/${id}.glb`,import.meta.url));
@@ -28,7 +31,7 @@ for(const [id,spec] of Object.entries(ENEMIES))test(`${id}: frozen registry matc
   assert.ok(['shield_turret','rusher'].includes(id)?spec.phase===1:[2,3].includes(spec.phase));
   assert.equal(new Set(spec.parts).size,spec.parts.length);
   assert.ok(Object.values(spec.stats).every(n=>Number.isFinite(n)&&n>=0));
-  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.67$`));
+  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.68$`));
   const vector=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
   assert.ok(vector.distanceTo(new THREE.Vector3(0,0,1))<1e-8);
   const up=new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
@@ -187,7 +190,7 @@ test('L2 turret slots deterministically include both plain and shield variants a
 
 test('real GLBs animate named pivots with shared geometry, individual pulses and no lights',async()=>{
   const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
-  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.67');
+  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.68');
   const loader=createEnemyModelLoader({load:async url=>{
     const bytes=readFileSync(new URL(`../${url.split('?')[0]}`,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
@@ -203,8 +206,10 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   a.enemy.shieldDownUntil=400;animateEnemyModel(a,200);assert.equal(pa.shield_arc.visible,false);
   animateEnemyModel(a,400);assert.equal(pa.shield_arc.visible,true);
   a.enemy.attackPhase='burst';a.enemy.burstStartedAt=400;const rest=pa.cannon.position.x;animateEnemyModel(a,401);assert.ok(pa.cannon.position.x<rest);
-  const r=visual({type:'rusher',health:3,attackPhase:'stalk'});await attachEnemyModel(r,()=>false,loader);
-  animateEnemyModel(r,100);assert.notEqual(r.enemyModel.parts.leg_front_left_pivot.rotation.y,0);
+  const r=visual({type:'rusher',health:3,attackPhase:'stalk',x:0,z:0,facing:0});await attachEnemyModel(r,()=>false,loader);
+  const legRest=r.enemyModel.parts.leg_front_left_pivot.quaternion.clone();
+  animateEnemyModel(r,100);r.enemy.z=.1;animateEnemyModel(r,116); // legs follow distance moved, not the clock
+  assert.ok(r.enemyModel.parts.leg_front_left_pivot.quaternion.angleTo(legRest)>1e-3);
   r.enemy.windupAt=1000;animateEnemyModel(r,500);assert.ok(r.enemyModel.mount.rotation.x>0);
   assert.ok(r.enemyModel.parts.back_battery.material.emissiveIntensity>1);
   const g=visual({type:'grunt',x:0,z:0,facing:0,health:3}),g2=visual({...g.enemy});

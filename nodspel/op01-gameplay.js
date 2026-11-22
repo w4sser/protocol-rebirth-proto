@@ -10,6 +10,7 @@
  * and the hand-mounted weapon stays aligned while LODs switch.
  */
 import * as THREE from './vendor/three.module.js';
+import {pbrEnvironment} from './environment-look.js?v=2.28.68';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 
 export const OP01_GAME_PATHS=Object.freeze([
@@ -31,6 +32,10 @@ export const OP01_CHARACTER=Object.freeze({
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
   rim:{color:'#b6c4ca',strength:.32,power:2.6},
+  // Brightness lift (v2.28.68): OP01's albedo is near-black (coat ~3% grey), so the PBR environment fill
+  // alone is not enough at top-down scale. colorBoost multiplies the albedo (keeps the lighting and shading),
+  // envMapIntensity scales the environment fill/reflections and emissiveLift adds a small texture-tinted floor.
+  light:{colorBoost:2.2,envMapIntensity:1.8,emissiveLift:.12,untexturedFloor:'#2c3238'},
   accessories:false
 });
 
@@ -79,12 +84,28 @@ function addRim(material,strengthUniform){
   material.customProgramCacheKey=()=>"op01-neutral-rim-adjustable-v2";
   material.needsUpdate=true;
 }
+const lifted=new WeakSet();
+function liftMaterial(mat){
+  if(lifted.has(mat)||!mat.isMeshStandardMaterial)return;
+  lifted.add(mat);
+  const {colorBoost,envMapIntensity,emissiveLift,untexturedFloor}=OP01_CHARACTER.light;
+  pbrEnvironment(mat,envMapIntensity);
+  mat.color.multiplyScalar(colorBoost);
+  // Authored glows (cyan light strip etc.) keep their own emissive. Otherwise tint the lift by the albedo
+  // so it brightens the authored colours instead of greying them out.
+  if(mat.emissive.getHex()===0){
+    if(mat.map&&!mat.emissiveMap){mat.emissiveMap=mat.map;mat.emissive.setScalar(emissiveLift);}
+    else if(!mat.map)mat.emissive.set(untexturedFloor).multiplyScalar(emissiveLift*2); // flat-colour gear (pack, weapon)
+  }
+  mat.needsUpdate=true;
+}
 function tuneMaterials(mesh,low=false,strengthUniform){
   mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
     if(!mat)return;
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
+    liftMaterial(mat);
     if(mesh.isSkinnedMesh)addRim(mat,strengthUniform);
   }
 }
