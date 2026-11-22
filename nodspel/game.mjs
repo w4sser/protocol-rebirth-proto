@@ -75,6 +75,7 @@ import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLa
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.67';
 import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.67';
 import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.67';
+import {attachBitModel} from './bit-model.js?v=2.28.67';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
@@ -443,9 +444,21 @@ for(let i=0;i<=16;i++){const t=i/16;bitMouthPositions[i*3]=-.14+.28*t;bitMouthPo
 const bitMouthGeometry=new THREE.BufferGeometry();bitMouthGeometry.setAttribute('position',new THREE.BufferAttribute(bitMouthPositions,3));
 const bitMouthLine=new THREE.Line(bitMouthGeometry,new THREE.LineBasicMaterial({color:'#0d1a20'}));bitModel.add(bitMouthLine);
 const bitAntenna=new THREE.Group();bitAntenna.position.set(0,1.02,0);bitModel.add(bitAntenna);
-box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);
+const bitAntennaStick=box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);
 // BIT lamp: the one gameplay-cue bloom target on BIT itself (postfx.js BLOOM_LAYER).
-tagBloom(box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna),{unlit:true});
+const bitLamp=tagBloom(box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna),{unlit:true});
+// v2.28.67: the textured BIT (bit-model.js) replaces the boxes once its GLB loads; the boxes stay as the
+// fallback. Its CRT glass shows the face as an emissive canvas texture; the cue lamp moves to its antenna tip.
+let bitGLB=null;
+attachBitModel(bitModel,{procedural:[...bitModel.children.filter(c=>c!==bitAntenna),bitAntennaStick]}).then(handle=>{
+  bitGLB=handle;
+  if(handle.antenna){
+    bitModel.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(handle.antenna),center=bounds.getCenter(new THREE.Vector3());
+    const top=bitModel.worldToLocal(new THREE.Vector3(center.x,bounds.max.y,center.z)); // bitModel only yaws, so y is kept
+    bitAntenna.position.set(top.x,top.y-.15,top.z);bitLamp.scale.setScalar(.06);
+  }
+}).catch(e=>console.warn('BIT model skipped',e)); // presentation only: the procedural BIT keeps working
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
 const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.frustumCulled=false;healBeam.renderOrder=4;scene.add(healBeam);
 const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
@@ -2280,9 +2293,12 @@ function frameInner(now){
   {const depth=mouthDepth(bitFace.mouth),pos=bitMouthPositions;
   for(let i=0;i<=16;i++)pos[i*3+1]=.65-depth*Math.sin(i/16*Math.PI);
   bitMouthLine.geometry.attributes.position.needsUpdate=true;}
-  if(bit.healing){bitScreen.material.color.set('#3FE0D0');}
-  else if(bitExpress.brightness>=.5){bitScreenColor.copy(bitCalmColor).lerp(bitBrightColor,(bitExpress.brightness-.5)*2);bitScreen.material.color.copy(bitScreenColor);}
-  else{bitScreenColor.copy(bitCalmColor).multiplyScalar(.4+bitExpress.brightness*1.2);bitScreen.material.color.copy(bitScreenColor);}
+  if(bit.healing){bitScreenColor.set('#3FE0D0');}
+  else if(bitExpress.brightness>=.5){bitScreenColor.copy(bitCalmColor).lerp(bitBrightColor,(bitExpress.brightness-.5)*2);}
+  else{bitScreenColor.copy(bitCalmColor).multiplyScalar(.4+bitExpress.brightness*1.2);}
+  bitScreen.material.color.copy(bitScreenColor);
+  // Textured BIT: same colour logic on the face's emissive tint; the canvas only redraws on a state change.
+  if(bitGLB){bitGLB.screenMaterial.emissive.copy(bitScreenColor);bitGLB.face.set(currentBitExpression(bitExpr,clock));}
   bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?bitHealText(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond):'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
