@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.28.64';
+import {setArea} from '../levels.js?v=2.28.65';
 import {perkState,updateClears,ownRooms,safePick,pickReady} from '../perks.js';
 
 const point={x:0,z:0};

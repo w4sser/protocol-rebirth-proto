@@ -4,7 +4,7 @@ The approved audio layer supports mobile landscape play without changing combat 
 
 Owner revision: no footsteps or ambience ship. Movement is silent, there are no area beds, and cached-page restoration cannot request an ambience track. The only loop is a quiet 24-second music pulse with a two-second wrap crossfade, started after audio unlock in base and active raids. Music defaults to 0.12 with a 0.3 track gain; it stops at raid end/page exit and resumes on a cached-page return only if that raid was active.
 
-SFX: carbine, SMG, shotgun and rifle fire/reload/empty; enemy and wall impacts; grunt, rusher, thrower, tank, turret and generator hit/death; kill confirmation; common through legendary pickups; bag full; medkit; dash; perk open/select; UI tap/back/confirm; alarm; hunter wave sting; final raid countdown; extract success; death/failure. Unknown enemies/weapons use the grunt/carbine family. Reload cues follow actual incremental reloads. Only referenced cues ship; unused legacy shoot/hit/pickup/extract aliases are removed.
+SFX: carbine, SMG, shotgun, rifle and air/pneumatic fire (plus reload/empty for the powder guns); enemy and wall impacts; grunt, rusher, thrower, tank, turret and generator hit/death; kill confirmation; common through legendary pickups; bag full; medkit; dash; perk open/select; UI tap/back/confirm; alarm; hunter wave sting; final raid countdown; extract success; death/failure. Unknown enemies/weapons use the grunt/carbine family. Reload cues follow actual incremental reloads. Only referenced cues ship; unused legacy shoot/hit/pickup/extract aliases are removed.
 
 B.I.T. uses the eight existing F1 Kokoro am_fenrir recordings. Hunters inbound: wave spawned. Scrap detected: first rare-or-better pickup per raid. Heal budget low: low/empty budget threshold crossed. Extraction marked: final extraction revealed. Bag heavy: full bag notice. Nice shot: every fifth kill, with a long cooldown. Signal lost: terminal failure. Welcome back: integrated result ingested on base return. No speculative or random dialogue. Single VO reservation includes loading time; a global 12-second cooldown and per-line 60-second cooldown (90 seconds for nice shot, 15 seconds for death/return) prevent chatter. Events during another VO are dropped, never stacked.
 
@@ -243,7 +243,7 @@ including joystick holds, and retry failed decodes from retained bytes. Keep tho
 listeners early; the head now also imports the raid adapter to start decoding
 before the larger game import graph finishes.
 
-`prepareCombatAudio` prewarms all eight procedural gun variants and waits for every
+`prepareCombatAudio` prewarms every procedural gun variant (player and enemy, including the air/pneumatic profile) and waits for every
 non-UI SFX buffer. Failed combat loads retry at 250 ms intervals, including after
 the cap; pending promises stay cached. The existing boot loader says "BIT is
 calibrating audio..." while `game.mjs` awaits readiness before initial reset/frame

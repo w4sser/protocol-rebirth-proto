@@ -316,21 +316,35 @@
     }
     shotBuffer(weapon,enemy){
       const key=weapon+(enemy?'-enemy':'');if(this.shotCache.has(key))return this.shotCache.get(key);
-      const C=this.config.shots,rate=this.context.sampleRate,buffer=this.context.createBuffer(1,Math.ceil(rate*C.duration),rate),out=buffer.getChannelData(0),dry=new Float32Array(out.length);
-      const alpha=hz=>1-Math.exp(-2*Math.PI*hz/rate),hi=alpha(C.highpassHz),body=alpha(C.bodyHz),tail=alpha(C.tailHz);
-      let seed=0x51f15e,low=0,mid=0,air=0;
+      const C=this.config.shots,W=C.weapons[weapon]||C.weapons.carbine,air=W.kind==='air';
+      const duration=W.duration??C.duration,rate=this.context.sampleRate,buffer=this.context.createBuffer(1,Math.ceil(rate*duration),rate),out=buffer.getChannelData(0),dry=new Float32Array(out.length);
+      const alpha=hz=>1-Math.exp(-2*Math.PI*hz/rate);
+      const aHi=alpha(C.highpassHz),aBody=alpha(W.bodyHz??C.bodyHz),aTail=alpha(C.tailHz),aThump=alpha(W.thumpHz??C.thumpHz),aHiss=alpha(W.hissHz??4200);
+      const crackGain=(W.crackGain??C.crackGain)*(enemy?C.enemyCrack:1),bodyGain=W.bodyGain??C.bodyGain,thumpGain=(W.thumpGain??C.thumpGain)*(enemy?C.enemyThump:1),tailGain=W.tailGain??C.tailGain,drive=W.drive??C.drive;
+      const crackDecay=W.crackDecay??C.crackDecay,bodyDecay=W.bodyDecay??C.bodyDecay,thumpDecay=W.thumpDecay??C.thumpDecay,tailDecay=W.tailDecay??C.tailDecay;
+      let seed=0x51f15e^key.length;for(let i=0;i<key.length;i++)seed=(Math.imul(seed,1664525)+key.charCodeAt(i))>>>0;
+      let low=0,mid=0,high=0,thump=0,thump2=0,hiss=0;
       for(let i=0;i<out.length;i++){
-        // Local deterministic noise: build once per weapon/distance, never per shot.
+        // Local deterministic noise: build once per weapon/distance, never per shot. No sine/square oscillators — powder reports are a crack, a low noise thump and a short tail; air is a valve click plus hiss.
         seed=(Math.imul(seed,1664525)+1013904223)>>>0;const noise=seed/0x80000000-1,t=i/rate;
-        low+=hi*(noise-low);mid+=body*(noise-mid);air+=tail*(noise-air);
-        const phase=2*Math.PI*(C.thumpEndHz*t+(C.thumpStartHz-C.thumpEndHz)*C.thumpDrop*(1-Math.exp(-t/C.thumpDrop)));
-        const crack=(noise-low)*C.crackGain*(enemy?C.enemyCrack:1)*Math.exp(-t/C.crackDecay);
-        const thump=Math.sin(phase)*C.thumpGain*(enemy?C.enemyThump:1)*Math.exp(-t/C.thumpDecay);
-        dry[i]=Math.min(1,t/C.attack)*(crack+thump+mid*C.bodyGain*Math.exp(-t/C.bodyDecay)+air*C.tailGain*Math.exp(-t/C.tailDecay));
+        low+=aHi*(noise-low);mid+=aBody*(noise-mid);high+=aTail*(noise-high);thump+=aThump*(noise-thump);thump2+=aThump*(thump-thump2);hiss+=aHiss*(noise-hiss);
+        const attack=Math.min(1,t/C.attack);
+        if(air){
+          const click=(noise-low)*crackGain*Math.exp(-t/.0035);
+          const body=mid*bodyGain*Math.exp(-t/(bodyDecay||.03));
+          const spray=(noise-hiss)*(W.hissGain??.75)*Math.exp(-t/(W.hissDecay??.05));
+          dry[i]=attack*(click+body+spray);
+        }else{
+          const crack=(noise-low)*crackGain*Math.exp(-t/crackDecay);
+          const body=mid*bodyGain*Math.exp(-t/bodyDecay);
+          const boom=thump2*thumpGain*Math.exp(-t/thumpDecay);
+          const tail=high*tailGain*Math.exp(-t/tailDecay);
+          dry[i]=attack*(crack+body+boom+tail);
+        }
       }
       for(let i=0;i<out.length;i++){
         let value=dry[i];for(const echo of C.echoes){const j=i-Math.round(echo.delay*rate);if(j>=0)value+=dry[j]*echo.gain;}
-        out[i]=C.ceiling*Math.tanh(value*C.drive)*Math.min(1,(out.length-1-i)/(rate*C.fade));
+        out[i]=C.ceiling*Math.tanh(value*drive)*Math.min(1,(out.length-1-i)/(rate*C.fade));
       }
       this.shotCache.set(key,buffer);return buffer;
     }

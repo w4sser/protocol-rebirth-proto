@@ -520,3 +520,19 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({gameSrc:game.replaceAll('GO DEEPER · skip remaining enemies','LOCKED · CLEAR THE AREA')}).length,1,'dropping the door confirm copy fires');
  assert.equal(rule.check({bunkerSrc:bunker.replaceAll('if(level.depth)','if(false)')}).length,1,'lighting only the first lamps fires');
 }
+
+{
+ const rule=by('depth-scale-light-gun-sfx');
+ assert.equal(rule.check().length,0,'depth lighting and gunpowder SFX holds on real source');
+ assert.equal(rule.check({bunkerSrc:'',worldSrc:'',audioSrc:'',audioDataSrc:'',genSfxSrc:''}).length,5,'all depth-scale-light-gun-sfx guards fire');
+ const bunker=fs.readFileSync(new URL('../nodspel/bunker.js',import.meta.url),'utf8');
+ const world=fs.readFileSync(new URL('../nodspel/world.js',import.meta.url),'utf8');
+ const audio=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ const data=fs.readFileSync(new URL('../data/audio.js',import.meta.url),'utf8');
+ const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
+ assert.equal(rule.check({bunkerSrc:bunker.replace('new THREE.PointLight(a.color,5,7,1.8)','new THREE.PointLight(a.color,5,level.depth?9:7,1.8)')}).length,1,'hotter depth lamps fire');
+ assert.equal(rule.check({worldSrc:world.replace('thisOpen?14:0','thisOpen?(level.depth?22:14):0')}).length,1,'hotter depth extract lights fire');
+ assert.equal(rule.check({audioSrc:audio.replace('thump2*thumpGain','Math.sin(phase)*thumpGain')}).length,1,'a sine thump in shotBuffer fires');
+ assert.equal(rule.check({audioDataSrc:data.replaceAll("kind:'air'", "kind:'pew'").replaceAll('shoot-air','shoot-pew')}).length,1,'dropping the air weapon profile fires');
+ assert.equal(rule.check({genSfxSrc:gen.replace('return gunshot(name, rng)','return tone(.16, 540, 90, 2.4, rng)')}).length,1,'restoring sine-tone shoot files fires');
+}

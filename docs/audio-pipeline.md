@@ -149,7 +149,7 @@ its own runtime/model installation, and is never a production fallback.
 ## SFX: procedural synthesis
 
 `tools/audio/gen-sfx.py` reads the SFX registry from `data/audio.js` and
-synthesizes every cue using numpy (tones, filtered noise and envelopes),
+synthesizes every cue using numpy (tones, filtered noise and envelopes; shoot cues are noise-burst powder or air reports, not sine-tone lasers),
 plus a quiet 24-second music pulse. Footsteps and ambience were removed
 per owner feedback. A two-second raised-cosine wrap crossfade makes the
 music loop seamless. Only registered SFX are generated; unused aliases

@@ -8,6 +8,8 @@ BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am
 Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.
 CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper audition clips ship.
 
+Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bursts: a punchy crack, a low thump and a short tail for powder weapons, or a valve click and compressed-air hiss for the air/pneumatic profile. Shipping `sfx/shoot-*.ogg` and `.m4a` files use the same noise-burst family from `tools/audio/gen-sfx.py` (CC0-1.0) so a file fallback is never a sine-tone laser. Reload, empty and impact cues are unchanged.
+
 | File | Source | License/provenance |
 |---|---|---|
 | `bit/bag-heavy.m4a` | Local F1 Kokoro am_fenrir TTS; original project dialogue | All rights reserved © Robert Wasser |
@@ -106,6 +108,8 @@ CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper au
 | `sfx/reload-shotgun.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/reload-smg.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/reload-smg.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/shoot-air.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/shoot-air.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/shoot-carbine.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/shoot-carbine.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/shoot-rifle.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
@@ -121,4 +125,4 @@ CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper au
 | `sfx/ui-tap.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/ui-tap.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 
-Total shipping audio: 704,593 bytes, 110 files (both formats included).
+Total shipping audio: 714,166 bytes, 112 files (both formats included).
