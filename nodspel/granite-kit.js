@@ -1,5 +1,7 @@
 // Textured XL granite kit (v2.28.69): rock_granite_xl_a (boulder), rock_cliff_xl_a (long cliff block) and
-// rock_slab_xl_a (flat walkable shelf) from assets/env/nature/rocks (see its README). Presentation only:
+// rock_slab_xl_a (flat walkable shelf) from assets/env/nature/rocks (see its README). All three share one
+// external texture atlas (granite_xl_atlas.jpg) and carry no normals (GLTFLoader flat-shades them), and every
+// placed piece is drawn through one InstancedMesh per kind: three draw calls for the whole level. Presentation only:
 // the archipelago builds its procedural rocks and exact colliders first, then this module swaps in the GLB
 // visuals once they load. Colliders, reservations and placement never change, so gameplay is identical and
 // the procedural rocks stay as the fallback if a GLB fails (or in Node tests, where nothing is fetched).
@@ -36,7 +38,11 @@ async function defaultLoad(url){
 }
 export function loadGraniteKit({high=true,load=defaultLoad}={}){
   const pick=k=>loadPiece(high?GRANITE_KIT[k].high:GRANITE_KIT[k].low,load);
-  return Promise.all([pick('boulder'),pick('cliff'),pick('slab')]).then(([boulder,cliff,slab])=>({boulder,cliff,slab}));
+  return Promise.all([pick('boulder'),pick('cliff'),pick('slab')]).then(([boulder,cliff,slab])=>{
+    // One atlas: every piece draws with the boulder's material (one texture upload, one shader program).
+    for(const p of [cliff,slab])if(p.material!==boulder.material){p.material.map?.dispose?.();p.material=boulder.material;}
+    return {boulder,cliff,slab};
+  });
 }
 
 // Which kit piece replaces a procedural rock with this world AABB, and its yaw so the piece's long (X) axis
@@ -46,13 +52,19 @@ export function graniteFit(box){
   return {kind:long/short>=CLIFF_ASPECT?'cliff':'boulder',yaw:w>=d?0:Math.PI/2,
     x:(box.min.x+box.max.x)/2,z:(box.min.z+box.max.z)/2,along:long,across:short,height:box.max.y};
 }
-function fitted(piece,fit,seed){
-  const m=new THREE.Mesh(piece.geometry,piece.material);
+const M4=new THREE.Matrix4(),Q=new THREE.Quaternion(),V=new THREE.Vector3(),SC=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
+function fittedMatrix(piece,fit,seed,baseY=0,height=fit.height){
   const flip=seed%2?Math.PI:0; // mirror variety without changing the footprint
-  m.position.set(fit.x,0,fit.z);m.rotation.y=fit.yaw+flip;
-  m.scale.set(fit.along/piece.size.x,Math.max(.2,fit.height)/piece.size.y,fit.across/piece.size.z);
-  m.castShadow=m.receiveShadow=true;
-  return m;
+  Q.setFromAxisAngle(UP,fit.yaw+flip);
+  SC.set(fit.along/piece.size.x,Math.max(.2,height)/piece.size.y,fit.across/piece.size.z);
+  return M4.compose(V.set(fit.x,baseY,fit.z),Q,SC).clone();
+}
+function instanced(piece,matrices,name,{cast=true}={}){
+  const mesh=new THREE.InstancedMesh(piece.geometry,piece.material,matrices.length);
+  matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));
+  mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.computeBoundingBox?.();
+  mesh.castShadow=cast;mesh.receiveShadow=true;mesh.name=name;mesh.userData.visualOnly=true;
+  return mesh;
 }
 
 // Deterministic flat granite shelves on island interiors: pure data, no THREE. Avoids every reservation the
@@ -79,7 +91,7 @@ export function planGraniteSlabs(level,blocked,rng){
 export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
   if(typeof document==='undefined'&&!load)return Promise.resolve(null); // headless tests keep the fallback
   return loadGraniteKit({high,load}).then(kit=>{
-    const counts={boulder:0,cliff:0,slab:0},walls=new Map(),decor=[];
+    const counts={boulder:0,cliff:0,slab:0},mats={boulder:[],cliff:[],slab:[]},walls=new Map(),decor=[];
     group.traverse(n=>{
       if(!n.isMesh)return;
       if(n.name==='archipelago-rock'&&n.userData.collider&&n.userData.graniteWall!=null){
@@ -87,11 +99,11 @@ export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
       }else if(n.name==='archipelago-rock'||n.name==='archipelago-coast-rock')decor.push(n);
     });
     const colliderBox=c=>({min:{x:c.x-c.w/2,z:c.z-c.d/2},max:{x:c.x+c.w/2,z:c.z+c.d/2,y:c.h}});
-    const place=(rocks,box,seed)=>{
-      const fit=graniteFit(box),piece=fitted(kit[fit.kind],fit,seed);
-      piece.name=`granite-xl-${fit.kind}`;rocks[0].parent.add(piece);
+    const place=(rocks,box,seed,decorBase)=>{
+      const fit=graniteFit(box),piece=kit[fit.kind];
+      // Decor rocks along the waterline sit partly under water: keep their authored base height.
+      mats[fit.kind].push(decorBase==null?fittedMatrix(piece,fit,seed):fittedMatrix(piece,fit,seed,decorBase,box.max.y-decorBase));
       for(const r of rocks)r.visible=false;counts[fit.kind]++;
-      return piece;
     };
     // Wall rocks: neighbours along one authored wall pair up into a single cliff block (their union AABB),
     // every third rock stays a lone boulder so a long wall does not read as one repeated tile. Each rock keeps
@@ -110,18 +122,16 @@ export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
     }
     decor.forEach((rock,i)=>{
       rock.updateWorldMatrix(true,false);
-      const c=rock.userData.collider,box=c?colliderBox(c):new THREE.Box3().setFromObject(rock);
-      const piece=place([rock],box,i);
-      // Decor rocks along the waterline sit partly under water: keep their authored base height.
-      if(!c){const k=piece.name.slice(11);piece.position.y=Math.min(0,box.min.y);piece.scale.y=Math.max(.2,box.max.y-piece.position.y)/kit[k].size.y;}
+      const c=rock.userData.collider;
+      if(c){place([rock],colliderBox(c),i);return;}
+      const box=new THREE.Box3().setFromObject(rock);place([rock],box,i,Math.min(0,box.min.y));
     });
-    for(const s of slabs){
-      const m=new THREE.Mesh(kit.slab.geometry,kit.slab.material);
-      m.position.set(s.x,-.02,s.z);m.rotation.y=s.ry;
-      m.scale.set(s.s,SLAB_RULES.height/kit.slab.size.y,s.s); // walkable shelf: low enough that feet read on top
-      m.receiveShadow=true;m.name='granite-xl-slab';m.userData.visualOnly=true;
-      group.add(m);counts.slab++;
+    for(const s of slabs){ // walkable shelf: low enough that feet read on top
+      Q.setFromAxisAngle(UP,s.ry);SC.set(s.s,SLAB_RULES.height/kit.slab.size.y,s.s);
+      mats.slab.push(M4.compose(V.set(s.x,-.02,s.z),Q,SC).clone());counts.slab++;
     }
+    for(const kind of ['boulder','cliff','slab'])
+      if(mats[kind].length)group.add(instanced(kit[kind],mats[kind],`granite-xl-${kind}`,{cast:kind!=='slab'}));
     return counts;
   }).catch(e=>{console.warn('Granite kit skipped',e);return null;});
 }
