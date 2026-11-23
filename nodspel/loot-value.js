@@ -1,12 +1,12 @@
 // v2.28.27 (Wild Team playtest, "hard to understand the value of objects"): the pickup toast's value +
 // needed-for text, and the first-time-ever BIT explainer line for a material. Pure text/data helpers;
 // game.mjs wires these into pickupToast/renderPickupToasts.
-import {swapItemStatus} from './swap-guidance.js?v=2.28.68';
-import {hintText} from './item-hints.js?v=2.28.68';
+import {swapItemStatus} from './swap-guidance.js?v=2.28.69';
+import {hintText} from './item-hints.js?v=2.28.69';
 // DATA.itemInfo (used by hintText) is defined in data/recipes.js from DATA.modules/DATA.vendors.
-import '../data/modules.js?v=2.28.68';
-import '../data/recipes.js?v=2.28.68';
-import '../data/vendors.js?v=2.28.68';
+import '../data/modules.js?v=2.28.69';
+import '../data/recipes.js?v=2.28.69';
+import '../data/vendors.js?v=2.28.69';
 
 const SEEN_KEY='nr_seen_materials_v1';
 const itemDef=id=>globalThis.DATA.items.find(item=>item.id===id);

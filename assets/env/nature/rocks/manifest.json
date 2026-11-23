@@ -1,5 +1,5 @@
 {
-  "kit": "Protocol Rebirth — Faceted Granite Rocks v0.1",
+  "kit": "Protocol Rebirth \u2014 Faceted Granite Rocks v0.1",
   "units": "metres",
   "up_axis": "Y",
   "front": "-Z",
@@ -507,6 +507,188 @@
       "material_count": 1,
       "file_size_bytes": 9512,
       "notes": "Single-instanced talus/scree prefab: fourteen irregular stones (70 tris) in 3m footprint."
+    },
+    {
+      "file": "rock_granite_xl_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.8061,
+        1.7075,
+        2.9112
+      ],
+      "bbox_m": {
+        "min": [
+          -1.4173028469085693,
+          0,
+          -1.4568196535110474
+        ],
+        "max": [
+          1.388783574104309,
+          1.7074971199035645,
+          1.4544107913970947
+        ]
+      },
+      "collision": "cylinder r=1.4",
+      "triangle_count": 1128,
+      "material_count": 1,
+      "file_size_bytes": 129324,
+      "notes": "Textured XL granite boulder (512px JPEG); replaces procedural wall/coast rock visuals via nodspel/granite-kit.js."
+    },
+    {
+      "file": "rock_granite_xl_a_lod1.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.8055,
+        1.7079,
+        2.9097
+      ],
+      "bbox_m": {
+        "min": [
+          -1.415075421333313,
+          -0.00027455794042907655,
+          -1.4557031393051147
+        ],
+        "max": [
+          1.3904633522033691,
+          1.7076337337493896,
+          1.4539909362792969
+        ]
+      },
+      "collision": "cylinder r=1.4",
+      "triangle_count": 418,
+      "material_count": 1,
+      "file_size_bytes": 64288,
+      "notes": "Textured XL granite boulder (512px JPEG); replaces procedural wall/coast rock visuals via nodspel/granite-kit.js. LOD of rock_granite_xl_a.glb."
+    },
+    {
+      "file": "rock_granite_xl_a_lod2.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.7603,
+        1.7085,
+        3.1093
+      ],
+      "bbox_m": {
+        "min": [
+          -1.3691174983978271,
+          -0.001101730507798493,
+          -1.56471848487854
+        ],
+        "max": [
+          1.3911633491516113,
+          1.707435131072998,
+          1.5445928573608398
+        ]
+      },
+      "collision": "cylinder r=1.4",
+      "triangle_count": 202,
+      "material_count": 1,
+      "file_size_bytes": 42344,
+      "notes": "Textured XL granite boulder (512px JPEG); replaces procedural wall/coast rock visuals via nodspel/granite-kit.js. LOD of rock_granite_xl_a.glb."
+    },
+    {
+      "file": "rock_cliff_xl_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        3.8067,
+        1.3019,
+        2.1564
+      ],
+      "bbox_m": {
+        "min": [
+          -1.9969419240951538,
+          -0.0007929563289508224,
+          -1.204289197921753
+        ],
+        "max": [
+          1.8097087144851685,
+          1.301142692565918,
+          0.9521469473838806
+        ]
+      },
+      "collision": "box",
+      "triangle_count": 1400,
+      "material_count": 1,
+      "file_size_bytes": 186720,
+      "notes": "Textured long granite cliff block (512px JPEG); covers two neighbouring wall rocks in nodspel/granite-kit.js."
+    },
+    {
+      "file": "rock_cliff_xl_a_lod1.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        3.8064,
+        1.3136,
+        2.1671
+      ],
+      "bbox_m": {
+        "min": [
+          -2.0116918087005615,
+          -0.00332925608381629,
+          -1.208695650100708
+        ],
+        "max": [
+          1.794737458229065,
+          1.310226559638977,
+          0.9584466218948364
+        ]
+      },
+      "collision": "box",
+      "triangle_count": 450,
+      "material_count": 1,
+      "file_size_bytes": 89824,
+      "notes": "Textured long granite cliff block (512px JPEG); covers two neighbouring wall rocks in nodspel/granite-kit.js. LOD of rock_cliff_xl_a.glb."
+    },
+    {
+      "file": "rock_slab_xl_a.glb",
+      "kind": "slab",
+      "approx_dimensions_m": [
+        3.4014,
+        0.2962,
+        2.5735
+      ],
+      "bbox_m": {
+        "min": [
+          -1.699805498123169,
+          -0.0029228455387055874,
+          -1.2873178720474243
+        ],
+        "max": [
+          1.7016435861587524,
+          0.29324930906295776,
+          1.2861396074295044
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 700,
+      "material_count": 1,
+      "file_size_bytes": 97156,
+      "notes": "Textured flat granite shelf (512px JPEG); visual-only island decoration, scaled to ~0.11 m high in game."
+    },
+    {
+      "file": "rock_slab_xl_a_lod1.glb",
+      "kind": "slab",
+      "approx_dimensions_m": [
+        3.4046,
+        0.2807,
+        2.5891
+      ],
+      "bbox_m": {
+        "min": [
+          -1.699805498123169,
+          -0.005750687327235937,
+          -1.2867295742034912
+        ],
+        "max": [
+          1.7047477960586548,
+          0.2749210298061371,
+          1.3023213148117065
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 260,
+      "material_count": 1,
+      "file_size_bytes": 52340,
+      "notes": "Textured flat granite shelf (512px JPEG); visual-only island decoration, scaled to ~0.11 m high in game. LOD of rock_slab_xl_a.glb."
     }
   ]
 }
