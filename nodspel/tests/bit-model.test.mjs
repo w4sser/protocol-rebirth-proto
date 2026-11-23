@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {BIT_MODEL,attachBitModel,bitFaceGeometry,createBitFace} from '../bit-model.js?v=2.28.73';
-import {BIT_EXPRESSIONS} from '../bit-expression.js?v=2.28.73';
+import {BIT_MODEL,attachBitModel,bitFaceGeometry,createBitFace} from '../bit-model.js?v=2.28.74';
+import {BIT_EXPRESSIONS} from '../bit-expression.js?v=2.28.74';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;

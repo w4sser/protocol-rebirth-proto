@@ -21,7 +21,7 @@ export const SLAB_RULES=Object.freeze({areaPer:70,maxPerIsland:2,minIsland:36,sc
 
 const kitCache=new Map();
 function loadPiece(file,load){
-  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.73`).then(scene=>{
+  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.74`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     mesh.geometry.computeBoundingBox();
@@ -89,6 +89,9 @@ export function planGraniteSlabs(level,blocked,rng){
 
 // Swap the archipelago's procedural rocks for the kit once it loads. Rocks are found by name; their own
 // userData.collider (wall rocks) or world AABB (decor) sets the fitted size. Returns a promise of counts.
+// Largest clear gap (m) between two wall rocks that may still share one cliff block.
+export const PAIR_MAX_GAP=.25;
+export const rockGap=(a,b)=>Math.max(Math.abs(a.x-b.x)-(a.w+b.w)/2,Math.abs(a.z-b.z)-(a.d+b.d)/2);
 export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
   if(typeof document==='undefined'&&!load)return Promise.resolve(null); // headless tests keep the fallback
   return loadGraniteKit({high,load}).then(kit=>{
@@ -112,7 +115,10 @@ export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
     for(const [wall,rocks] of walls){
       rocks.sort((a,b)=>a.userData.graniteOrder-b.userData.graniteOrder);
       for(let i=0;i<rocks.length;){
-        const a=rocks[i],b=rocks[i+1],pair=b&&(i+wall)%3!==2;
+        const a=rocks[i],b=rocks[i+1];
+        // v2.28.74: only true neighbours pair. A wall broken by an opening (doorway, extract approach) has
+        // rocks metres apart; their union box drew a cliff over the walkable gap (Robert: "klippblocken blockar extract").
+        const pair=b&&(i+wall)%3!==2&&rockGap(a.userData.collider,b.userData.collider)<=PAIR_MAX_GAP;
         if(pair){
           const ba=colliderBox(a.userData.collider),bb=colliderBox(b.userData.collider);
           place([a,b],{min:{x:Math.min(ba.min.x,bb.min.x),z:Math.min(ba.min.z,bb.min.z)},
@@ -150,7 +156,7 @@ export const PINE_KIT=Object.freeze({high:'tree_pine_xl_a',low:'tree_pine_xl_a_l
 export function dressPines(pines,parent,{high=true,load}={}){
   if((typeof document==='undefined'&&!load)||!pines.length)return Promise.resolve(null);
   const fetchScene=load??defaultLoad,file=high?PINE_KIT.high:PINE_KIT.low;
-  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.73`).then(scene=>{
+  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.74`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     return {geometry:mesh.geometry,material:mesh.material};
@@ -170,7 +176,7 @@ export function dressPines(pines,parent,{high=true,load}={}){
 // supply_crate_large_a (olive supply crate, 44 tris), each with its own 512 px JPEG and no normals.
 const PROP_BASE='../assets/env/props/';
 export function loadProp(file,load=defaultLoad){
-  if(!kitCache.has('prop:'+file))kitCache.set('prop:'+file,load(`${PROP_BASE}${file}.glb?v=2.28.73`).then(scene=>{
+  if(!kitCache.has('prop:'+file))kitCache.set('prop:'+file,load(`${PROP_BASE}${file}.glb?v=2.28.74`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     mesh.geometry.computeBoundingBox();
@@ -209,4 +215,21 @@ export function dressSupplyCrates(group,{load}={}){
     });
     group.add(instanced(piece,mats,'supply-crate-xl'));return mats.length;
   }).catch(e=>{console.warn('Supply crates skipped',e);return null;});
+}
+
+// Locked doors (v2.28.74): assets/env/props/blast_door_a (60 tris, framed blast door with a recessed leaf,
+// front and back share one baked face) replaces the flat locked-door panel, fitted to the door's collider
+// and turned to face along the corridor. world.js toggles visual.panel, so the textured mesh takes that slot.
+export function dressLockedDoor(visual,{load}={}){
+  if(typeof document==='undefined'&&!load)return Promise.resolve(null);
+  return loadProp('blast_door_a',load??defaultLoad).then(piece=>{
+    const {w,h,d}=visual.door,turn=d>w,old=visual.panel;
+    const mesh=new THREE.Mesh(piece.geometry,piece.material);mesh.name='blast-door-textured';
+    mesh.castShadow=mesh.receiveShadow=true;
+    mesh.rotation.y=turn?Math.PI/2:0;
+    mesh.scale.set((turn?d:w)/piece.size.x,h/piece.size.y,(turn?w:d)/piece.size.z);
+    mesh.position.y=h/2-(piece.geometry.boundingBox.min.y+piece.size.y/2)*mesh.scale.y;
+    mesh.visible=old?old.visible:true;if(old)old.visible=false;
+    visual.group.add(mesh);visual.panel=mesh;return mesh;
+  }).catch(e=>{console.warn('Blast door skipped',e);return null;});
 }
