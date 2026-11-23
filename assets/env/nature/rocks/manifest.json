@@ -607,9 +607,9 @@
         ]
       },
       "collision": "box",
-      "triangle_count": 1400,
+      "triangle_count": 948,
       "material_count": 1,
-      "file_size_bytes": 186720,
+      "file_size_bytes": 140624,
       "notes": "Textured long granite cliff block (512px JPEG); covers two neighbouring wall rocks in nodspel/granite-kit.js."
     },
     {
