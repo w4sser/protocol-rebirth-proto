@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.70';
+import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.71';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -89,4 +89,20 @@ test('marked coast rocks become shoreline clusters facing the sea, at their mark
   const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(p,q,sc);
   assert.ok(Math.abs(p.x-10)<1e-6&&Math.abs(sc.x-.6)<1e-6&&p.y<0,'placed at the mark, scaled, base under the waterline');
   assert.equal(shore.castShadow,true);
+});
+
+test('pines: textured GLBs are grounded and replace pineTree groups with one instanced draw call',async()=>{
+  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.71');
+  const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
+    return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
+  for(const f of [PINE_KIT.high,PINE_KIT.low]){
+    const box=new THREE.Box3().setFromObject(await pload(`../assets/env/nature/trees/${f}.glb`));
+    assert.ok(Math.abs(box.min.y)<.01&&box.max.y>4,`${f} grounded and tall`);
+  }
+  const parent=new THREE.Group(),pines=[0,1,2].map(i=>{const g=new THREE.Group();g.name='pine';g.position.set(i*3,0,1);g.rotation.y=i;g.scale.setScalar(.7);parent.add(g);return g;});
+  assert.equal(await dressPines(pines,parent,{high:false,load:pload}),3);
+  assert.ok(pines.every(g=>!g.visible),'old pines hidden');
+  const inst=parent.children.find(n=>n.name==='pine-xl');assert.equal(inst.count,3);
+  const m=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();inst.getMatrixAt(2,m);m.decompose(p,q,s);
+  assert.ok(Math.abs(p.x-6)<1e-6&&Math.abs(s.x-.7*PINE_KIT.fit)<1e-6,'keeps spot and size');
 });
