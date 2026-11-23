@@ -21,7 +21,7 @@ export const SLAB_RULES=Object.freeze({areaPer:70,maxPerIsland:2,minIsland:36,sc
 
 const kitCache=new Map();
 function loadPiece(file,load){
-  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.72`).then(scene=>{
+  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.73`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     mesh.geometry.computeBoundingBox();
@@ -150,7 +150,7 @@ export const PINE_KIT=Object.freeze({high:'tree_pine_xl_a',low:'tree_pine_xl_a_l
 export function dressPines(pines,parent,{high=true,load}={}){
   if((typeof document==='undefined'&&!load)||!pines.length)return Promise.resolve(null);
   const fetchScene=load??defaultLoad,file=high?PINE_KIT.high:PINE_KIT.low;
-  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.72`).then(scene=>{
+  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.73`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     return {geometry:mesh.geometry,material:mesh.material};
@@ -164,4 +164,49 @@ export function dressPines(pines,parent,{high=true,load}={}){
     });
     const mesh=instanced(piece,mats,'pine-xl');parent.add(mesh);return mats.length;
   }).catch(e=>{console.warn('Pine kit skipped',e);return null;});
+}
+
+// Textured props (v2.28.73): assets/env/props/fuel_drum_a (the explosive fuel drum, 476 tris) and
+// supply_crate_large_a (olive supply crate, 44 tris), each with its own 512 px JPEG and no normals.
+const PROP_BASE='../assets/env/props/';
+export function loadProp(file,load=defaultLoad){
+  if(!kitCache.has('prop:'+file))kitCache.set('prop:'+file,load(`${PROP_BASE}${file}.glb?v=2.28.73`).then(scene=>{
+    let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
+    if(!mesh)throw new Error(`${file} has no mesh`);
+    mesh.geometry.computeBoundingBox();
+    return {geometry:mesh.geometry,material:mesh.material,size:mesh.geometry.boundingBox.getSize(new THREE.Vector3())};
+  }));
+  return kitCache.get('prop:'+file);
+}
+// Fuel drum: authored at the procedural drum's size (0.86 m wide, 1.08 m tall). The texture doubles as the
+// emissive map so the existing cook-off flash (world.js drives danger.emissiveIntensity .5 -> 1.5) tints the
+// whole painted drum. FUEL_DRUM_GLOW is the emissive colour: dim enough that idle (.5) is a faint lift.
+export const FUEL_DRUM_GLOW='#5a5a5a';
+export function dressFuelDrum(visual,{load}={}){
+  if(typeof document==='undefined'&&!load)return Promise.resolve(null);
+  return loadProp('fuel_drum_a',load??defaultLoad).then(piece=>{
+    const mat=piece.material.clone();
+    mat.emissiveMap=mat.map;mat.emissive.set(FUEL_DRUM_GLOW);mat.emissiveIntensity=visual.danger.emissiveIntensity;
+    mat.roughness=.62;mat.metalness=.2;
+    const mesh=new THREE.Mesh(piece.geometry,mat);mesh.castShadow=mesh.receiveShadow=true;mesh.name='fuel-drum-textured';
+    for(const c of visual.parts??[])c.visible=false;
+    visual.group.add(mesh);visual.danger=mat;
+    return mesh;
+  }).catch(e=>{console.warn('Fuel drum skipped',e);return null;});
+}
+// Supply crates: the default archipelago's procedural cover crates ('archipelago-crate', collider in userData)
+// become one InstancedMesh of the textured crate, fitted to each collider. Collision is unchanged.
+export function dressSupplyCrates(group,{load}={}){
+  if(typeof document==='undefined'&&!load)return Promise.resolve(null);
+  const crates=[];group.traverse(n=>{if(n.name==='archipelago-crate'&&n.userData.collider)crates.push(n);});
+  if(!crates.length)return Promise.resolve(0);
+  return loadProp('supply_crate_large_a',load??defaultLoad).then(piece=>{
+    const mats=crates.map((g,i)=>{
+      const c=g.userData.collider,turn=c.d>c.w; // keep the crate's long side along the collider's long side
+      Q.setFromAxisAngle(UP,(turn?Math.PI/2:0)+(i%2?Math.PI:0));
+      SC.set((turn?c.d:c.w)/piece.size.x,c.h/piece.size.y,(turn?c.w:c.d)/piece.size.z);
+      g.visible=false;return M4.compose(V.set(c.x,0,c.z),Q,SC).clone();
+    });
+    group.add(instanced(piece,mats,'supply-crate-xl'));return mats.length;
+  }).catch(e=>{console.warn('Supply crates skipped',e);return null;});
 }

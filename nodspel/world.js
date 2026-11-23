@@ -1,20 +1,20 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.72';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.72';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.73';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.73';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.72';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.72';
-import {buildTown} from './town.js?v=2.28.72';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.72';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.72-glacial-merge1';
-import {dressPines} from './granite-kit.js?v=2.28.72';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.72-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.72';
-import {controlCablePath} from './control-cables.js?v=2.28.72';
-import {extractAvailable} from './big-level.js?v=2.28.72';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.72';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.72';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.72';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.73';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.73';
+import {buildTown} from './town.js?v=2.28.73';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.73';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.73-glacial-merge1';
+import {dressPines,dressFuelDrum,dressSupplyCrates} from './granite-kit.js?v=2.28.73';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.73-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.73';
+import {controlCablePath} from './control-cables.js?v=2.28.73';
+import {extractAvailable} from './big-level.js?v=2.28.73';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.73';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.73';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.73';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -177,7 +177,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const ring=new THREE.Mesh(new THREE.RingGeometry(.64,.70,32),
       new THREE.MeshBasicMaterial({color:'#cf745b',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));
     ring.rotation.x=-Math.PI/2;ring.position.y=.02;g.add(ring);
-    return {barrel,group:g,ring,danger};
+    // v2.28.73: textured fuel drum (granite-kit.js) replaces body/bands/lid once loaded; the cook-off flash
+    // then drives its material instead (v.danger is swapped), the warning ring stays.
+    const v={barrel,group:g,ring,danger,parts:g.children.filter(c=>c!==ring)};dressFuelDrum(v);
+    return v;
   });
   const lootBoxes=level.lootBoxes.map(lootVisual);
   function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
@@ -428,6 +431,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // then smoothly fade only the trees hiding nearby gameplay-critical targets.
   // Default archipelago pines: textured instanced pine once it loads (granite-kit.js), groups stay as fallback.
   if(isArch&&!archInfo?.visualV2)dressPines(props.filter(p=>p?.name==='pine'),group,{high:Q.props>=1});
+  if(isArch&&!archInfo?.visualV2)dressSupplyCrates(group); // textured supply crates on the procedural cover crates
   const pineProps=archInfo?.visualV2?props.filter(p=>p?.name==='arch-v2-coastal-pine'):[];
   const pineMeshes=pineProps.flatMap(p=>p.pineMeshes);
   const pineRay=new THREE.Raycaster(),pineOrigin=new THREE.Vector3(),pineDirection=new THREE.Vector3();
