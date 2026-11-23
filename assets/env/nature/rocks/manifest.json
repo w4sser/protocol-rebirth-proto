@@ -663,7 +663,59 @@
       "material_count": 1,
       "file_size_bytes": 10544,
       "notes": "Textured flat granite shelf (shared external granite_xl_atlas.jpg, no normals: flat-shaded); visual-only island decoration, scaled to ~0.11 m high in game. LOD of rock_slab_xl_a.glb."
+    },
+    {
+      "file": "rock_shore_xl_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.8055,
+        1.0039,
+        3.4736
+      ],
+      "bbox_m": {
+        "min": [
+          -1.4027700424194336,
+          0.0,
+          -1.736799955368042
+        ],
+        "max": [
+          1.4027700424194336,
+          1.003849983215332,
+          1.736799955368042
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 900,
+      "material_count": 1,
+      "file_size_bytes": 26580,
+      "notes": "Textured shoreline rock cluster (shared external granite_xl_atlas.jpg, no normals: flat-shaded); +X faces the sea. Visual only, placed on rocky coast points by nodspel/granite-kit.js."
+    },
+    {
+      "file": "rock_shore_xl_a_lod1.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.772,
+        1.0081,
+        3.4799
+      ],
+      "bbox_m": {
+        "min": [
+          -1.395050048828125,
+          0.0,
+          -1.737630009651184
+        ],
+        "max": [
+          1.3769899606704712,
+          1.008080005645752,
+          1.7422599792480469
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 300,
+      "material_count": 1,
+      "file_size_bytes": 12704,
+      "notes": "Textured shoreline rock cluster (shared external granite_xl_atlas.jpg, no normals: flat-shaded); +X faces the sea. Visual only, placed on rocky coast points by nodspel/granite-kit.js. LOD of rock_shore_xl_a.glb."
     }
   ],
-  "granite_xl_atlas": "granite_xl_atlas.jpg (1024x1024 JPEG, quadrants: boulder bottom-left, slab bottom-right, cliff top-left)"
+  "granite_xl_atlas": "granite_xl_atlas.jpg (1024x1024 JPEG, quadrants: boulder bottom-left, slab bottom-right, cliff top-left, shore top-right)"
 }

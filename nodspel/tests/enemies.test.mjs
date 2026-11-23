@@ -5,14 +5,14 @@ import {readFileSync} from 'node:fs';
 // fail to decode here (no DOM), which GLTFLoader tolerates - geometry, nodes and materials load fine.
 globalThis.self??=globalThis;
 import * as THREE from '../vendor/three.module.js';
-import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.69';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.69';
-import {createRound,hitEnemy} from '../round.js?v=2.28.69';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.69';
-import {shieldBlocks} from '../encounters.js?v=2.28.69';
-import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.69';
-import {initTool,throwTool} from '../tools.js?v=2.28.69';
-import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.69';
+import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.70';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.70';
+import {createRound,hitEnemy} from '../round.js?v=2.28.70';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.70';
+import {shieldBlocks} from '../encounters.js?v=2.28.70';
+import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.70';
+import {initTool,throwTool} from '../tools.js?v=2.28.70';
+import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.70';
 
 function glbNodeNames(id){
   const bytes=readFileSync(new URL(`../../assets/enemies/${id}.glb`,import.meta.url));
@@ -31,7 +31,7 @@ for(const [id,spec] of Object.entries(ENEMIES))test(`${id}: frozen registry matc
   assert.ok(['shield_turret','rusher'].includes(id)?spec.phase===1:[2,3].includes(spec.phase));
   assert.equal(new Set(spec.parts).size,spec.parts.length);
   assert.ok(Object.values(spec.stats).every(n=>Number.isFinite(n)&&n>=0));
-  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.69$`));
+  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.70$`));
   const vector=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
   assert.ok(vector.distanceTo(new THREE.Vector3(0,0,1))<1e-8);
   const up=new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
@@ -190,7 +190,7 @@ test('L2 turret slots deterministically include both plain and shield variants a
 
 test('real GLBs animate named pivots with shared geometry, individual pulses and no lights',async()=>{
   const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
-  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.69');
+  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.70');
   const loader=createEnemyModelLoader({load:async url=>{
     const bytes=readFileSync(new URL(`../${url.split('?')[0]}`,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
