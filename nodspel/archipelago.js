@@ -2,20 +2,20 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.28.69';
+import {rngFrom} from './art.js?v=2.28.70';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.69';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.28.69';
-import {createWaterMesh} from './water-shader.js?v=2.28.69-baltic-calm3';
-import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.69-glacial-s42';
-import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.69-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.69-glacial-merge1';
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.69-bridge1';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.70';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.28.70';
+import {createWaterMesh} from './water-shader.js?v=2.28.70-baltic-calm3';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.70-glacial-s42';
+import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.70-organic-v2';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.70-glacial-merge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.70-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
-import {dressGraniteKit,planGraniteSlabs} from './granite-kit.js?v=2.28.69';
-import {propReservations} from './props-placement.mjs?v=2.28.69';
-import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.69-dinghy2';
+import {dressGraniteKit,planGraniteSlabs} from './granite-kit.js?v=2.28.70';
+import {propReservations} from './props-placement.mjs?v=2.28.70';
+import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.70-dinghy2';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -307,6 +307,12 @@ function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
 }
 // Visual-only rock scatter follows the actual, seeded coastline rather than the
 // rectangular authoring walls. It never contributes gameplay colliders.
+function markShoreCluster(mesh,q,floor,scale,reservations){
+  const ox=q.x-floor.x,oz=q.z-floor.z,len=Math.hypot(ox,oz)||1,s=.42+(scale-.32)*.6,r=1.85*s;
+  const x=q.x-ox/len*.35*s,z=q.z-oz/len*.35*s; // nudge inland so the big rocks sit on the rim
+  if(reservations.some(p=>Math.abs(x-p.x)<p.w/2+r&&Math.abs(z-p.z)<p.d/2+r))return;
+  mesh.userData.graniteShore={x,z,s,yaw:Math.atan2(-oz/len,ox/len)}; // kit +X (its water side) points out to sea
+}
 function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
   let count=0;
   for(const profile of profiles.values()){
@@ -329,6 +335,9 @@ function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
         if(reservations.some(p=>bounds.max.x>p.x-p.w/2&&bounds.min.x<p.x+p.w/2&&bounds.max.z>p.z-p.d/2&&bounds.min.z<p.z+p.d/2))continue;
         mesh.name='archipelago-coast-rock';
         mesh.castShadow=mesh.receiveShadow=true;
+        // v2.28.70: every third rocky coast point (deterministic, no rng draw so the rest of the shore is
+        // unchanged) is upgraded to a textured shoreline cluster by granite-kit.js, its water side facing out.
+        if(j===0&&index%3===0&&q.beach<.15)markShoreCluster(mesh,q,profile.floor,scale,reservations);
         group.add(mesh);count++;
       }
     }

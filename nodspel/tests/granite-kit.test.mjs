@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.69';
+import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.70';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -27,7 +27,7 @@ test('every kit GLB exists, sits on y=0, is a single mesh within budget and uses
     assert.deepEqual(json.images,[{uri:'granite_xl_atlas.jpg'}],`${file} references the shared external atlas`);
     assert.ok(!('NORMAL' in json.meshes[0].primitives[0].attributes),`${file} carries no normals (flat-shaded in game)`);
     const tris=json.accessors[json.meshes[0].primitives[0].indices].count/3;
-    assert.ok(tris<=(file.endsWith('_lod1')?300:700),`${file}: ${tris} tris over budget`);
+    assert.ok(tris<=(file.endsWith('_lod1')?300:file.startsWith('rock_shore')?900:700),`${file}: ${tris} tris over budget`);
     assert.ok(bytes.length<=30000,`${file}: ${bytes.length} bytes`);
   }
 });
@@ -60,7 +60,7 @@ test('dress swaps rock visuals for three instanced draw calls, never colliders, 
   }
   const coast=new THREE.Mesh(geo,mat);coast.name='archipelago-coast-rock';coast.position.set(-5,-.1,0);coast.scale.setScalar(.4);group.add(coast);
   const counts=await dressGraniteKit(group,{high:false,slabs:[{x:9,z:0,ry:0,s:.6,r:1},{x:12,z:0,ry:1,s:.7,r:1}],load});
-  assert.deepEqual(counts,{boulder:2,cliff:1,slab:2});
+  assert.deepEqual(counts,{boulder:2,cliff:1,slab:2,shore:0});
   const rocks=group.children.filter(n=>n.name.startsWith('archipelago-'));
   assert.ok(rocks.every(r=>!r.visible),'procedural rocks hidden');
   assert.deepEqual(rocks.filter(r=>r.userData.collider).map(r=>r.userData.collider),colliders,'colliders untouched');
@@ -77,4 +77,16 @@ test('dress swaps rock visuals for three instanced draw calls, never colliders, 
 
 test('headless builds keep the procedural fallback (no fetch without a loader)',async()=>{
   assert.equal(await dressGraniteKit(new THREE.Group()),null);
+});
+
+test('marked coast rocks become shoreline clusters facing the sea, at their marked spot and size',async()=>{
+  const group=new THREE.Group(),geo=new THREE.DodecahedronGeometry(1,0),mat=new THREE.MeshStandardMaterial();
+  const rock=new THREE.Mesh(geo,mat);rock.name='archipelago-coast-rock';rock.scale.setScalar(.5);
+  rock.userData.graniteShore={x:10,z:0,s:.6,yaw:0};group.add(rock);
+  const counts=await dressGraniteKit(group,{high:false,load});
+  assert.equal(counts.shore,1);assert.equal(rock.visible,false);
+  const shore=group.children.find(n=>n.name==='granite-xl-shore'),m=new THREE.Matrix4();shore.getMatrixAt(0,m);
+  const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(p,q,sc);
+  assert.ok(Math.abs(p.x-10)<1e-6&&Math.abs(sc.x-.6)<1e-6&&p.y<0,'placed at the mark, scaled, base under the waterline');
+  assert.equal(shore.castShadow,true);
 });

@@ -1,7 +1,7 @@
 // Textured XL granite kit (v2.28.69): rock_granite_xl_a (boulder), rock_cliff_xl_a (long cliff block) and
 // rock_slab_xl_a (flat walkable shelf) from assets/env/nature/rocks (see its README). All three share one
 // external texture atlas (granite_xl_atlas.jpg) and carry no normals (GLTFLoader flat-shades them), and every
-// placed piece is drawn through one InstancedMesh per kind: three draw calls for the whole level. Presentation only:
+// placed piece is drawn through one InstancedMesh per kind: four draw calls for the whole level. Presentation only:
 // the archipelago builds its procedural rocks and exact colliders first, then this module swaps in the GLB
 // visuals once they load. Colliders, reservations and placement never change, so gameplay is identical and
 // the procedural rocks stay as the fallback if a GLB fails (or in Node tests, where nothing is fetched).
@@ -12,6 +12,7 @@ export const GRANITE_KIT=Object.freeze({
   boulder:{high:'rock_granite_xl_a',low:'rock_granite_xl_a_lod1'},
   cliff:{high:'rock_cliff_xl_a',low:'rock_cliff_xl_a_lod1'},
   slab:{high:'rock_slab_xl_a',low:'rock_slab_xl_a_lod1'},
+  shore:{high:'rock_shore_xl_a',low:'rock_shore_xl_a_lod1'}, // waterline cluster, +X faces the sea
 });
 // A wall rock whose footprint is at least this much longer along the wall than across reads as a cliff block.
 export const CLIFF_ASPECT=1.35;
@@ -20,7 +21,7 @@ export const SLAB_RULES=Object.freeze({areaPer:70,maxPerIsland:2,minIsland:36,sc
 
 const kitCache=new Map();
 function loadPiece(file,load){
-  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.69`).then(scene=>{
+  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.70`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     mesh.geometry.computeBoundingBox();
@@ -38,10 +39,10 @@ async function defaultLoad(url){
 }
 export function loadGraniteKit({high=true,load=defaultLoad}={}){
   const pick=k=>loadPiece(high?GRANITE_KIT[k].high:GRANITE_KIT[k].low,load);
-  return Promise.all([pick('boulder'),pick('cliff'),pick('slab')]).then(([boulder,cliff,slab])=>{
+  return Promise.all([pick('boulder'),pick('cliff'),pick('slab'),pick('shore')]).then(([boulder,cliff,slab,shore])=>{
     // One atlas: every piece draws with the boulder's material (one texture upload, one shader program).
-    for(const p of [cliff,slab])if(p.material!==boulder.material){p.material.map?.dispose?.();p.material=boulder.material;}
-    return {boulder,cliff,slab};
+    for(const p of [cliff,slab,shore])if(p.material!==boulder.material){p.material.map?.dispose?.();p.material=boulder.material;}
+    return {boulder,cliff,slab,shore};
   });
 }
 
@@ -91,7 +92,7 @@ export function planGraniteSlabs(level,blocked,rng){
 export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
   if(typeof document==='undefined'&&!load)return Promise.resolve(null); // headless tests keep the fallback
   return loadGraniteKit({high,load}).then(kit=>{
-    const counts={boulder:0,cliff:0,slab:0},mats={boulder:[],cliff:[],slab:[]},walls=new Map(),decor=[];
+    const counts={boulder:0,cliff:0,slab:0,shore:0},mats={boulder:[],cliff:[],slab:[],shore:[]},walls=new Map(),decor=[];
     group.traverse(n=>{
       if(!n.isMesh)return;
       if(n.name==='archipelago-rock'&&n.userData.collider&&n.userData.graniteWall!=null){
@@ -122,7 +123,11 @@ export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
     }
     decor.forEach((rock,i)=>{
       rock.updateWorldMatrix(true,false);
-      const c=rock.userData.collider;
+      const c=rock.userData.collider,sh=rock.userData.graniteShore;
+      if(sh){ // shoreline cluster: fixed proportions, base just under the waterline
+        Q.setFromAxisAngle(UP,sh.yaw);SC.setScalar(sh.s);
+        mats.shore.push(M4.compose(V.set(sh.x,-.08,sh.z),Q,SC).clone());rock.visible=false;counts.shore++;return;
+      }
       if(c){place([rock],colliderBox(c),i);return;}
       const box=new THREE.Box3().setFromObject(rock);place([rock],box,i,Math.min(0,box.min.y));
     });
@@ -130,7 +135,7 @@ export function dressGraniteKit(group,{high=true,slabs=[],load}={}){
       Q.setFromAxisAngle(UP,s.ry);SC.set(s.s,SLAB_RULES.height/kit.slab.size.y,s.s);
       mats.slab.push(M4.compose(V.set(s.x,-.02,s.z),Q,SC).clone());counts.slab++;
     }
-    for(const kind of ['boulder','cliff','slab'])
+    for(const kind of ['boulder','cliff','slab','shore'])
       if(mats[kind].length)group.add(instanced(kit[kind],mats[kind],`granite-xl-${kind}`,{cast:kind!=='slab'}));
     return counts;
   }).catch(e=>{console.warn('Granite kit skipped',e);return null;});
