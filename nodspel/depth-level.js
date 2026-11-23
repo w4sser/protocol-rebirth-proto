@@ -3,8 +3,8 @@
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
 // v2.28.64: corridors are at least 2.4 m clear with chamfered joints so the capsule does not
 // snag, and every combat room gets 2-4 cover pieces between the entry and the enemies.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.73';
-import '../data/raid-depth.js?v=2.28.73';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.74';
+import '../data/raid-depth.js?v=2.28.74';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;

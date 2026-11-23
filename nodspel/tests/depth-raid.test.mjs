@@ -7,7 +7,7 @@ import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,are
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.73';
+import '../../data/bit-lines.js?v=2.28.74';
 
 function startDepth(seed,now=0,ctx={}){
   const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});

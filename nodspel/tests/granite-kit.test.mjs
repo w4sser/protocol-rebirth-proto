@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.73';
+import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.74';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -75,6 +75,14 @@ test('dress swaps rock visuals for three instanced draw calls, never colliders, 
   assert.ok(slab.geometry.boundingBox.clone().applyMatrix4(m).max.y<=SLAB_RULES.height,'slab stays low and walkable');
 });
 
+test('wall rocks across an opening never pair: no cliff is drawn over a walkable gap (extract approach)',async()=>{
+  const group=new THREE.Group(),geo=new THREE.DodecahedronGeometry(1,0),mat=new THREE.MeshStandardMaterial();
+  [0,4.5].forEach((x,i)=>{const m=new THREE.Mesh(geo,mat);m.name='archipelago-rock';m.position.set(x,.4,0);
+    m.userData={collider:{x,z:0,w:1.2,d:1,h:.9},graniteWall:0,graniteOrder:i};group.add(m);});
+  const counts=await dressGraniteKit(group,{high:false,load});
+  assert.deepEqual(counts,{boulder:2,cliff:0,slab:0,shore:0});
+});
+
 test('headless builds keep the procedural fallback (no fetch without a loader)',async()=>{
   assert.equal(await dressGraniteKit(new THREE.Group()),null);
 });
@@ -92,7 +100,7 @@ test('marked coast rocks become shoreline clusters facing the sea, at their mark
 });
 
 test('pines: textured GLBs are grounded and replace pineTree groups with one instanced draw call',async()=>{
-  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.73');
+  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.74');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   for(const f of [PINE_KIT.high,PINE_KIT.low]){
@@ -108,7 +116,7 @@ test('pines: textured GLBs are grounded and replace pineTree groups with one ins
 });
 
 test('fuel drum: textured mesh replaces the procedural parts and takes over the cook-off flash material',async()=>{
-  const {dressFuelDrum}=await import('../granite-kit.js?v=2.28.73');
+  const {dressFuelDrum}=await import('../granite-kit.js?v=2.28.74');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   const g=new THREE.Group(),body=new THREE.Mesh(),ring=new THREE.Mesh();g.add(body,ring);
@@ -122,7 +130,7 @@ test('fuel drum: textured mesh replaces the procedural parts and takes over the 
 });
 
 test('supply crates: procedural cover crates become one instanced, collider-fitted draw call',async()=>{
-  const {dressSupplyCrates}=await import('../granite-kit.js?v=2.28.73');
+  const {dressSupplyCrates}=await import('../granite-kit.js?v=2.28.74');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   const group=new THREE.Group(),cols=[{x:0,z:0,w:1.2,d:.8,h:.7},{x:4,z:0,w:.8,d:1.6,h:.9}];
@@ -132,4 +140,16 @@ test('supply crates: procedural cover crates become one instanced, collider-fitt
   const inst=group.children.find(n=>n.name==='supply-crate-xl'),m=new THREE.Matrix4();inst.getMatrixAt(1,m);
   const box=inst.geometry.boundingBox.clone().applyMatrix4(m);
   assert.ok(Math.abs(box.max.x-box.min.x-.8)<.02&&Math.abs(box.max.z-box.min.z-1.6)<.02&&Math.abs(box.max.y-.9)<.02,'fitted to its collider');
+});
+
+test('locked door: textured blast door takes the panel slot, fitted and turned to the collider',async()=>{
+  const {dressLockedDoor}=await import('../granite-kit.js?v=2.28.74');
+  const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
+    return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
+  const g=new THREE.Group(),panel=new THREE.Mesh();g.add(panel);
+  const v={door:{x:0,z:0,w:.3,d:2,h:1.6},group:g,panel};
+  const mesh=await dressLockedDoor(v,{load:pload});
+  assert.equal(v.panel,mesh);assert.ok(!panel.visible&&mesh.visible);
+  const box=new THREE.Box3().setFromObject(g);const s=box.getSize(new THREE.Vector3());
+  assert.ok(Math.abs(s.x-.3)<.02&&Math.abs(s.z-2)<.02&&Math.abs(box.min.y)<.01&&Math.abs(box.max.y-1.6)<.01,`fits ${s.toArray()}`);
 });

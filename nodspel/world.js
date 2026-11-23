@@ -1,20 +1,20 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.73';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.73';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.74';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.74';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.73';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.73';
-import {buildTown} from './town.js?v=2.28.73';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.73';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.73-glacial-merge1';
-import {dressPines,dressFuelDrum,dressSupplyCrates} from './granite-kit.js?v=2.28.73';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.73-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.73';
-import {controlCablePath} from './control-cables.js?v=2.28.73';
-import {extractAvailable} from './big-level.js?v=2.28.73';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.73';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.73';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.73';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.74';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.74';
+import {buildTown} from './town.js?v=2.28.74';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.74';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.74-glacial-merge1';
+import {dressPines,dressFuelDrum,dressSupplyCrates,dressLockedDoor} from './granite-kit.js?v=2.28.74';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.74-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.74';
+import {controlCablePath} from './control-cables.js?v=2.28.74';
+import {extractAvailable} from './big-level.js?v=2.28.74';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.74';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.74';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.74';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -241,7 +241,8 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const panel=box(0,door.h/2,0,door.w,door.h,door.d,'#2b3339',g);
     const strip=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));strip.scale.set(door.w>door.d?door.w:.1,.05,door.w>door.d?.1:door.d);strip.position.y=door.h+.03;g.add(strip);
     const mark=new THREE.Mesh(new THREE.PlaneGeometry(door.w>door.d?door.w:.5,door.w>door.d?.5:door.d),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.0,depthWrite:false,toneMapped:false}));mark.rotation.x=-Math.PI/2;mark.position.y=.03;g.add(mark);
-    return {door,group:g,panel,strip,mark};
+    const v={door,group:g,panel,strip,mark};dressLockedDoor(v); // v2.28.74: textured blast door replaces the panel
+    return v;
   });
   // Encounter 5: a spawn point is a coral ring on the floor (pulses faster once armed -> warning); gone after the burst.
   const spawners=(level.spawners??[]).map(sp=>{
