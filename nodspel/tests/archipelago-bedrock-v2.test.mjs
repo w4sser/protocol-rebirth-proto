@@ -111,7 +111,8 @@ test('quiet v2 adds a bounded coastal-life layer instead of a barren green plate
   assert.equal(hi.enabled,true);
   assert.equal(hi.mode,'military');
   assert.ok(hi.density>.2&&hi.density<.5,'sparse coastal dressing, no big military landmarks');
-  assert.ok(lo.density<hi.density,'low stays mobile safe');
+  assert.equal(lo.density,hi.density,'LOW and HIGH use the same seeded layout for strict subset parity');
+  assert.equal(lo.density,.30,'v2 keeps a quiet low-density dressing layer; LOW uses an independent 40-instance cap');
   assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=0'}).enabled,false);
   assert.equal(archipelagoDressingConfig({area:'archipelago'}).density,1,'default remains unchanged');
   assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=1'}).density,1,'explicit full layer comparison');
@@ -465,4 +466,22 @@ test('Pass S seeded earth-path color is visible on the flat hero ground and dete
     'hero path sampling stays detailed enough in both graphics qualities');
   const y=ground.geometry.getAttribute('position');
   for(let i=0;i<y.count;i++)assert.ok(Math.abs(y.getY(i)-.01)<1e-5,'the worn trail cannot add traversable height');
+});
+
+test('Pass Z ground cover and mineral variation stay quiet, clustered, and seeded',()=>{
+  const high=art.planArchipelagoGroundcover(profile,{high:true});
+  const low=art.planArchipelagoGroundcover(profile,{high:false});
+  assert.ok(high.length>low.length&&low.length>20,'sparse but populated island ecology');
+  const reference=new Set(high.map(p=>p.x.toFixed(5)+'/'+p.z.toFixed(5)));
+  assert.ok(low.every(p=>reference.has(p.x.toFixed(5)+'/'+p.z.toFixed(5))),
+    'LOW remains a deterministic subset despite reduced visual noise');
+  assert.deepEqual(high,art.planArchipelagoGroundcover(profile,{high:true}));
+  const group=new THREE.Group(),ground=art.addArchipelagoGroundV2(profile,group,{high:true});
+  const plants=group.children.find(c=>c.name==='arch-v2-coastal-groundcover');
+  assert.ok(plants?.geometry.getAttribute('position').count>0);
+  const greens=Array.from({length:ground.geometry.getAttribute('color').count},(_,i)=>{
+    const c=ground.geometry.getAttribute('color');
+    return Math.max(c.getX(i),c.getY(i),c.getZ(i));
+  });
+  assert.ok(Math.max(...greens)<.5,'no near-white vertex-color splatter on flat soil');
 });
