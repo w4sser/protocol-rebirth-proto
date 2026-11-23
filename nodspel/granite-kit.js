@@ -21,7 +21,7 @@ export const SLAB_RULES=Object.freeze({areaPer:70,maxPerIsland:2,minIsland:36,sc
 
 const kitCache=new Map();
 function loadPiece(file,load){
-  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.71`).then(scene=>{
+  if(!kitCache.has(file))kitCache.set(file,load(`${BASE}${file}.glb?v=2.28.72`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     mesh.geometry.computeBoundingBox();
@@ -150,7 +150,7 @@ export const PINE_KIT=Object.freeze({high:'tree_pine_xl_a',low:'tree_pine_xl_a_l
 export function dressPines(pines,parent,{high=true,load}={}){
   if((typeof document==='undefined'&&!load)||!pines.length)return Promise.resolve(null);
   const fetchScene=load??defaultLoad,file=high?PINE_KIT.high:PINE_KIT.low;
-  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.71`).then(scene=>{
+  if(!kitCache.has('pine:'+file))kitCache.set('pine:'+file,fetchScene(`${PINE_KIT.base}${file}.glb?v=2.28.72`).then(scene=>{
     let mesh=null;scene.traverse(n=>{if(!mesh&&n.isMesh)mesh=n;});
     if(!mesh)throw new Error(`${file} has no mesh`);
     return {geometry:mesh.geometry,material:mesh.material};

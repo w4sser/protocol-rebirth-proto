@@ -332,7 +332,7 @@
         0.6
       ],
       "collision": "box",
-      "notes": "Jersey barrier silhouette; broken version has a missing corner."
+      "notes": "Textured concrete jersey barrier (v2.28.72): 148 tris, own external concrete_barrier_a.jpg (512 px), no normals (flat-shaded). Rebuilt from an owner-supplied model; the broken variant is still the original kit piece."
     },
     {
       "file": "cover_low_barrier_broken.glb",

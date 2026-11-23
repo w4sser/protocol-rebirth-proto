@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.71';
-import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.71';
+import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.72';
+import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.72';
 
 // Legacy registry stays available for explicit comparison.
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
