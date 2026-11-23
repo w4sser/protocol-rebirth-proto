@@ -52,10 +52,15 @@ function bakeNow(){
   for(const [material,intensity] of pendingPbr)assignEnv(material,intensity);
   pendingPbr.clear();
 }
+// Start no earlier than this after the first request: the bunker's level card (LEVEL_INTRO_MS 1200) is up
+// during the first idle moment, and a software-WebGL bake there blocks the main thread past its hide timer.
+export const ENV_BAKE_DELAY_MS=2000;
 function scheduleBake(){
   if(bakeScheduled)return;bakeScheduled=true;
-  const idle=globalThis.requestIdleCallback;
-  if(idle)idle(()=>bakeNow(),{timeout:4000});else setTimeout(bakeNow,1500);
+  setTimeout(()=>{
+    const idle=globalThis.requestIdleCallback;
+    if(idle)idle(()=>bakeNow(),{timeout:3000});else bakeNow();
+  },ENV_BAKE_DELAY_MS);
 }
 function assignEnv(material,intensity){
   if(!pbrEnvMap)return false;
