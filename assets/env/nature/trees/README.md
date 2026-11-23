@@ -1,0 +1,5 @@
+# Trees
+
+`tree_pine_xl_a.glb` (874 tris, 29 KB) and `tree_pine_xl_a_lod1.glb` (360 tris, 16 KB): a tall Scots pine rebuilt from an owner-supplied generated model (v2.28.71). The source's grass patch, stones and below-ground trunk were removed; the trunk is stacked convex bands, branches are tapered five-sided prisms and the foliage is 18 convex pads (k-means split of the source canopy), with the colour baked into `pine_xl_a.jpg` (512 px, external, ~40 KB; foliage brightened and the trunk toned to Scots-pine orange-brown so it reads under the game lights). No normals (GLTFLoader flat-shades them). Y-up, metres, origin at the trunk base, 4.39 m tall.
+
+Wired in by `nodspel/granite-kit.js` `dressPines()`: in the default archipelago every `pineTree()` group is replaced by one instance of a single InstancedMesh (fitted to the old pine's height, keeping each tree's spot, yaw and size jitter). Pines have no colliders; the original groups remain the fallback. High quality uses LOD0, low quality `_lod1`.
