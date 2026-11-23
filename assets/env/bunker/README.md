@@ -11,3 +11,8 @@
 
 ## Included
 Static low-poly environment kit, shared palette and emissive atlases, manifest, and a 52° pitch contact sheet. Each model uses a single lightweight mesh and no animation or skinning.
+
+
+## Concrete barrier (v2.28.72)
+
+`cover_low_barrier_a.glb` is a textured concrete jersey barrier rebuilt from an owner-supplied generated model: a clean extruded profile (148 tris, three drainage notches, carry holes in the texture) with the source colour baked into its own `concrete_barrier_a.jpg` (512 px, ~19 KB; brightened to the shared atlas level so it reads under the bunker lights). Exactly 2 × 0.9 × 0.6 m like the slot it replaces, Y-up, bottom-centre origin, no normals. It is the one bunker piece not on the shared atlas; `loadBunkerAssets()` leaves materials without an emissive map untouched, so it keeps its own texture.

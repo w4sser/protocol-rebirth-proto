@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.71';
-import {loadEnemyModel} from './enemy-models.js?v=2.28.71';
-import {pbrEnvironment} from './environment-look.js?v=2.28.71';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.28.72';
+import {loadEnemyModel} from './enemy-models.js?v=2.28.72';
+import {pbrEnvironment} from './environment-look.js?v=2.28.72';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 const SWARM_LEG_PIVOTS=Array.from({length:8},(_,i)=>`leg_0${i+1}_pivot`); // eight-legged textured swarm_bot

@@ -1,10 +1,10 @@
 // @hot updateBigCulling
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.71';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.72';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.71';
-import {applyEncounters} from './encounters.js?v=2.28.71';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.71';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.71-bridge1-timber-v2';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.72';
+import {applyEncounters} from './encounters.js?v=2.28.72';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.72';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.72-bridge1-timber-v2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));

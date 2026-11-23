@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.71';
+import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.72';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -92,7 +92,7 @@ test('marked coast rocks become shoreline clusters facing the sea, at their mark
 });
 
 test('pines: textured GLBs are grounded and replace pineTree groups with one instanced draw call',async()=>{
-  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.71');
+  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.72');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   for(const f of [PINE_KIT.high,PINE_KIT.low]){
