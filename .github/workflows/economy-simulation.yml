@@ -1,0 +1,33 @@
+name: economy simulation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/economy-sim.mjs'
+      - 'test/economy-sim.test.mjs'
+      - 'nodspel/levels.js'
+      - 'nodspel/round.js'
+      - 'nodspel/raid.js'
+      - 'data/items.js'
+      - '.github/workflows/economy-simulation.yml'
+jobs:
+  economy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run smoke tests
+        run: node --test test/economy-sim.test.mjs
+      - name: Simulate 1,000 deterministic raids
+        run: node scripts/economy-sim.mjs --runs 1000 --seed economy-ci-v1 --success 0.7 --depth3 0.3 --out verify-out/economy
+      - name: Upload CSV and JSON results
+        uses: actions/upload-artifact@v4
+        with:
+          name: economy-simulation
+          path: verify-out/economy/
+          if-no-files-found: error
+          retention-days: 30
