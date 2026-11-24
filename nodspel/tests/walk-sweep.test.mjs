@@ -147,6 +147,54 @@ function doorwayLanes(level){
 
 function solidsOf(level){return [...(level.walls??[]),...(level.boxes??[]),...doorSolids(level)];}
 
+// Every plain direction a room opens in (deduped -- a depth link punches the same dir twice:
+// once from levels.js, once from the inter-area door), used by roomCornerLanes below.
+function roomDoorDirs(room){
+  const seen=new Set(),dirs=[];
+  for(const d of room.doors??[]){
+    if(!d||typeof d.x!=='number'||'w' in d||'id' in d)continue;
+    const key=`${d.x},${d.z}`;if(seen.has(key))continue;seen.add(key);
+    dirs.push({x:d.x,z:d.z});
+  }
+  return dirs;
+}
+// Walking centerline-straight through one doorway never visits the room's own inner corner --
+// the jamb a player actually snags on is the one between two DIFFERENT openings of the same
+// room, approached at an angle (Robert's screenshot: running in from one corridor, catching the
+// inner wall jamb on the way toward a crate just past it). For every ordered pair of a room's
+// doorways (skipping straight-through opposite pairs, already covered by the centerline sweep),
+// this starts outside one opening hugging the side nearest the other opening -- "coming out of a
+// perpendicular corridor, hugging the inner jamb" -- and only has to slide through and a few
+// metres into the room, not cross all the way to the far doorway (a room full of its own
+// tactical cover is allowed to make the far side harder; it must never block the opening itself).
+function roomCornerLanes(level,solids){
+  const gated=(level.doors??[]).filter(d=>d.locked&&!d.depth);
+  const lanes=[];
+  for(const room of level.rooms??[]){
+    const dirs=roomDoorDirs(room);
+    for(let i=0;i<dirs.length;i++)for(let j=0;j<dirs.length;j++){
+      if(i===j)continue;
+      const inDir=dirs[i],outDir=dirs[j];
+      if(inDir.x===-outDir.x&&inDir.z===-outDir.z)continue; // straight through -- already a centerline lane
+      const inPoint={x:room.x+inDir.x*room.w/2,z:room.z+inDir.z*room.d/2};
+      const outPoint={x:room.x+outDir.x*room.w/2,z:room.z+outDir.z*room.d/2};
+      if(gated.some(g=>Math.hypot(g.x-inPoint.x,g.z-inPoint.z)<1.5||Math.hypot(g.x-outPoint.x,g.z-outPoint.z)<1.5))continue;
+      const lateral={x:-inDir.z,z:inDir.x};
+      const side=Math.sign((outPoint.x-inPoint.x)*lateral.x+(outPoint.z-inPoint.z)*lateral.z)||1;
+      const hug=Math.min(clearance(inPoint,{x:lateral.x*side,z:lateral.z*side},solids,level.floors)-R-0.08,1.0);
+      if(!(hug>0.05))continue; // no room to hug the inner side at all -- not this bug
+      const start={x:inPoint.x-inDir.x*1.4+lateral.x*side*hug,z:inPoint.z-inDir.z*1.4+lateral.z*side*hug};
+      // Just inside the room, with 1 m to spare from the far wall -- enough to prove the capsule
+      // cleared the jamb and entered, not a demand to reach a specific piece of furniture.
+      const inReach=Math.max(0.5,(inDir.x?room.w:room.d)/2-1);
+      const depth=Math.min(3,inReach);
+      const target={x:inPoint.x+inDir.x*depth+lateral.x*side*hug*0.5,z:inPoint.z+inDir.z*depth+lateral.z*side*hug*0.5};
+      lanes.push({id:`corner@${room.x.toFixed(1)},${room.z.toFixed(1)}:${inDir.x},${inDir.z}->${outDir.x},${outDir.z}`,start,target});
+    }
+  }
+  return lanes;
+}
+
 function sweepLevel(level,{assist}){
   const solids=solidsOf(level);
   const failures=[];
@@ -155,18 +203,41 @@ function sweepLevel(level,{assist}){
     const dir={x:(lane.b.x-lane.a.x)/dist0,z:(lane.b.z-lane.a.z)/dist0};
     const pinch=lane.pinch??{x:(lane.a.x+lane.b.x)/2,z:(lane.a.z+lane.b.z)/2};
     const {offsets,lateral}=laneOffsets(pinch,dir,solids,level.floors);
+    // Any lane in Depth can run close enough to a door for depthJambAssist to pull an
+    // off-center walk toward the centerline, by design -- only require clearing the lane,
+    // not landing on the exact offset target, whenever that assist is in play.
+    const endMode=assist?'forward':'exact';
+    const starts=[],ends=[];
     for(const off of offsets){
       const fa={x:lane.a.x+lateral.x*off,z:lane.a.z+lateral.z*off};
       const fb={x:lane.b.x+lateral.x*off,z:lane.b.z+lateral.z*off};
       const na=nudge(fa,solids,level.floors),nb=nudge(fb,solids,level.floors);
-      if(!na||!nb)continue; // the offset itself has nowhere valid to start/end -- not a stall
-      // Any lane in Depth can run close enough to a door for depthJambAssist to pull an
-      // off-center walk toward the centerline, by design -- only require clearing the lane,
-      // not landing on the exact offset target, whenever that assist is in play.
-      const endMode=assist?'forward':'exact';
-      const res=sweepLane(na,nb,solids,level.floors,assist,endMode);
-      if(!res.ok)failures.push(`${lane.id} off=${off.toFixed(2)}: ${res.reason} at ${res.at.x.toFixed(2)},${res.at.z.toFixed(2)} (step ${res.steps})`);
+      if(na)starts.push({off,p:na});
+      if(nb)ends.push({off,p:nb});
     }
+    // Parallel (centerline/near-wall) sweeps: same offset at both ends.
+    for(const s of starts){
+      const e=ends.find(e=>e.off===s.off);
+      if(!e)continue;
+      const res=sweepLane(s.p,e.p,solids,level.floors,assist,endMode);
+      if(!res.ok)failures.push(`${lane.id} off=${s.off.toFixed(2)}: ${res.reason} at ${res.at.x.toFixed(2)},${res.at.z.toFixed(2)} (step ${res.steps})`);
+    }
+    // Diagonal / off-center-to-off-center sweeps: entering at one offset (hugging one side of
+    // the opening) and exiting at a different one cuts across the opening instead of running
+    // parallel to it, which is exactly the diagonal/off-center approach the centerline-only
+    // sweep above cannot see (v2.28.76: Robert 24 Nov 2026 Depth Raid playtest, item 1).
+    for(const s of starts)for(const e of ends){
+      if(e.off===s.off)continue;
+      const res=sweepLane(s.p,e.p,solids,level.floors,assist,endMode);
+      if(!res.ok)failures.push(`${lane.id} diag off=${s.off.toFixed(2)}->${e.off.toFixed(2)}: ${res.reason} at ${res.at.x.toFixed(2)},${res.at.z.toFixed(2)} (step ${res.steps})`);
+    }
+  }
+  for(const lane of roomCornerLanes(level,solids)){
+    const start=nudge(lane.start,solids,level.floors),target=nudge(lane.target,solids,level.floors);
+    if(!start||!target)continue;
+    const endMode=assist?'forward':'exact';
+    const res=sweepLane(start,target,solids,level.floors,assist,endMode);
+    if(!res.ok)failures.push(`${lane.id}: ${res.reason} at ${res.at.x.toFixed(2)},${res.at.z.toFixed(2)} (step ${res.steps})`);
   }
   return failures;
 }

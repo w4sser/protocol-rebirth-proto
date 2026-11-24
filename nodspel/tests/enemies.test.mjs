@@ -5,14 +5,14 @@ import {readFileSync} from 'node:fs';
 // fail to decode here (no DOM), which GLTFLoader tolerates - geometry, nodes and materials load fine.
 globalThis.self??=globalThis;
 import * as THREE from '../vendor/three.module.js';
-import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.75';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.75';
-import {createRound,hitEnemy} from '../round.js?v=2.28.75';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.75';
-import {shieldBlocks} from '../encounters.js?v=2.28.75';
-import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.75';
-import {initTool,throwTool} from '../tools.js?v=2.28.75';
-import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.75';
+import {ENEMIES,ENEMY_TUNING,ENEMY_VISUALS,visualFor,rusherLungeSpeed,rusherBackBonus,patrolGruntBackBonus} from '../enemies.js?v=2.28.76';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.28.76';
+import {createRound,hitEnemy} from '../round.js?v=2.28.76';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.28.76';
+import {shieldBlocks} from '../encounters.js?v=2.28.76';
+import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.76';
+import {initTool,throwTool} from '../tools.js?v=2.28.76';
+import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.76';
 
 function glbNodeNames(id){
   const bytes=readFileSync(new URL(`../../assets/enemies/${id}.glb`,import.meta.url));
@@ -31,7 +31,7 @@ for(const [id,spec] of Object.entries(ENEMIES))test(`${id}: frozen registry matc
   assert.ok(['shield_turret','rusher'].includes(id)?spec.phase===1:[2,3].includes(spec.phase));
   assert.equal(new Set(spec.parts).size,spec.parts.length);
   assert.ok(Object.values(spec.stats).every(n=>Number.isFinite(n)&&n>=0));
-  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.75$`));
+  assert.match(spec.model,new RegExp(`^../assets/enemies/${id}.glb\\?v=2.28.76$`));
   const vector=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
   assert.ok(vector.distanceTo(new THREE.Vector3(0,0,1))<1e-8);
   const up=new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(1,0,0),spec.forwardUpFix.rotateX).applyAxisAngle(new THREE.Vector3(0,1,0),spec.forwardUpFix.rotateY);
@@ -170,6 +170,54 @@ for(const [label,enemy,archetype] of VISUAL_CASES)test(`visualFor resolves ${lab
   for(const name of ENEMIES[visual.archetype].parts)assert.ok(names.has(name),`${archetype}/${name}`);
   for(const name of visual.hideParts??[])assert.ok(names.has(name),`${archetype} hideParts/${name}`);
 });
+// v2.28.76 (t452u item 2): #306's textured enemies regressed back to the old procedural mesh for
+// almost every archetype except mortar/artillery. Root cause: createEnemyModelLoader() cached a
+// rejected (timed-out) promise forever, so one slow first-raid fetch permanently fell back that
+// archetype for the rest of the session; a 3500ms timeout made that likely while buildWorld()
+// loads large env textures in the same frame. Every archetype actually used in Depth and Node
+// (reached through visualFor, same VISUAL_CASES above) must load its real shipping GLB with
+// fallback:false, using the production createEnemyModelLoader() wired to the real GLTFLoader.
+function realGlbLoader(){
+  return createEnemyModelLoader({load:async url=>{
+    const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
+    const bytes=readFileSync(new URL(`../${url.split('?')[0]}`,import.meta.url));
+    return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
+  }});
+}
+const GAMEPLAY_ARCHETYPES=[...new Set(VISUAL_CASES.map(([,,archetype])=>archetype))];
+test('every archetype reachable from Depth/Node gameplay (visualFor) loads its real shipping GLB with fallback:false',async()=>{
+  const loader=realGlbLoader();
+  for(const id of GAMEPLAY_ARCHETYPES){
+    const result=await loader(id,{fallback:()=>new THREE.Group()});
+    assert.equal(result.fallback,false,id);
+    assert.ok(result.root,id);
+    for(const name of ENEMIES[id].parts)assert.ok(result.parts[name],`${id}/${name}`);
+  }
+});
+test('a single load timeout/failure is not cached as a permanent fallback -- the next call retries',async()=>{
+  let calls=0;
+  const loader=createEnemyModelLoader({timeoutMs:10,load:async()=>{
+    calls++;
+    if(calls===1)return new Promise(()=>{}); // first attempt: never resolves, times out
+    const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
+    const bytes=readFileSync(new URL('../../assets/enemies/rusher.glb',import.meta.url));
+    return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
+  }});
+  const first=await loader('rusher',{fallback:()=>new THREE.Group()});
+  assert.equal(first.fallback,true,'first attempt times out and falls back');
+  const second=await loader('rusher',{fallback:()=>new THREE.Group()});
+  assert.equal(second.fallback,false,'the retried attempt (same id, same loader instance) succeeds instead of reusing the stale rejection');
+  assert.equal(calls,2,'the retry actually re-fetched instead of replaying the cached rejection');
+});
+test('preload() warms the cache ahead of time and does not re-fetch an archetype already in flight',async()=>{
+  let calls=0;
+  const loader=createEnemyModelLoader({load:async()=>{calls++;const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
+    const bytes=readFileSync(new URL('../../assets/enemies/rusher.glb',import.meta.url));
+    return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;}});
+  loader.preload(['rusher','rusher','unknown-id']); // dedup + an unknown id must not throw
+  const result=await loader('rusher',{fallback:()=>new THREE.Group()});
+  assert.equal(result.fallback,false);assert.equal(calls,1,'preload and the real call shared one in-flight fetch');
+});
 test('generator keeps its procedural mesh (an object, not an enemy) and never resolves a visual',()=>{
   assert.equal(visualFor({type:'generator',encounter:'shield'}),null);
   assert.equal(visualFor(null),null);
@@ -190,7 +238,7 @@ test('L2 turret slots deterministically include both plain and shield variants a
 
 test('real GLBs animate named pivots with shared geometry, individual pulses and no lights',async()=>{
   const {GLTFLoader}=await import('../vendor/GLTFLoader.js');
-  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.75');
+  const {attachEnemyModel,animateEnemyModel}=await import('../enemy-animation.js?v=2.28.76');
   const loader=createEnemyModelLoader({load:async url=>{
     const bytes=readFileSync(new URL(`../${url.split('?')[0]}`,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;

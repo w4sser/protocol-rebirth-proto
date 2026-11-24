@@ -590,7 +590,9 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({depthLevelSrc:''}).length,3,'all depth-cover-extract-clear guards fire');
  const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
  assert.equal(rule.check({depthLevelSrc:depth.replace('  if(nearAnyExtract(level,p))return false;\n  const keep=','  const keep=')}).length,1,'dropping the extract guard in coverSpotFree fires');
- assert.equal(rule.check({depthLevelSrc:depth.replace("      if(nearAnyExtract(level,p))return false;\n      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5","      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5")}).length,1,"dropping the extract guard in topUpRoomCover's clear() fires");
+ assert.equal(rule.check({depthLevelSrc:depth.replace(
+   "      if(nearAnyExtract(level,p))return false;\n      // Same box-vs-box footprint fix as coverSpotFree above",
+   "      // Same box-vs-box footprint fix as coverSpotFree above")}).length,1,"dropping the extract guard in topUpRoomCover's clear() fires");
 }
 
 {
@@ -654,7 +656,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 {
  const rule=by('powder-and-mortar-boom');
  assert.equal(rule.check().length,0,'powder and mortar boom holds on real source');
- assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,7,'all powder-and-mortar-boom guards fire');
+ assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,12,'all powder-and-mortar-boom guards fire');
  const data=fs.readFileSync(new URL('../data/audio.js',import.meta.url),'utf8');
  const audio=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
  const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
@@ -666,4 +668,58 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({genSfxSrc:gen.replaceAll('explosion(','boom(')}).length,2,'renaming explosion() fires the def and the cue route');
  assert.equal(rule.check({combatSrc:combat.replace("audioEvent('explosion')",'')}).length,1,'dropping the mortar explosion cue fires');
  assert.equal(rule.check({roundSrc:round.replace("audioEvent('explosion')",'')}).length,1,'dropping the drum explosion cue fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('crackDecay:.003','crackDecay:.007')}).length,1,'reverting crackDecay back to the old 7ms crack fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('drive:3.4','drive:2')}).length,1,'reverting drive back to the old under-saturated 2 fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('compressor:{threshold:-2,knee:0,ratio:20,attack:.0005,release:.06}','compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08}')}).length,1,'reverting the limiter back to the old squashing compressor fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('sfx:0.95','sfx:0.75')}).length,1,'reverting defaults.sfx back to the old 0.75 fires');
+ assert.equal(rule.check({genSfxSrc:gen.replace("crack_decay=.003,","crack_decay=.007,")}).length,1,'reintroducing the old 7ms crack_decay in POWDER_PROFILES fires');
+}
+
+{
+ const rule=by('ui-clicks-mechanical-not-sine');
+ assert.equal(rule.check().length,0,'ui-clicks-mechanical-not-sine holds on real source');
+ assert.equal(rule.check({genSfxSrc:''}).length,3,'all ui-clicks-mechanical-not-sine guards fire');
+ const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
+ assert.equal(rule.check({genSfxSrc:gen.replace("'ui-tap': dict","'ui-tapx': dict")}).length,1,'renaming ui-tap out of UI_CLICK_PROFILES fires the registration check');
+ assert.equal(rule.check({genSfxSrc:gen.replace(
+   "    return P['ceiling'] * np.tanh(x * fade * P['drive'])",
+   "    return tone(P['duration'], P['hz'], P['hz'], 0, rng)")}).length,1,'swapping click() for a tone() call fires');
+ assert.equal(rule.check({genSfxSrc:gen.replace(
+   "params = {'kill':(.18,900,1400)",
+   "params = {'ui-tap':(.055,800,600), 'kill':(.18,900,1400)")}).length,1,'re-adding ui-tap to the generic tone()-based params dict fires');
+}
+
+{
+ const rule=by('depth-opening-diagonal-stall');
+ assert.equal(rule.check().length,0,'depth-opening-diagonal-stall holds on real source');
+ assert.equal(rule.check({physicsSrc:'',depthLevelSrc:'',walkSweepSrc:''}).length,6,'all depth-opening-diagonal-stall guards fire');
+ const physics=fs.readFileSync(new URL('../nodspel/physics.mjs',import.meta.url),'utf8');
+ const depthLevel=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const walkSweep=fs.readFileSync(new URL('../nodspel/tests/walk-sweep.test.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({physicsSrc:physics.replace(
+   'if (onFloor(x,z) && !blocked(x, z)) { p.x = x; p.z = z; continue; }\n    ','')}).length,1,'dropping the diagonal-step-first fallback fires');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   "...(level.closet?[level.closet]:[])",'')}).length,1,'dropping level.closet from widenDepthPassages fires');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   'const PLAYER_PASS_GAP=2*RULES.playerRadius+0.08;','')
+   .replaceAll('coverSpotFree(level,p,PLAYER_PASS_GAP,','coverSpotFree(level,p,0.7,')}).length,2,'reverting PLAYER_PASS_GAP back to a flat sub-diameter margin fires (constant + call sites)');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   'function coverSpotFree(level,p,r=0.7,box){','function coverSpotFree(level,p,r=0.7){')}).length,1,'dropping the box param from coverSpotFree signature fires');
+ assert.equal(rule.check({walkSweepSrc:walkSweep.replace(
+   'function roomCornerLanes(level,solids){','function roomCornerLanesRenamed(level,solids){')}).length,1,'removing roomCornerLanes fires');
+}
+
+{
+ const rule=by('enemy-model-no-permanent-reject-cache');
+ assert.equal(rule.check().length,0,'enemy-model-no-permanent-reject-cache holds on real source');
+ assert.equal(rule.check({enemyModelsSrc:'',raidEnemiesSrc:'',gameSrc:''}).length,4,'all enemy-model-no-permanent-reject-cache guards fire');
+ const models=fs.readFileSync(new URL('../nodspel/enemy-models.js',import.meta.url),'utf8');
+ const raidEnemies=fs.readFileSync(new URL('../data/raid-enemies.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({enemyModelsSrc:models.replace(
+   'promise.catch(()=>{if(cache.get(id)===promise)cache.delete(id);});\n    ','')}).length,1,'dropping the reject-clears-cache guard fires');
+ assert.equal(rule.check({enemyModelsSrc:models.replace('loadEnemyModel.preload=','loadEnemyModel.preloadRenamed=')}).length,1,'dropping preload() fires');
+ assert.equal(rule.check({raidEnemiesSrc:raidEnemies.replace('models:{timeoutMs:20000}','models:{timeoutMs:3500}')}).length,1,'reverting the timeout back to 3500ms fires');
+ assert.equal(rule.check({gameSrc:game.replace(
+   "loadEnemyModel.preload?.((round.level.enemies??[]).map(e=>visualFor(e)?.archetype).filter(Boolean));\n  ",'')}).length,1,'dropping the loadLevelInner preload call fires');
 }

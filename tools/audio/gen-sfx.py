@@ -41,18 +41,25 @@ def one_pole(x, hz):
     return y
 
 
+# v2.28.76 (Robert 24 Nov 2026: "still no bang"): crack_decay under 5ms for a true short broadband
+# transient (was 4-7ms); a harder drive into the tanh saturation for a louder, saturated body at the
+# same clamped ceiling (RMS, not peak, was the weak link); duration/tail_decay stretched so the room
+# tail actually rings out ~250-400ms instead of being cut off by the old .32s buffer. Module-level so
+# tools/audio/measure-sfx.py and nodspel/tests/gun-sfx-spectrum.test.mjs can assert on the parameters
+# directly (match nodspel/data/audio.js's shots.weapons -- the runtime's own shotBuffer() mirrors this).
+POWDER_PROFILES = {
+    'carbine': dict(kind='powder', duration=.34, crack=1.6, body=1.15, thump=2.2, tail=.32, thump_hz=90, highpass=1600, crack_decay=.003, body_decay=.07, thump_decay=.16, tail_decay=.1, drive=3.4, ceiling=.92),
+    'smg': dict(kind='powder', duration=.3, crack=1.6, body=1.1, thump=1.1, tail=.27, thump_hz=100, highpass=1600, crack_decay=.0022, body_decay=.05, thump_decay=.11, tail_decay=.08, drive=3.1, ceiling=.92),
+    'shotgun': dict(kind='powder', duration=.4, crack=1.8, body=1.4, thump=2.6, tail=.42, thump_hz=65, highpass=1600, crack_decay=.0035, body_decay=.08, thump_decay=.18, tail_decay=.12, drive=3.6, ceiling=.92),
+    'rifle': dict(kind='powder', duration=.34, crack=1.6, body=1.1, thump=2.3, tail=.36, thump_hz=85, highpass=1600, crack_decay=.003, body_decay=.07, thump_decay=.17, tail_decay=.1, drive=3.4, ceiling=.92),
+    'air': dict(kind='air', duration=.2, crack=1.15, body=.22, hiss=.75, hiss_hz=4200, hiss_decay=.05, crack_decay=.0035, body_decay=.03, drive=1.45, ceiling=.86),
+}
+
+
 def gunshot(name, rng):
     """Noise-burst powder report or pneumatic hiss. No sine/square tone sweeps."""
     cls = name.split('-')[-1]
-    # v2.28.75: match runtime ui/audio.js shotBuffer powder (heavier thump, 1600 Hz highpass, 3 echoes).
-    profiles = {
-        'carbine': dict(kind='powder', duration=.32, crack=1.5, body=1, thump=2, tail=.3, thump_hz=90, highpass=1600, crack_decay=.007, body_decay=.07, thump_decay=.16, tail_decay=.09, drive=2, ceiling=.92),
-        'smg': dict(kind='powder', duration=.32, crack=1.5, body=1, thump=1, tail=.25, thump_hz=100, highpass=1600, crack_decay=.004, body_decay=.05, thump_decay=.11, tail_decay=.07, drive=2, ceiling=.92),
-        'shotgun': dict(kind='powder', duration=.32, crack=1.7, body=1.3, thump=2.4, tail=.4, thump_hz=65, highpass=1600, crack_decay=.007, body_decay=.08, thump_decay=.18, tail_decay=.12, drive=2.3, ceiling=.92),
-        'rifle': dict(kind='powder', duration=.32, crack=1.5, body=1, thump=2.1, tail=.34, thump_hz=85, highpass=1600, crack_decay=.007, body_decay=.07, thump_decay=.17, tail_decay=.1, drive=2, ceiling=.92),
-        'air': dict(kind='air', duration=.2, crack=1.15, body=.22, hiss=.75, hiss_hz=4200, hiss_decay=.05, crack_decay=.0035, body_decay=.03, drive=1.45, ceiling=.86),
-    }
-    P = profiles.get(cls, profiles['carbine'])
+    P = POWDER_PROFILES.get(cls, POWDER_PROFILES['carbine'])
     n = int(round(P['duration'] * SR))
     t = np.arange(n) / SR
     noise = rng.normal(0, 1, n)
@@ -97,12 +104,42 @@ def explosion(rng):
     return .9*np.tanh(x*1.8)
 
 
+# v2.28.76 (Robert 24 Nov 2026: UI buttons are "too cute"): dry mechanical clicks, not chirpy sine
+# tones -- a filtered noise burst per press, with a short low body thump added for the heavier
+# back/confirm presses. Module-level (like POWDER_PROFILES) so tests can assert on it directly.
+UI_CLICK_PROFILES = {
+    'ui-tap': dict(duration=.045, hz=3200, decay=.006, drive=2.2, ceiling=.55),
+    'ui-back': dict(duration=.07, hz=2000, decay=.009, body_hz=380, body_gain=.35, body_decay=.025, drive=2, ceiling=.5),
+    'ui-confirm': dict(duration=.1, hz=2600, decay=.007, body_hz=260, body_gain=.55, body_decay=.05, drive=2.2, ceiling=.6),
+}
+
+
+def click(name, rng):
+    """Dry mechanical click: a filtered noise burst, never a sine oscillator. The heavier
+    back/confirm presses add a short low body thump so they read as more substantial than a bare
+    tap."""
+    P = UI_CLICK_PROFILES[name]
+    n = int(round(P['duration'] * SR))
+    t = np.arange(n) / SR
+    noise = rng.normal(0, 1, n)
+    attack = np.minimum(t / .0006, 1)
+    fade = np.minimum((P['duration'] - t) / max(.012, P['duration'] * .25), 1)
+    tick_lp = one_pole(noise, P['hz'])
+    x = attack * (noise - tick_lp) * np.exp(-t / P['decay'])
+    if P.get('body_gain'):
+        body = one_pole(noise, P['body_hz'])
+        x = x + attack * body * P['body_gain'] * np.exp(-t / P['body_decay'])
+    return P['ceiling'] * np.tanh(x * fade * P['drive'])
+
+
 def cue(name):
     rng = rng_for(name)
     if name.startswith('shoot'):
         return gunshot(name, rng)
     if name=='explosion':
         return explosion(rng)
+    if name in UI_CLICK_PROFILES:
+        return click(name, rng)
     if name.startswith('reload'): return np.concatenate([tone(.09, 1200, 300, 1, rng), np.zeros(int(.08*SR)), tone(.12, 850, 200, 1, rng)])
     if name.startswith('empty'): return tone(.06, 900, 400, .8, rng)
     if name.startswith('impact'): return tone(.1, 600 if name.endswith('wall') else 120, 65, 2, rng)
@@ -114,7 +151,7 @@ def cue(name):
         return np.concatenate([tone(.1, 550+i*180, 800+i*220, .02, rng) for i in range(tier+1)])
     if name in ('alarm', 'hunter-wave'):
         return np.concatenate([tone(.35, f, f*1.08, .2, rng) for f in ([520,780,520,780] if name=='alarm' else [120,160,240])])
-    params = {'kill':(.18,900,1400), 'medkit':(.5,400,1000), 'dash':(.2,180,900), 'perk-open':(.25,400,800), 'perk-select':(.3,700,1400), 'ui-tap':(.055,800,600), 'ui-back':(.09,600,300), 'ui-confirm':(.13,600,1100), 'bag-full':(.3,320,160), 'extract-countdown':(.1,950,950), 'extract-success':(.8,350,1400), 'death':(.8,300,55)}
+    params = {'kill':(.18,900,1400), 'medkit':(.5,400,1000), 'dash':(.2,180,900), 'perk-open':(.25,400,800), 'perk-select':(.3,700,1400), 'bag-full':(.3,320,160), 'extract-countdown':(.1,950,950), 'extract-success':(.8,350,1400), 'death':(.8,300,55)}
     dur, a, b = params[name]
     return tone(dur,a,b,.08,rng)
 
