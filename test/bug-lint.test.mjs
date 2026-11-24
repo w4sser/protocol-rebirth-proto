@@ -590,7 +590,9 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({depthLevelSrc:''}).length,3,'all depth-cover-extract-clear guards fire');
  const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
  assert.equal(rule.check({depthLevelSrc:depth.replace('  if(nearAnyExtract(level,p))return false;\n  const keep=','  const keep=')}).length,1,'dropping the extract guard in coverSpotFree fires');
- assert.equal(rule.check({depthLevelSrc:depth.replace("      if(nearAnyExtract(level,p))return false;\n      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5","      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5")}).length,1,"dropping the extract guard in topUpRoomCover's clear() fires");
+ assert.equal(rule.check({depthLevelSrc:depth.replace(
+   "      if(nearAnyExtract(level,p))return false;\n      // Same box-vs-box footprint fix as coverSpotFree above",
+   "      // Same box-vs-box footprint fix as coverSpotFree above")}).length,1,"dropping the extract guard in topUpRoomCover's clear() fires");
 }
 
 {
@@ -666,4 +668,24 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({genSfxSrc:gen.replaceAll('explosion(','boom(')}).length,2,'renaming explosion() fires the def and the cue route');
  assert.equal(rule.check({combatSrc:combat.replace("audioEvent('explosion')",'')}).length,1,'dropping the mortar explosion cue fires');
  assert.equal(rule.check({roundSrc:round.replace("audioEvent('explosion')",'')}).length,1,'dropping the drum explosion cue fires');
+}
+
+{
+ const rule=by('depth-opening-diagonal-stall');
+ assert.equal(rule.check().length,0,'depth-opening-diagonal-stall holds on real source');
+ assert.equal(rule.check({physicsSrc:'',depthLevelSrc:'',walkSweepSrc:''}).length,6,'all depth-opening-diagonal-stall guards fire');
+ const physics=fs.readFileSync(new URL('../nodspel/physics.mjs',import.meta.url),'utf8');
+ const depthLevel=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const walkSweep=fs.readFileSync(new URL('../nodspel/tests/walk-sweep.test.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({physicsSrc:physics.replace(
+   'if (onFloor(x,z) && !blocked(x, z)) { p.x = x; p.z = z; continue; }\n    ','')}).length,1,'dropping the diagonal-step-first fallback fires');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   "...(level.closet?[level.closet]:[])",'')}).length,1,'dropping level.closet from widenDepthPassages fires');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   'const PLAYER_PASS_GAP=2*RULES.playerRadius+0.08;','')
+   .replaceAll('coverSpotFree(level,p,PLAYER_PASS_GAP,','coverSpotFree(level,p,0.7,')}).length,2,'reverting PLAYER_PASS_GAP back to a flat sub-diameter margin fires (constant + call sites)');
+ assert.equal(rule.check({depthLevelSrc:depthLevel.replace(
+   'function coverSpotFree(level,p,r=0.7,box){','function coverSpotFree(level,p,r=0.7){')}).length,1,'dropping the box param from coverSpotFree signature fires');
+ assert.equal(rule.check({walkSweepSrc:walkSweep.replace(
+   'function roomCornerLanes(level,solids){','function roomCornerLanesRenamed(level,solids){')}).length,1,'removing roomCornerLanes fires');
 }

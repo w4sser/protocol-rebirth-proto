@@ -22,8 +22,15 @@ export function movePlayer(position, delta, boxes, floors, radius) {
   });
   for (let i = 0; i < steps; i++) {
     const x = Math.max(-limit, Math.min(limit, p.x + delta.x / steps));
-    if (onFloor(x,p.z) && !blocked(x, p.z)) p.x = x;
     const z = Math.max(-limit, Math.min(limit, p.z + delta.z / steps));
+    // Try the combined diagonal step first. Axis-separated sliding (the fallback below) tests
+    // each axis against the *other axis's starting value*, so a capsule cutting an inside
+    // corner at an angle can find both single-axis candidates individually blocked even though
+    // the direct diagonal point is clear -- a real stall at a 90-degree jamb, not a tunnelling
+    // risk, since the diagonal candidate is checked at the same per-step granularity as the
+    // axis-separated moves (v2.28.76: Robert 24 Nov 2026, stuck running into a depth opening).
+    if (onFloor(x,z) && !blocked(x, z)) { p.x = x; p.z = z; continue; }
+    if (onFloor(x,p.z) && !blocked(x, p.z)) p.x = x;
     if (onFloor(p.x,z) && !blocked(p.x, z)) p.z = z;
   }
   return p;

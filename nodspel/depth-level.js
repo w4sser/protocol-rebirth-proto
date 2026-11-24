@@ -245,7 +245,12 @@ function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
 export function widenDepthPassages(level){
   const target=LINK_WIDTH,t=WALL_T;
   const isRoomFloor=f=>(level.rooms??[]).some(r=>Math.abs(r.x-f.x)<.25&&Math.abs(r.z-f.z)<.25&&Math.abs(r.w-f.w)<.35&&Math.abs(r.d-f.d)<.35);
-  const passages=[...(level.corridors??[]),...(level.deadEnds??[])];
+  // level.closet (the Control Room's keycard branch, built by levels.js addBranch the same way
+  // as a dead end) was missing here: every other branch got widened to the Depth clear width,
+  // but the closet's own cap/side walls stayed at their original, narrower authored width --
+  // a jamb right where the now-wider room doorway opens into it (v2.28.76: Robert 24 Nov 2026,
+  // stuck running into the opening).
+  const passages=[...(level.corridors??[]),...(level.deadEnds??[]),...(level.closet?[level.closet]:[])];
   const floors=level.floors??[];
   const widenOne=(body,oldShort)=>{
     const alongX=Math.abs(body.dir?.x||0)>=Math.abs(body.dir?.z||0)?!!(body.dir&&body.dir.x):body.w>=body.d;
@@ -572,6 +577,12 @@ function segmentLateral(p,a,b){
 }
 // A ~1.25 m cover box's own half-extent, so its near edge (not just its center) clears the lane.
 const COVER_HALF_EXTENT=0.65;
+// The minimum face-to-face gap any two placed solids must leave for a player capsule to pass
+// between them. Used as the margin in cover-placement clearance checks -- without it, two
+// individually-valid flank crates could still land only a hair's width apart from each other,
+// pinching the capsule in the gap between them (v2.28.76: Robert 24 Nov 2026 Depth Raid
+// playtest, item 1).
+const PLAYER_PASS_GAP=2*RULES.playerRadius+0.08;
 export const DEPTH_COVER_LANE_HALF=DEPTH_CLEAR_WIDTH/2+COVER_HALF_EXTENT;
 function blocksMainRoute(p,entry,exit){
   if(!exit)return false;
@@ -613,7 +624,7 @@ export function placeDepthCover(level){
     // entry-to-enemy approach to count, silently leaving the room under its 2-cover minimum.
     const ok=p=>{
       if(!inRoom(room,p,0.65))return false;
-      if(!coverSpotFree(level,p,0.7))return false;
+      if(!coverSpotFree(level,p,PLAYER_PASS_GAP,{w:along?1.25:.55,d:along?.55:1.25}))return false;
       if(inWallOpening(level,p,0.9))return false;
       if(reserved.near(p,0.65))return false;
       if(blocksMainRoute(p,entry,exit))return false;
@@ -658,7 +669,7 @@ export function placeDepthCover(level){
     }
     // Deterministic last try: two flank spots on the approach, slightly looser but still off-lane.
     if(added<need){
-      const loose=p=>inRoom(room,p,0.5)&&coverSpotFree(level,p,0.55)&&!inWallOpening(level,p,0.8)
+      const loose=p=>inRoom(room,p,0.5)&&coverSpotFree(level,p,PLAYER_PASS_GAP,{w:along?1.25:.55,d:along?.55:1.25})&&!inWallOpening(level,p,0.8)
         &&!blocksMainRoute(p,entry,exit)
         &&!(level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.8)
         &&Math.hypot(p.x-entry.x,p.z-entry.z)>=1.2
@@ -695,8 +706,11 @@ function topUpRoomCover(level,reserved){
       if(inWallOpening(level,p,0.75))return false;
       if(blocksMainRoute(p,entry,exit))return false;
       if(nearAnyExtract(level,p))return false;
+      // Same box-vs-box footprint fix as coverSpotFree above: add the about-to-be-placed
+      // candidate's own half-extent (along/1.2 or .55), not just a flat point margin.
+      const hw=(along?1.2:.55)/2,hd=(along?.55:1.2)/2;
       const solids=[...(level.walls??[]),...(level.boxes??[])];
-      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5&&Math.abs(p.z-o.z)<(o.d||0)/2+0.5))return false;
+      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+hw+PLAYER_PASS_GAP&&Math.abs(p.z-o.z)<(o.d||0)/2+hd+PLAYER_PASS_GAP))return false;
       if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.6))return false;
       return true;
     };
@@ -738,9 +752,16 @@ function topUpRoomCover(level,reserved){
     }
   }
 }
-function coverSpotFree(level,p,r=0.7){
-  const solids=[...(level.walls??[]),...(level.boxes??[])];
-  if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+r&&Math.abs(p.z-o.z)<(o.d||0)/2+r))return false;
+// `box` is the candidate's own footprint (w/d), if it is about to be placed as a box rather
+// than just checked as a point. Without it, two elongated cover pieces (1.25 m long on their
+// flank axis) could land with their long axes facing each other and only `r` apart -- the flat
+// point-to-point margin never accounted for the new candidate's own half-extent, so the true
+// gap between the two boxes' faces could be far short of a player capsule's diameter even
+// though each individual placement passed its own check (v2.28.76: Robert 24 Nov 2026, Depth
+// Raid playtest, two flank crates pinching the capsule between them).
+function coverSpotFree(level,p,r=0.7,box){
+  const solids=[...(level.walls??[]),...(level.boxes??[])],hw=(box?.w??0)/2,hd=(box?.d??0)/2;
+  if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+hw+r&&Math.abs(p.z-o.z)<(o.d||0)/2+hd+r))return false;
   if(nearAnyExtract(level,p))return false;
   const keep=[level.start,level.exit,...(level.lootBoxes??[]),...(level.enemies??[]),...(level.hazards??[]),...(level.nodes??[]),...(level.doors??[])];
   if(keep.some(o=>o&&typeof o.x==='number'&&Math.hypot(p.x-o.x,p.z-o.z)<1.25))return false;
