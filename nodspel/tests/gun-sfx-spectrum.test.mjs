@@ -6,12 +6,22 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
+import {readFileSync} from 'node:fs';
 
 const root=resolve(fileURLToPath(new URL('../..',import.meta.url)));
 test('powder shots and the mortar boom have punch and low-end energy',()=>{
-  const run=spawnSync('python3',[resolve(root,'tools/audio/measure-sfx.py')],{encoding:'utf8',cwd:root});
-  assert.equal(run.status,0,run.stderr||run.stdout||'measure-sfx.py failed');
-  const m=JSON.parse(run.stdout);
+  // CI has no numpy: fall back to the committed measurement (regenerate with measure-sfx.py > sfx-measure.json).
+  const hasNumpy=spawnSync('python3',['-c','import numpy'],{cwd:root}).status===0;
+  let m;
+  if(hasNumpy){
+    const run=spawnSync('python3',[resolve(root,'tools/audio/measure-sfx.py')],{encoding:'utf8',cwd:root});
+    assert.equal(run.status,0,run.stderr||run.stdout||'measure-sfx.py failed');
+    m=JSON.parse(run.stdout);
+    const committed=JSON.parse(readFileSync(resolve(root,'tools/audio/sfx-measure.json'),'utf8'));
+    assert.deepEqual(committed,m,'tools/audio/sfx-measure.json is stale: rerun measure-sfx.py > tools/audio/sfx-measure.json');
+  }else{
+    m=JSON.parse(readFileSync(resolve(root,'tools/audio/sfx-measure.json'),'utf8'));
+  }
   for(const name of ['shoot-carbine','shoot-shotgun','shoot-rifle']){
     assert.ok(m[name].peakDb>-3,`${name} peak ${m[name].peakDb} dBFS is too quiet`);
     assert.ok(m[name].lowFrac>0.2,`${name} low-band fraction ${m[name].lowFrac} is too thin`);
