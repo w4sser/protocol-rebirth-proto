@@ -630,10 +630,56 @@ export const RULES=[
      if(!/if\(blocksMainRoute\(p,entry,exit\)\)return false;/.test(depth))out.push('nodspel/depth-level.js: placeDepthCover candidate spots must reject anything that blocks the entry-exit lane');
      if(!depth.includes('export function combatRoomsWithCover')||!/return \{room,entry,exit,enemies,boxes,between,blockingLane\};/.test(depth))out.push('nodspel/depth-level.js: combatRoomsWithCover must expose which cover (if any) blocks the main-route lane, so tests can prove the lane stays clear');
      return out;}},
+  {id:'depth-cover-extract-clear',pr:'v2.28.75 depth-collision-sfx (t451u item 5)',why:"Robert 24 Nov 2026 Depth Raid playtest: a tactical cover crate landed on top of an area's extract pad, blocking the extraction beam. placeDepthCover() runs before level.exit exists (it is only set after the function returns), so the single check meant to keep cover off the pad (coverSpotFree's generic 1.25m keep-list, keyed on level.exit) never fired. Every candidate path (placeDepthCover's own ok()/loose() and topUpRoomCover's clear()) must reject spots near any area's pad, keyed off level.depthExits (set before placeDepthCover runs), not the not-yet-set level.exit.",
+   check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js');const out=[];
+     if(!depth.includes('export const DEPTH_EXTRACT_COVER_CLEAR=')||!/function nearAnyExtract\(level,p\)\{\s*\n\s*return \(level\.depthExits\?\?\[\]\)\.some\(e=>Math\.hypot\(p\.x-e\.x,p\.z-e\.z\)<DEPTH_EXTRACT_COVER_CLEAR\);/.test(depth))out.push('nodspel/depth-level.js: a nearAnyExtract(level,p) helper keyed on level.depthExits and DEPTH_EXTRACT_COVER_CLEAR is missing');
+     if(!/coverSpotFree[\s\S]{0,200}if\(nearAnyExtract\(level,p\)\)return false;/.test(depth))out.push('nodspel/depth-level.js: coverSpotFree must reject spots near any area extract pad');
+     if(!/function topUpRoomCover[\s\S]{0,1200}if\(nearAnyExtract\(level,p\)\)return false;/.test(depth))out.push('nodspel/depth-level.js: topUpRoomCover\'s clear() must reject spots near any area extract pad too (it does not call coverSpotFree)');
+     return out;}},
+  {id:'depth-wall-jamb-visual-close',pr:'v2.28.75 depth-collision-sfx (t451u item 2)',why:"Robert 24 Nov 2026 Depth Raid playtest: wall corners at Depth doorways didn't align -- addLinkSegment() trims each corridor side wall short of the room boundary so the player capsule never snags on the jamb (v2.28.66), but that same trim is a real hole in the render-only wall shell (bunker.js shellMesh(wallSolids(level.walls))). A render-only, untrimmed wallDecor copy must close it without adding a collider.",
+   check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),bunker=ctx.bunkerSrc??read('nodspel/bunker.js');const out=[];
+     if(!/function addLinkSegment\([^)]*\)\{[\s\S]{0,2000}?\(from\.wallDecor\?\?=\[\]\)\.push/.test(depth))out.push('nodspel/depth-level.js: addLinkSegment must also push an untrimmed render-only wall into wallDecor for every side wall it trims');
+     if(!/MERGE_KEYS=\[[^\]]*'wallDecor'/.test(depth))out.push("nodspel/depth-level.js: MERGE_KEYS must carry wallDecor from each area part into the merged Depth level");
+     if(!/shellMesh\(wallSolids\(\[\.\.\.level\.walls,\.\.\.\(level\.wallDecor\?\?\[\]\)\]\)/.test(bunker))out.push('nodspel/bunker.js: the wall shell (buildBunker) must render level.walls plus level.wallDecor, not level.walls alone, or the jamb notch reopens');
+     if(/playerSolids[\s\S]{0,200}wallDecor/.test(read('nodspel/game.mjs')))out.push('nodspel/game.mjs: wallDecor must stay render-only -- it must never reach the collision list');
+     return out;}},
+  {id:'depth-link-wall-trim-and-door-width',pr:'v2.28.75 depth-collision-sfx (t451u item 1)',why:"Robert 24 Nov 2026 Depth Raid playtest: a near-wall sweep off the -15.5,-33 bend stalled permanently. addLinkSegment() trimmed its side walls off the +overlap-padded w/d (meant only for floor continuity), not the true segment endpoints, so a wall corner landed only ~0.4m short of a bend instead of the intended LINK_BEND_TRIM (2.0m) -- close enough to pinch a capsule hugging that side of the perpendicular corridor. Widening the trim to the true endpoints then let a player sidestep a locked depth door whose doorZ lands inside that same bend pad, so the door itself must widen to the pad's width to still seal the passage.",
+   check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js');const out=[];
+     if(!/const LINK_BEND_TRIM=LINK_WIDTH\/2\+WALL_T;/.test(depth))out.push('nodspel/depth-level.js: LINK_BEND_TRIM must be defined as a full LINK_WIDTH/2+WALL_T setback');
+     if(!/const full=Math\.abs\(x2-x1\),wallW=Math\.max\(\.3,full-2\*LINK_BEND_TRIM\);/.test(depth)||!/const full=Math\.abs\(z2-z1\),wallD=Math\.max\(\.3,full-2\*LINK_BEND_TRIM\);/.test(depth))out.push('nodspel/depth-level.js: addLinkSegment must trim its side walls off the true (unpadded) segment length, not the +overlap floor width/depth');
+     if(!/doorW=LINK_WIDTH\+2\*DEPTH_CHAMFER/.test(depth))out.push('nodspel/depth-level.js: linkParts must widen the locked depth door to the DEPTH_CHAMFER bend pad\'s width so it seals the passage even where the (now fully trimmed) side walls stay open for bend clearance');
+     return out;}},
   {id:'depth-nodes-no-collider',pr:'v2.28.66 depth-nav-aim',why:"Robert 22 Nov 2026 playtest (CONTROL ROOM screenshot): a leftover Node Raid node pad blocked the player and bullets in a Depth Area. setCollisions() in game.mjs built a 1.4x1.4 collider for every round.level.nodes entry unconditionally, with no depth-aware guard, even though the same obstacle list also gates the player's shots.",
    check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
      if(!/playerSolids=\[\.\.\.solids,\.\.\.\(round\.level\.depth\?\[\]:round\.level\.nodes\.map\(n=>\(\{x:n\.x,z:n\.z,w:1\.4,d:1\.4\}\)\)\)/.test(game))out.push('nodspel/game.mjs: setCollisions must skip node colliders entirely while round.level.depth is set');
      if(!/fireAimedWeapon\(weapon,round,position,direction,clock,playerSolids,playerMoving,tap\)/.test(game))out.push('nodspel/game.mjs: fire() must still trace shots against the same playerSolids list (one source of truth for movement and bullets)');
+     return out;}},
+  {id:'depth-extract-no-collider',pr:'v2.28.75 depth-collision-sfx (t451u item 4)',why:"Robert 24 Nov 2026 Depth Raid playtest: setCollisions() still pushed a 2x0.22 solid onto every unopened Depth extract/exit pad -- a walk-blocker. Depth extract points must always be walk-through, open or closed; the beam/extract interaction is a radius check elsewhere (depthExtractOpen in world.js, inDepthExtract), never a physical collider.",
+   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     const start=game.indexOf('function setCollisions(');
+     if(start<0){out.push('nodspel/game.mjs: setCollisions() is missing');return out;}
+     let i=game.indexOf('{',start),depth=0;
+     for(;i<game.length;i++){if(game[i]==='{')depth++;else if(game[i]==='}'){depth--;if(depth===0)break;}}
+     const body=game.slice(start,i+1);
+     if(/round\.level\.extracts\?\?round\.level\.depthExits/.test(body))out.push('nodspel/game.mjs: setCollisions must not push extract/hatch solids when round.depth is set -- Depth extract pads are always walk-through');
+     if(!/if\(!round\.depth&&!exitIsOpen\(round\)\)solids\.push\(\{x:round\.level\.exit\.x,z:round\.level\.exit\.z,w:2,d:\.22\}\);/.test(body))out.push('nodspel/game.mjs: the closed-exit solid must be gated to non-Depth rounds only');
+     return out;}},
+  {id:'bit-face-flipY',pr:'v2.28.75 depth-collision-sfx (t451u item 3)',why:"Robert 24 Nov 2026 Depth Raid playtest: BIT's face was upside down after the #306 textured BIT. bit_screen UVs follow glTF (V=0 at the top of the mesh); CanvasTexture defaults to flipY=true and mirrored the eyes to the chin. The face texture must set flipY=false.",
+   check(ctx={}){const src=ctx.bitModelSrc??read('nodspel/bit-model.js');const out=[];
+     if(!/texture\.flipY=false/.test(src))out.push('nodspel/bit-model.js: createBitFace must set texture.flipY=false so the canvas is not mirrored on bit_screen');
+     return out;}},
+  {id:'powder-and-mortar-boom',pr:'v2.28.75 depth-collision-sfx (t451u item 6)',why:"Robert 24 Nov 2026 Depth Raid playtest: shots still sounded like pea-shooters, and mortar projectiles had no deep muffled explosion. Runtime shotBuffer params must keep a sub-range thump; an explosion cue must be synthesized (not a sine tone) and fired from both mortar/grenade blasts and fuel-drum detonations.",
+   check(ctx={}){const data=ctx.audioDataSrc??read('data/audio.js'),audio=ctx.audioSrc??read('ui/audio.js'),gen=ctx.genSfxSrc??read('tools/audio/gen-sfx.py'),combat=ctx.combatSrc??read('nodspel/combat.js'),round=ctx.roundSrc??read('nodspel/round.js');const out=[];
+     if(!/add\('explosion'/.test(data))out.push("data/audio.js must register an 'explosion' SFX cue");
+     if(!/thumpHz:90/.test(data))out.push('data/audio.js default powder thumpHz must stay in the sub/low range (90 Hz), not a mid-range tick');
+     if(!/explosionBuffer\(/.test(audio)||!/name===.explosion./.test(audio))out.push('ui/audio.js must synthesize explosionBuffer and play it for the explosion cue, not wait on a file decode alone');
+     const expStart=gen.indexOf('def explosion(');
+     const expEnd=expStart<0?-1:gen.indexOf('\ndef ',expStart+1);
+     const expBody=expStart<0?'':gen.slice(expStart,expEnd<0?expStart+800:expEnd);
+     if(expStart<0||/return tone\(|np\.sin\(/.test(expBody))out.push('tools/audio/gen-sfx.py explosion() must be a low-passed noise boom, not a sine tone');
+     if(!/if name==.explosion.:/.test(gen)||!/return explosion\(rng\)/.test(gen))out.push("tools/audio/gen-sfx.py cue() must route 'explosion' to explosion()");
+     if(!/audioEvent\('explosion'\)/.test(combat))out.push("nodspel/combat.js stepBlasts must play audioEvent('explosion') when a shell detonates");
+     if(!/audioEvent\('explosion'\)/.test(round))out.push("nodspel/round.js detonateDrum must play audioEvent('explosion') when a drum detonates");
      return out;}},
 ];
 

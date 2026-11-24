@@ -1,15 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.74';
-import {audioEvent} from './audio.js?v=2.28.74';
-import {ownRooms} from './perks.js?v=2.28.74';
-import {RULES,hazardState} from './levels.js?v=2.28.74';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.74';
-import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.74-ftue-opening-v1';
-import {houseWaypoint} from './house.js?v=2.28.74';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.74';
-import {detectionMultiplier} from './stakes.js?v=2.28.74';
-import {dashInvulnerable} from './dash.js?v=2.28.74';
-import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.74-bridge1';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.75';
+import {audioEvent} from './audio.js?v=2.28.75';
+import {ownRooms} from './perks.js?v=2.28.75';
+import {RULES,hazardState} from './levels.js?v=2.28.75';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.75';
+import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.75-ftue-opening-v1';
+import {houseWaypoint} from './house.js?v=2.28.75';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.75';
+import {detectionMultiplier} from './stakes.js?v=2.28.75';
+import {dashInvulnerable} from './dash.js?v=2.28.75';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.75-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -183,7 +183,7 @@ function stepBlasts(round,combat,player,now,dash=null,obstacles=[]){
   for(let i=combat.blasts.length-1;i>=0;i--){
     const b=combat.blasts[i];if(b.sleeping)continue;if(now<b.detonateAt)continue;
     combat.blasts.splice(i,1); // a committed shell detonates once, even if its thrower died
-    round.feedback?.explosion(b.x,b.z,b.radius);
+    round.feedback?.explosion(b.x,b.z,b.radius);audioEvent('explosion');
     const G=RULES.encounters.grenadier,actors=round.level.enemies;
     // Snapshot eligibility before pushing anyone: the original ring defines all hits.
     const targets=actors.filter(e=>e.health>0&&e.active!==false&&!e.sleeping&&e.type!=='generator'&&Math.hypot(e.x-b.x,e.z-b.z)<=b.radius);

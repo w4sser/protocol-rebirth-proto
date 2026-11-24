@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {BIT_MODEL,attachBitModel,bitFaceGeometry,createBitFace} from '../bit-model.js?v=2.28.74';
-import {BIT_EXPRESSIONS} from '../bit-expression.js?v=2.28.74';
+import {BIT_MODEL,attachBitModel,bitFaceGeometry,createBitFace} from '../bit-model.js?v=2.28.75';
+import {BIT_EXPRESSIONS} from '../bit-expression.js?v=2.28.75';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -32,6 +32,30 @@ test('BIT GLB has a separate screen with 0..1 UVs, casing and antenna pivot',asy
   const uv=root.getObjectByName('bit_screen').geometry.attributes.uv;
   let lo=Infinity,hi=-Infinity;for(let i=0;i<uv.count;i++){lo=Math.min(lo,uv.getX(i),uv.getY(i));hi=Math.max(hi,uv.getX(i),uv.getY(i));}
   assert.ok(lo>-1e-3&&lo<.01&&hi>.99&&hi<1.001,`uv range ${lo}..${hi}`);
+});
+
+// Regression for Robert's 24 Nov 2026 Depth Raid note: BIT's face rendered upside down after the #306
+// textured BIT swap. bit_screen's UVs follow the glTF convention (V=0 at the top of the mesh); a
+// CanvasTexture defaults to flipY=true, which mirrors the canvas vertically on the mesh -- eyes would land
+// at the chin. This locks both halves of the fix: the mesh's top-of-screen really is low V, and the face
+// texture must use flipY=false (matching GLTFLoader's own textures) so the canvas's top row (eyes, drawn
+// above the smile) lands on that low-V edge instead of being flipped to the bottom.
+test('BIT face renders right-side up: mesh top is low V, and the face texture does not flip that',async()=>{
+  const root=await bitScene();
+  const geo=root.getObjectByName('bit_screen').geometry,pos=geo.attributes.position,uv=geo.attributes.uv;
+  let maxY=-Infinity,maxYV=null,minY=Infinity,minYV=null;
+  for(let i=0;i<pos.count;i++){
+    const y=pos.getY(i);
+    if(y>maxY){maxY=y;maxYV=uv.getY(i);}
+    if(y<minY){minY=y;minYV=uv.getY(i);}
+  }
+  assert.ok(maxYV<minYV-.3,`top-of-mesh vertex (uv.y=${maxYV}) should sit at a much lower V than the bottom-of-mesh vertex (uv.y=${minYV})`);
+
+  const g=bitFaceGeometry('idle');
+  assert.ok(g.eyeY<534,'eyes are drawn above the smile baseline on the canvas (lower row index = higher up)');
+
+  const face=createBitFace(1,fakeDoc());
+  assert.equal(face.texture.flipY,false,'face texture must not flip, or the glTF V=0-top screen UVs invert it');
 });
 
 test('attach swaps the procedural boxes for the GLB and drives the face as an emissive texture',async()=>{

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.74';
+import {GRANITE_KIT,graniteFit,planGraniteSlabs,dressGraniteKit,SLAB_RULES} from '../granite-kit.js?v=2.28.75';
 
 // GLTFLoader reads embedded textures via self.URL; browsers have `self`, Node does not.
 globalThis.self??=globalThis;
@@ -100,7 +100,7 @@ test('marked coast rocks become shoreline clusters facing the sea, at their mark
 });
 
 test('pines: textured GLBs are grounded and replace pineTree groups with one instanced draw call',async()=>{
-  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.74');
+  const {dressPines,PINE_KIT}=await import('../granite-kit.js?v=2.28.75');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   for(const f of [PINE_KIT.high,PINE_KIT.low]){
@@ -116,7 +116,7 @@ test('pines: textured GLBs are grounded and replace pineTree groups with one ins
 });
 
 test('fuel drum: textured mesh replaces the procedural parts and takes over the cook-off flash material',async()=>{
-  const {dressFuelDrum}=await import('../granite-kit.js?v=2.28.74');
+  const {dressFuelDrum}=await import('../granite-kit.js?v=2.28.75');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   const g=new THREE.Group(),body=new THREE.Mesh(),ring=new THREE.Mesh();g.add(body,ring);
@@ -130,7 +130,7 @@ test('fuel drum: textured mesh replaces the procedural parts and takes over the 
 });
 
 test('supply crates: procedural cover crates become one instanced, collider-fitted draw call',async()=>{
-  const {dressSupplyCrates}=await import('../granite-kit.js?v=2.28.74');
+  const {dressSupplyCrates}=await import('../granite-kit.js?v=2.28.75');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   const group=new THREE.Group(),cols=[{x:0,z:0,w:1.2,d:.8,h:.7},{x:4,z:0,w:.8,d:1.6,h:.9}];
@@ -143,7 +143,7 @@ test('supply crates: procedural cover crates become one instanced, collider-fitt
 });
 
 test('locked door: textured blast door takes the panel slot, fitted and turned to the collider',async()=>{
-  const {dressLockedDoor}=await import('../granite-kit.js?v=2.28.74');
+  const {dressLockedDoor}=await import('../granite-kit.js?v=2.28.75');
   const pload=async url=>{const file=url.replace('../assets/','../../assets/').split('?')[0];const bytes=readFileSync(new URL(file,import.meta.url));
     return (await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;};
   const g=new THREE.Group(),panel=new THREE.Mesh();g.add(panel);

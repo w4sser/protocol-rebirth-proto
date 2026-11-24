@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {RULES} from '../levels.js';
 import {moveWithActors,movePlayer,traceTargets} from '../physics.mjs';
 import {doorSolids} from '../round.js';
-import {generateDepthLevel,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF} from '../depth-raid.js';
+import {generateDepthLevel,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from '../depth-raid.js';
 
 const SEEDS=['probe-seed','alpha','bravo','charlie','delta','echo','foxtrot','golf','layout','gear-on-pad',
   'clear-prompts','go-deeper-walk','push-without-clear','seed0','seed7','seed19','repro-depth'];
@@ -230,6 +230,25 @@ test('walking straight through every doorway and corridor opening stays at full 
       }
       const retention=traveled/intended,reached=Math.hypot(p.x-end.x,p.z-end.z)<=0.3;
       if(retention<0.95||!reached)failures.push(`${seed} ${op.id} retention ${retention.toFixed(2)} reached=${reached} at ${p.x.toFixed(2)},${p.z.toFixed(2)}`);
+    }
+  }
+  assert.equal(failures.length,0,failures.join('\n'));
+});
+
+// v2.28.75 (Robert 24 Nov 2026 Depth Raid playtest, t451u item 5): a tactical cover crate landed
+// on top of an area's extract pad. placeDepthCover() ran before level.exit existed (it is only set
+// after the function returns), so the one check meant to keep cover off the pad never fired. The
+// fix checks every area's pad (level.depthExits, set before placeDepthCover runs) directly.
+test('no depthCover box (from placeDepthCover or topUpRoomCover) overlaps any area extract pad', () => {
+  const failures=[];
+  for(const seed of SEEDS){
+    const L=generateDepthLevel(seed);
+    assert.ok((L.depthExits??[]).length===3,`${seed} expected 3 depth exits`);
+    for(const box of (L.boxes??[]).filter(b=>b.depthCover)){
+      for(const e of L.depthExits){
+        const d=Math.hypot(box.x-e.x,box.z-e.z);
+        if(d<DEPTH_EXTRACT_COVER_CLEAR)failures.push(`${seed} cover at ${box.x},${box.z} is ${d.toFixed(2)}m from area ${e.depthArea}'s extract pad (need >= ${DEPTH_EXTRACT_COVER_CLEAR.toFixed(2)})`);
+      }
     }
   }
   assert.equal(failures.length,0,failures.join('\n'));

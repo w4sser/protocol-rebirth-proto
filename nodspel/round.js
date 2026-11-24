@@ -1,16 +1,16 @@
 // @hot stepShelves
-import {applyFtueLevel} from './ftue.js?v=2.28.74-ftue-opening-v1';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.74';
-import {extractAvailable} from './big-level.js?v=2.28.74';
-import {rarityOf} from './rarity.js?v=2.28.74';
-import {audioEvent} from './audio.js?v=2.28.74';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.74';
-import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.74';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.74';
-import {emptyBag,bagItems} from './raid.js?v=2.28.74';
-import {traceTargets,movePlayer} from './physics.mjs?v=2.28.74';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.28.74';
-import {createStakesState,heal} from './stakes.js?v=2.28.74-ftue-opening-v1';
+import {applyFtueLevel} from './ftue.js?v=2.28.75-ftue-opening-v1';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.75';
+import {extractAvailable} from './big-level.js?v=2.28.75';
+import {rarityOf} from './rarity.js?v=2.28.75';
+import {audioEvent} from './audio.js?v=2.28.75';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.75';
+import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.75';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.75';
+import {emptyBag,bagItems} from './raid.js?v=2.28.75';
+import {traceTargets,movePlayer} from './physics.mjs?v=2.28.75';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.28.75';
+import {createStakesState,heal} from './stakes.js?v=2.28.75-ftue-opening-v1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -380,7 +380,7 @@ export function detonateDrum(round,id,now,obstacles=[],player=round.shooter){
   if(!drum||drum.active)return false;
   drum.hits=(drum.hits??0)+1;
   if(drum.hits<(drum.hitsToDetonate??1))return false;
-  drum.active=true;drum.cookingAt=null;drum.explodedAt=now;
+  drum.active=true;drum.cookingAt=null;drum.explodedAt=now;audioEvent('explosion');
   const before=round.enemiesDefeated;
   for(const enemy of round.level.enemies){
     if(enemy.health<=0||enemy.active===false||enemy.type==='generator')continue;
