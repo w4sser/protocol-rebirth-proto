@@ -689,3 +689,18 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({walkSweepSrc:walkSweep.replace(
    'function roomCornerLanes(level,solids){','function roomCornerLanesRenamed(level,solids){')}).length,1,'removing roomCornerLanes fires');
 }
+
+{
+ const rule=by('enemy-model-no-permanent-reject-cache');
+ assert.equal(rule.check().length,0,'enemy-model-no-permanent-reject-cache holds on real source');
+ assert.equal(rule.check({enemyModelsSrc:'',raidEnemiesSrc:'',gameSrc:''}).length,4,'all enemy-model-no-permanent-reject-cache guards fire');
+ const models=fs.readFileSync(new URL('../nodspel/enemy-models.js',import.meta.url),'utf8');
+ const raidEnemies=fs.readFileSync(new URL('../data/raid-enemies.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ assert.equal(rule.check({enemyModelsSrc:models.replace(
+   'promise.catch(()=>{if(cache.get(id)===promise)cache.delete(id);});\n    ','')}).length,1,'dropping the reject-clears-cache guard fires');
+ assert.equal(rule.check({enemyModelsSrc:models.replace('loadEnemyModel.preload=','loadEnemyModel.preloadRenamed=')}).length,1,'dropping preload() fires');
+ assert.equal(rule.check({raidEnemiesSrc:raidEnemies.replace('models:{timeoutMs:20000}','models:{timeoutMs:3500}')}).length,1,'reverting the timeout back to 3500ms fires');
+ assert.equal(rule.check({gameSrc:game.replace(
+   "loadEnemyModel.preload?.((round.level.enemies??[]).map(e=>visualFor(e)?.archetype).filter(Boolean));\n  ",'')}).length,1,'dropping the loadLevelInner preload call fires');
+}

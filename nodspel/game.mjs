@@ -3,8 +3,9 @@ import {shelfBitLine} from './shelf-intro.js?v=2.28.75';
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
 import {initFtueRound} from './ftue.js?v=2.28.75-ftue-opening-v1';
 import {artilleryFlight} from './artillery-flight.mjs?v=2.28.75-bridge1';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.75';
+import {isShieldTurret,ENEMY_COLORS,visualFor} from './enemies.js?v=2.28.75';
 import {animateEnemyModel} from './enemy-animation.js?v=2.28.75';
+import {loadEnemyModel} from './enemy-models.js?v=2.28.75';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.75';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.75';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.75-op01-default';
@@ -1324,6 +1325,10 @@ function loadLevelInner(){
   hideSwap();
   applyEnemyDemo(round.level,location.search,AREA_SEL);
   applyEnemyDemoMixed(round.level,location.search,AREA_SEL);
+  // Start every archetype this level (Depth: all stitched areas, not just the first) will need
+  // fetching now, before buildWorld() below kicks off the env texture loads that used to win the
+  // race against a 3.5s enemy-model timeout on a first raid (v2.28.76).
+  loadEnemyModel.preload?.((round.level.enemies??[]).map(e=>visualFor(e)?.archetype).filter(Boolean));
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   playerMoving=false;position=safeSpawn(round.level);aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
   player.position.set(position.x,0,position.z);

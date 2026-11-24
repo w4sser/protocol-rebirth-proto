@@ -690,6 +690,14 @@ export const RULES=[
      if(!/coverSpotFree\(level,p,PLAYER_PASS_GAP,\{w:along\?1\.25:\.55,d:along\?\.55:1\.25\}\)/.test(depth))out.push('nodspel/depth-level.js: placeDepthCover\'s candidate check must pass PLAYER_PASS_GAP and the candidate\'s footprint to coverSpotFree');
      if(!/function roomCornerLanes\(level,solids\)/.test(sweep))out.push('nodspel/tests/walk-sweep.test.mjs: the walk sweep must cover diagonal/around-the-inner-corner approaches into every room opening (roomCornerLanes), not only straight centerline/near-wall lanes');
      return out;}},
+  {id:'enemy-model-no-permanent-reject-cache',pr:'v2.28.76 (t452u item 2)',why:"#306 (v2.28.68) shipped textured enemies; #314 only bumped ?v= and did not revert the loader, yet a live playtest (t452u) showed almost every enemy except mortar back to the old procedural mesh. Root cause: createEnemyModelLoader() cached a rejected (timed-out) promise forever, so the first raid's 3500ms timeout -- racing buildWorld()'s env texture loads for the same frame -- permanently fell back that archetype for the rest of the session once it lost the race, even though a later request for the same model could have succeeded.",
+   check(ctx={}){const models=ctx.enemyModelsSrc??read('nodspel/enemy-models.js'),data=ctx.raidEnemiesSrc??read('data/raid-enemies.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!/promise\.catch\(\(\)=>\{if\(cache\.get\(id\)===promise\)cache\.delete\(id\);\}\);/.test(models))out.push('nodspel/enemy-models.js: a rejected load must delete its own cache entry so the next call retries instead of replaying a stale rejection forever');
+     if(!/loadEnemyModel\.preload=/.test(models))out.push('nodspel/enemy-models.js: createEnemyModelLoader must expose a preload(ids) so a level can start fetching every archetype before anything on screen needs one');
+     const timeout=Number((data.match(/models:\{timeoutMs:(\d+)\}/)||[])[1]);
+     if(!(timeout>=10000))out.push('data/raid-enemies.js: models.timeoutMs must give a ~1.3-1.7MB enemy GLB enough time on a phone sharing bandwidth with env textures (at least 10000ms, matching nodspel/town.js loadKit\'s 20000ms convention), not the old 3500ms');
+     if(!/loadEnemyModel\.preload\?\.\(\(round\.level\.enemies\?\?\[\]\)\.map\(e=>visualFor\(e\)\?\.archetype\)\.filter\(Boolean\)\);/.test(game))out.push('nodspel/game.mjs: loadLevelInner must preload every archetype round.level.enemies will need before buildWorld() starts competing for bandwidth');
+     return out;}},
 ];
 
 
