@@ -656,7 +656,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 {
  const rule=by('powder-and-mortar-boom');
  assert.equal(rule.check().length,0,'powder and mortar boom holds on real source');
- assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,7,'all powder-and-mortar-boom guards fire');
+ assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,12,'all powder-and-mortar-boom guards fire');
  const data=fs.readFileSync(new URL('../data/audio.js',import.meta.url),'utf8');
  const audio=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
  const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
@@ -668,6 +668,25 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({genSfxSrc:gen.replaceAll('explosion(','boom(')}).length,2,'renaming explosion() fires the def and the cue route');
  assert.equal(rule.check({combatSrc:combat.replace("audioEvent('explosion')",'')}).length,1,'dropping the mortar explosion cue fires');
  assert.equal(rule.check({roundSrc:round.replace("audioEvent('explosion')",'')}).length,1,'dropping the drum explosion cue fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('crackDecay:.003','crackDecay:.007')}).length,1,'reverting crackDecay back to the old 7ms crack fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('drive:3.4','drive:2')}).length,1,'reverting drive back to the old under-saturated 2 fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('compressor:{threshold:-2,knee:0,ratio:20,attack:.0005,release:.06}','compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08}')}).length,1,'reverting the limiter back to the old squashing compressor fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('sfx:0.95','sfx:0.75')}).length,1,'reverting defaults.sfx back to the old 0.75 fires');
+ assert.equal(rule.check({genSfxSrc:gen.replace("crack_decay=.003,","crack_decay=.007,")}).length,1,'reintroducing the old 7ms crack_decay in POWDER_PROFILES fires');
+}
+
+{
+ const rule=by('ui-clicks-mechanical-not-sine');
+ assert.equal(rule.check().length,0,'ui-clicks-mechanical-not-sine holds on real source');
+ assert.equal(rule.check({genSfxSrc:''}).length,3,'all ui-clicks-mechanical-not-sine guards fire');
+ const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
+ assert.equal(rule.check({genSfxSrc:gen.replace("'ui-tap': dict","'ui-tapx': dict")}).length,1,'renaming ui-tap out of UI_CLICK_PROFILES fires the registration check');
+ assert.equal(rule.check({genSfxSrc:gen.replace(
+   "    return P['ceiling'] * np.tanh(x * fade * P['drive'])",
+   "    return tone(P['duration'], P['hz'], P['hz'], 0, rng)")}).length,1,'swapping click() for a tone() call fires');
+ assert.equal(rule.check({genSfxSrc:gen.replace(
+   "params = {'kill':(.18,900,1400)",
+   "params = {'ui-tap':(.055,800,600), 'kill':(.18,900,1400)")}).length,1,'re-adding ui-tap to the generic tone()-based params dict fires');
 }
 
 {

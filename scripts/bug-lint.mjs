@@ -668,7 +668,7 @@ export const RULES=[
    check(ctx={}){const src=ctx.bitModelSrc??read('nodspel/bit-model.js');const out=[];
      if(!/texture\.flipY=false/.test(src))out.push('nodspel/bit-model.js: createBitFace must set texture.flipY=false so the canvas is not mirrored on bit_screen');
      return out;}},
-  {id:'powder-and-mortar-boom',pr:'v2.28.75 depth-collision-sfx (t451u item 6)',why:"Robert 24 Nov 2026 Depth Raid playtest: shots still sounded like pea-shooters, and mortar projectiles had no deep muffled explosion. Runtime shotBuffer params must keep a sub-range thump; an explosion cue must be synthesized (not a sine tone) and fired from both mortar/grenade blasts and fuel-drum detonations.",
+  {id:'powder-and-mortar-boom',pr:'v2.28.75/76 depth-collision-sfx (t451u item 6, t452u item 3)',why:"Robert 24 Nov 2026 Depth Raid playtest: shots still sounded like pea-shooters, and mortar projectiles had no deep muffled explosion. Runtime shotBuffer params must keep a sub-range thump; an explosion cue must be synthesized (not a sine tone) and fired from both mortar/grenade blasts and fuel-drum detonations. v2.28.76 follow-up (t452u, same complaint: 'still no bang'): peak was already near 0 dBFS -- RMS/punch was the weak link -- so the crack transient must stay short, the drive/saturation must stay hard, and the shotLimiter must actually be a limiter (threshold near 0 dBFS, the Web Audio max 20:1 ratio) instead of the old threshold:-10/ratio:4 compressor that squashed almost the whole shot.",
    check(ctx={}){const data=ctx.audioDataSrc??read('data/audio.js'),audio=ctx.audioSrc??read('ui/audio.js'),gen=ctx.genSfxSrc??read('tools/audio/gen-sfx.py'),combat=ctx.combatSrc??read('nodspel/combat.js'),round=ctx.roundSrc??read('nodspel/round.js');const out=[];
      if(!/add\('explosion'/.test(data))out.push("data/audio.js must register an 'explosion' SFX cue");
      if(!/thumpHz:90/.test(data))out.push('data/audio.js default powder thumpHz must stay in the sub/low range (90 Hz), not a mid-range tick');
@@ -680,6 +680,22 @@ export const RULES=[
      if(!/if name==.explosion.:/.test(gen)||!/return explosion\(rng\)/.test(gen))out.push("tools/audio/gen-sfx.py cue() must route 'explosion' to explosion()");
      if(!/audioEvent\('explosion'\)/.test(combat))out.push("nodspel/combat.js stepBlasts must play audioEvent('explosion') when a shell detonates");
      if(!/audioEvent\('explosion'\)/.test(round))out.push("nodspel/round.js detonateDrum must play audioEvent('explosion') when a drum detonates");
+     if(!/duration:\.34,attack:\.0005,fade:\.015,crackDecay:\.003,/.test(data))out.push('data/audio.js shots.crackDecay must stay a genuinely short (<5ms) broadband transient, not the old 7ms/4ms crack');
+     if(!/crackGain:1\.6,bodyGain:1\.15,thumpGain:2\.2,tailGain:\.32,drive:3\.4,ceiling:\.92,/.test(data))out.push('data/audio.js shots.drive must stay driven hard into saturation for a loud RMS at the same clamped peak, not the old drive:2');
+     if(!/compressor:\{threshold:-2,knee:0,ratio:20,attack:\.0005,release:\.06\}/.test(data))out.push('data/audio.js shots.compressor must be a real limiter (threshold near 0 dBFS, ratio 20) -- the old threshold:-10/ratio:4 compressor squashed almost the whole shot');
+     if(!/sfx:0\.95/.test(data))out.push('data/audio.js defaults.sfx must stay raised (0.95) relative to music (0.12), not the old 0.75');
+     if(!/POWDER_PROFILES = \{/.test(gen)||/crack_decay=\.007|crack_decay=\.004\b/.test(gen))out.push('tools/audio/gen-sfx.py POWDER_PROFILES must keep every crack_decay short (the old 7ms/4ms values must not come back)');
+     return out;}},
+  {id:'ui-clicks-mechanical-not-sine',pr:'v2.28.76 (t452u item 3)',why:"Robert 24 Nov 2026: UI button sounds (ui-tap, ui-back, ui-confirm) are \"too cute\" -- gen-sfx.py's cue() routed all three through tone(), a sine-wave chirp generator, and ui/audio.js plays whichever file gen-sfx.py ships (no runtime synthesis for these, unlike shots/explosion). They must be dry, short, low mechanical clicks (noise burst), never a chirpy sine blip.",
+   check(ctx={}){const gen=ctx.genSfxSrc??read('tools/audio/gen-sfx.py');const out=[];
+     if(!/UI_CLICK_PROFILES = \{[\s\S]*?'ui-tap':[\s\S]*?'ui-back':[\s\S]*?'ui-confirm':/.test(gen))out.push("tools/audio/gen-sfx.py must register ui-tap/ui-back/ui-confirm in UI_CLICK_PROFILES");
+     if(!/if name in UI_CLICK_PROFILES:\s*\n\s*return click\(name, rng\)/.test(gen))out.push('tools/audio/gen-sfx.py cue() must route ui-tap/ui-back/ui-confirm through click(), not the generic tone()-based params dict');
+     const clickStart=gen.indexOf('def click(name, rng):');
+     const clickEnd=clickStart<0?-1:gen.indexOf('\ndef ',clickStart+1);
+     const clickBody=clickStart<0?'':gen.slice(clickStart,clickEnd<0?clickStart+900:clickEnd);
+     if(clickStart<0||/tone\(|np\.sin\(/.test(clickBody))out.push('tools/audio/gen-sfx.py click() must stay a noise burst -- no tone()/np.sin( sine oscillator');
+     const params=(gen.match(/params = \{[^}]*\}/)||[''])[0];
+     if(/'ui-tap'|'ui-back'|'ui-confirm'/.test(params))out.push("tools/audio/gen-sfx.py: ui-tap/ui-back/ui-confirm must not also be listed in the generic tone()-based params dict");
      return out;}},
   {id:'depth-opening-diagonal-stall',pr:'v2.28.76 (t452u item 1)',why:"Robert 24 Nov 2026 Depth Raid playtest: \"Fastnade lite har nar jag sprang in mot utrymmet dar\" (snagged running into the opening) -- walk-sweep.test.mjs only ever walked lanes straight along their travel axis, so three separate causes stayed green: (1) movePlayer's axis-separated stepping could find both single-axis updates blocked at an inside corner even though the direct diagonal point was clear; (2) widenDepthPassages never widened level.closet (the Control Room's keycard branch, built the same way as a dead end) to the Depth clear width, leaving its jamb narrower than the room doorway now opening into it; (3) cover-box placement margins did not add a candidate's own footprint, so two flank crates could land with less than a capsule's diameter between them.",
    check(ctx={}){const physics=ctx.physicsSrc??read('nodspel/physics.mjs'),depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),sweep=ctx.walkSweepSrc??read('nodspel/tests/walk-sweep.test.mjs');const out=[];

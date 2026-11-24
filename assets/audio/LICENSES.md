@@ -8,7 +8,7 @@ BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am
 Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.
 CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper audition clips ship.
 
-Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bursts: a sharp transient crack, a low-end body thump and a short room tail/reverb for powder weapons (heavier as of v2.28.75), or a valve click and compressed-air hiss for the air/pneumatic profile. Mortar/grenade blasts and fuel-drum detonations use a deep muffled boom (low-passed noise, sub thump, rumble tail) from the same runtime synth (`explosionBuffer`) and shipping `sfx/explosion.ogg` / `.m4a`. Shipping `sfx/shoot-*.ogg` and `.m4a` files use the same noise-burst family from `tools/audio/gen-sfx.py` (CC0-1.0) so a file fallback is never a sine-tone laser. Reload, empty and impact cues are unchanged.
+Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bursts: a very short (<5ms) broadband crack driven hard into saturation, a low-end body thump (60-120 Hz) and a ~250-400ms room tail for powder weapons (louder as of v2.28.76, with a limiter in place of the old compressor so the extra gain never clips), or a valve click and compressed-air hiss for the air/pneumatic profile. Mortar/grenade blasts and fuel-drum detonations use a deep muffled boom (low-passed noise, sub thump, rumble tail) from the same runtime synth (`explosionBuffer`) and shipping `sfx/explosion.ogg` / `.m4a`. Shipping `sfx/shoot-*.ogg` and `.m4a` files use the same noise-burst family from `tools/audio/gen-sfx.py` (CC0-1.0) so a file fallback is never a sine-tone laser. UI button presses (`sfx/ui-tap`, `ui-back`, `ui-confirm`) are dry mechanical noise-burst clicks, not sine-tone chirps. Reload, empty and impact cues are unchanged.
 
 | File | Source | License/provenance |
 |---|---|---|
@@ -127,4 +127,4 @@ Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bu
 | `sfx/ui-tap.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/ui-tap.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 
-Total shipping audio: 723,677 bytes, 114 files (both formats included).
+Total shipping audio: 724,250 bytes, 114 files (both formats included).
