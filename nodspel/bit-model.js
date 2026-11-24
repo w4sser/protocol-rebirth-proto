@@ -6,12 +6,12 @@
 // 370 U span, 115 U depth, 32->64->32 U taper, radius-16 caps) in #75CFCC. Other M40/M42 states keep their
 // existing recipe as a change relative to idle (bit-expression.js FACES), never a redesigned face.
 import * as THREE from './vendor/three.module.js';
-import {bitExpressionFace,mouthDepth} from './bit-expression.js?v=2.28.74';
-import {pbrEnvironment} from './environment-look.js?v=2.28.74';
-import {tagBloom} from './postfx.js?v=2.28.74';
+import {bitExpressionFace,mouthDepth} from './bit-expression.js?v=2.28.75';
+import {pbrEnvironment} from './environment-look.js?v=2.28.75';
+import {tagBloom} from './postfx.js?v=2.28.75';
 
 export const BIT_MODEL=Object.freeze({
-  url:'../assets/bit/bit-companion.glb?v=2.28.74',
+  url:'../assets/bit/bit-companion.glb?v=2.28.75',
   scale:1.3, // GLB casing is ~0.72 m wide; 1.3 reads at least as large as the old 0.78 m box at top-down scale
   lift:.3, // hover base height, matching the procedural BIT's lowest part (y=.34 minus its .04 skirt)
   faceHeight:.98, // fraction of the screen height the 875 U face box fills
@@ -59,6 +59,11 @@ export function createBitFace(aspect,doc=globalThis.document){
   const height=BIT_MODEL.canvasHeight,width=Math.round(height*aspect);
   const canvas=doc.createElement('canvas');canvas.width=width;canvas.height=height;
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  // bit_screen's UVs follow the glTF convention (V=0 at the top of the mesh); CanvasTexture defaults to
+  // flipY=true (the plain-image/PlaneGeometry convention), which mirrors the face vertically on the
+  // screen -- eyes read at the chin. GLTFLoader forces flipY=false on its own textures for the same
+  // reason; do the same here since this canvas is applied directly as emissiveMap, not through the loader.
+  texture.flipY=false;
   let shown=null;
   return {canvas,texture,set(state){
     if(state===shown)return false;

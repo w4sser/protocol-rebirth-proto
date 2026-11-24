@@ -4,7 +4,7 @@
   class AudioManager {
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
-      this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
+      this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.shotCache=new Map();this.explosionCache=null;this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
       this.pendingVoices=new Set();this.consumedVoices=new Set();this.requestedVoices=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
       this.unlockPromise=null;this.stateWaiters=new Set();this.pendingDrain=null;this.suspendedByHidden=false;
@@ -348,6 +348,25 @@
       }
       this.shotCache.set(key,buffer);return buffer;
     }
+    explosionBuffer(){
+      if(this.explosionCache)return this.explosionCache;
+      const C=this.config.explosion,rate=this.context.sampleRate,buffer=this.context.createBuffer(1,Math.ceil(rate*C.duration),rate),out=buffer.getChannelData(0),dry=new Float32Array(out.length);
+      const alpha=hz=>1-Math.exp(-2*Math.PI*hz/rate);
+      const aBody=alpha(C.bodyHz),aThump=alpha(C.thumpHz),aRumble=alpha(C.rumbleHz);
+      let seed=0x51f15e^0x80;let body=0,thump=0,thump2=0,rumble=0,rumble2=0;
+      for(let i=0;i<out.length;i++){
+        // Deterministic low-passed noise boom: no sine/square oscillators.
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0;const noise=seed/0x80000000-1,t=i/rate;
+        body+=aBody*(noise-body);thump+=aThump*(noise-thump);thump2+=aThump*(thump-thump2);rumble+=aRumble*(noise-rumble);rumble2+=aRumble*(rumble-rumble2);
+        const attack=Math.min(1,t/C.attack);
+        dry[i]=attack*(body*C.bodyGain*Math.exp(-t/C.bodyDecay)+thump2*C.thumpGain*Math.exp(-t/C.thumpDecay)+rumble2*C.rumbleGain*Math.exp(-t/C.rumbleDecay));
+      }
+      for(let i=0;i<out.length;i++){
+        let value=dry[i];for(const echo of C.echoes){const j=i-Math.round(echo.delay*rate);if(j>=0)value+=dry[j]*echo.gain;}
+        out[i]=C.ceiling*Math.tanh(value*C.drive)*Math.min(1,(out.length-1-i)/(rate*C.fade));
+      }
+      this.explosionCache=buffer;return buffer;
+    }
     shotDestination(){
       if(!this.shotLimiter){
         this.shotLimiter=this.context.createDynamicsCompressor();
@@ -376,6 +395,11 @@
       if(shot){
         try{const C=this.config.shots,weapon=Object.prototype.hasOwnProperty.call(C.weapons,name.slice(6))?name.slice(6):'carbine',W=C.weapons[weapon],random=this.env.random||Math.random;
         this.source(this.shotBuffer(weapon,enemy),'sfx',cue.gain*W.gain*(enemy?C.enemyGain:1)*(1+(random()*2-1)*this.config.gainVariation),W.pitch*(1+(random()*2-1)*this.config.pitchVariation),false,this.shotDestination());
+        return true;}catch(error){return this.drop(name,'synthesis: '+(error?.message||error));}
+      }
+      if(name==='explosion'){
+        try{const random=this.env.random||Math.random;
+        this.source(this.explosionBuffer(),'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);
         return true;}catch(error){return this.drop(name,'synthesis: '+(error?.message||error));}
       }
       try{

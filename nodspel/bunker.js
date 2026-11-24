@@ -2,10 +2,10 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.74';
-import {loadKit,instance} from './town.js?v=2.28.74';
-import {rngFrom} from './art.js?v=2.28.74';
-import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.74';
+import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.75';
+import {loadKit,instance} from './town.js?v=2.28.75';
+import {rngFrom} from './art.js?v=2.28.75';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.75';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -99,7 +99,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.74`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.75`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
@@ -203,7 +203,9 @@ export function buildBunker(level,group,assets,Q){
   // walls: 2 m segments along the long axis, scaled to level height/thickness
   // Preserve the seeded cover/decal choices when replacing the wall renderer.
   planWalls(level,rng);
-  const wallShell=shellMesh(wallSolids(level.walls),['#303c50','#354858','#69718a','#39545d']);
+  // level.wallDecor (Depth link jambs) are render-only: the same notch that keeps the collider
+  // open for a snag-free capsule (v2.28.66) otherwise reads as a missing wall corner (v2.28.75).
+  const wallShell=shellMesh(wallSolids([...level.walls,...(level.wallDecor??[])]),['#303c50','#354858','#69718a','#39545d']);
   wallShell.name='bunker-wall-shell';wallShell.castShadow=!low;group.add(wallShell);
   // cover: kit piece fitted to the collision footprint so what you see is what blocks
   level.boxes.forEach(b=>{const k=COVER_KINDS[Math.floor(rng()*COVER_KINDS.length)];add(k,{x:b.x,z:b.z,ry:0,...fit(k,b.w,b.h,b.d)});});

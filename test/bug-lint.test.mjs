@@ -585,6 +585,39 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 }
 
 {
+ const rule=by('depth-cover-extract-clear');
+ assert.equal(rule.check().length,0,'depth cover extract clearance holds on real source');
+ assert.equal(rule.check({depthLevelSrc:''}).length,3,'all depth-cover-extract-clear guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('  if(nearAnyExtract(level,p))return false;\n  const keep=','  const keep=')}).length,1,'dropping the extract guard in coverSpotFree fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replace("      if(nearAnyExtract(level,p))return false;\n      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5","      const solids=[...(level.walls??[]),...(level.boxes??[])];\n      if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5")}).length,1,"dropping the extract guard in topUpRoomCover's clear() fires");
+}
+
+{
+ const rule=by('depth-wall-jamb-visual-close');
+ assert.equal(rule.check().length,0,'depth wall jamb visual closure holds on real source');
+ assert.equal(rule.check({depthLevelSrc:'',bunkerSrc:''}).length,3,'all depth-wall-jamb-visual-close guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const bunker=fs.readFileSync(new URL('../nodspel/bunker.js',import.meta.url),'utf8');
+ assert.equal(rule.check({depthLevelSrc:depth.replace(/\(from\.wallDecor\?\?=\[\]\)\.push\([^;]*\);\n/g,''),bunkerSrc:bunker}).length,1,'dropping the wallDecor push in addLinkSegment fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replace("'walls','wallDecor'","'walls'"),bunkerSrc:bunker}).length,1,'dropping wallDecor from MERGE_KEYS fires');
+ assert.equal(rule.check({depthLevelSrc:depth,bunkerSrc:bunker.replace('shellMesh(wallSolids([...level.walls,...(level.wallDecor??[])])','shellMesh(wallSolids(level.walls)')}).length,1,'rendering level.walls alone (dropping wallDecor) fires');
+}
+
+{
+ const rule=by('depth-link-wall-trim-and-door-width');
+ assert.equal(rule.check().length,0,'depth link wall trim and door width holds on real source');
+ assert.equal(rule.check({depthLevelSrc:''}).length,3,'all depth-link-wall-trim-and-door-width guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const regressed=depth
+   .replace('const full=Math.abs(x2-x1),wallW=Math.max(.3,full-2*LINK_BEND_TRIM);','const wallW=Math.max(.3,w-2*LINK_BEND_TRIM),full=Math.abs(x2-x1);')
+   .replace('const full=Math.abs(z2-z1),wallD=Math.max(.3,full-2*LINK_BEND_TRIM);','const wallD=Math.max(.3,d-2*LINK_BEND_TRIM),full=Math.abs(z2-z1);');
+ assert.notEqual(regressed,depth,'the replace actually matched the shipped trim lines');
+ assert.equal(rule.check({depthLevelSrc:regressed}).length,1,'trimming off the padded w/d again fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('doorW=LINK_WIDTH+2*DEPTH_CHAMFER','doorW=LINK_WIDTH')}).length,1,'narrowing the door back to LINK_WIDTH fires');
+}
+
+{
  const rule=by('depth-nodes-no-collider');
  assert.equal(rule.check().length,0,'depth nodes no-collider holds on real source');
  assert.equal(rule.check({gameSrc:''}).length,2,'all depth-nodes-no-collider guards fire');
@@ -595,4 +628,42 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  );
  assert.notEqual(regressed,game,'the replace actually matched the shipped setCollisions line');
  assert.equal(rule.check({gameSrc:regressed}).length,1,'dropping the depth guard on node colliders fires');
+}
+
+{
+ const rule=by('depth-extract-no-collider');
+ assert.equal(rule.check().length,0,'depth extract no-collider holds on real source');
+ assert.equal(rule.check({gameSrc:''}).length,1,'missing setCollisions fires');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const regressed=game.replace(
+   "if(!round.depth&&!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});",
+   "if(round.depth){\n    for(const point of round.level.extracts??round.level.depthExits??[]){\n      const open=!!round.depth.extractOpen&&Math.hypot(point.x-(round.level.exit?.x??0),point.z-(round.level.exit?.z??0))<.35;\n      if(!open)solids.push({x:point.x,z:point.z,w:2,d:.22});\n    }\n  }else if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});"
+ );
+ assert.notEqual(regressed,game,'the replace actually matched the shipped setCollisions line');
+ assert.equal(rule.check({gameSrc:regressed}).length,2,'reintroducing the extract-pad solid under round.depth fires');
+}
+
+{
+ const rule=by('bit-face-flipY');
+ assert.equal(rule.check().length,0,'bit-face flipY holds on real source');
+ assert.equal(rule.check({bitModelSrc:''}).length,1,'missing face texture fires');
+ const src=fs.readFileSync(new URL('../nodspel/bit-model.js',import.meta.url),'utf8');
+ assert.equal(rule.check({bitModelSrc:src.replace('texture.flipY=false;','')}).length,1,'dropping flipY=false fires');
+}
+
+{
+ const rule=by('powder-and-mortar-boom');
+ assert.equal(rule.check().length,0,'powder and mortar boom holds on real source');
+ assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,7,'all powder-and-mortar-boom guards fire');
+ const data=fs.readFileSync(new URL('../data/audio.js',import.meta.url),'utf8');
+ const audio=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
+ const combat=fs.readFileSync(new URL('../nodspel/combat.js',import.meta.url),'utf8');
+ const round=fs.readFileSync(new URL('../nodspel/round.js',import.meta.url),'utf8');
+ assert.equal(rule.check({audioDataSrc:data.replace("add('explosion',0.85,150);",'')}).length,1,'dropping the explosion cue fires');
+ assert.equal(rule.check({audioDataSrc:data.replace('thumpHz:90','thumpHz:160')}).length,1,'raising the default thump back to midrange fires');
+ assert.equal(rule.check({audioSrc:audio.replaceAll('explosionBuffer','boomBuffer')}).length,1,'renaming explosionBuffer fires');
+ assert.equal(rule.check({genSfxSrc:gen.replaceAll('explosion(','boom(')}).length,2,'renaming explosion() fires the def and the cue route');
+ assert.equal(rule.check({combatSrc:combat.replace("audioEvent('explosion')",'')}).length,1,'dropping the mortar explosion cue fires');
+ assert.equal(rule.check({roundSrc:round.replace("audioEvent('explosion')",'')}).length,1,'dropping the drum explosion cue fires');
 }

@@ -3,8 +3,8 @@
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
 // v2.28.64: corridors are at least 2.4 m clear with chamfered joints so the capsule does not
 // snag, and every combat room gets 2-4 cover pieces between the entry and the enemies.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.74';
-import '../data/raid-depth.js?v=2.28.74';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.75';
+import '../data/raid-depth.js?v=2.28.75';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
@@ -100,7 +100,7 @@ function snapshotRules(level){
     enemyCooldownMs:level.enemyCooldownMs,enemyWindupMs:level.enemyWindupMs,firstGraceMs:level.firstGraceMs};
 }
 
-const MERGE_KEYS=['rooms','floors','walls','boxes','lootBoxes','enemies','corridors','deadEnds','doors',
+const MERGE_KEYS=['rooms','floors','walls','wallDecor','boxes','lootBoxes','enemies','corridors','deadEnds','doors',
   'hazards','barrels','encounters','routeChoices','shelves','junctions','spawners'];
 
 function mergeInto(target,part){
@@ -128,6 +128,10 @@ function allRooms(from,to){return [...from.rooms??[],...to.rooms??[]];}
 function rectBlocked(rect,rooms,ignore){
   return rooms.some(r=>r!==ignore[0]&&r!==ignore[1]&&rectsOverlap(rect,r,0.02));
 }
+// Full setback at each end: clears a bend/jamb pinch (v2.28.75). The locked depth door's own
+// panel (linkParts, widened to the DEPTH_CHAMFER pad's width) is what actually seals a passage
+// near a bend, not these walls -- they must stay trimmed back the same amount everywhere.
+const LINK_BEND_TRIM=LINK_WIDTH/2+WALL_T;
 function addLinkSegment(from,x1,z1,x2,z2,fromArea,toArea,doorId){
   const alongX=Math.abs(x2-x1)>=Math.abs(z2-z1);
   const x=(x1+x2)/2,z=(z1+z2)/2;
@@ -139,14 +143,28 @@ function addLinkSegment(from,x1,z1,x2,z2,fromArea,toArea,doorId){
     depthLink:true,depthAreaFrom:fromArea,depthAreaTo:toArea,doorId};
   from.floors.push(floor);
   (from.corridors??=[]).push({...floor});
-  // Side walls stop short of each end so they never cap an L-junction or a punched doorway.
-  const trim=LINK_WIDTH/2+WALL_T;
+  // Side walls stop short of each end so they never cap an L-junction or a punched doorway --
+  // collision must stay open there (the jamb is exactly where depthJambAssist and the chamfer
+  // floor pad keep the capsule from snagging). The trim comes off the true (unpadded) segment
+  // endpoints (x1,z1)/(x2,z2), not `w`/`d` above (which already carry +overlap for the floor's
+  // own continuity) -- trimming the padded length left a wall corner only ~0.4 m short of a
+  // bend instead of the intended LINK_BEND_TRIM, close enough to pinch a capsule hugging that
+  // side of the perpendicular corridor (v2.28.75: Robert 24 Nov 2026, near-wall sweep off the
+  // -15.5,-33 bend). Render-only wallDecor entries always use the untrimmed, full-length span --
+  // closing the corner notch visually never needs to agree with how far collision is trimmed
+  // back ("walls in corners don't align").
   if(alongX){
-    const wallW=Math.max(.3,w-2*trim);
-    for(const sign of [-1,1])from.walls.push({x,z:z+sign*(LINK_WIDTH/2-WALL_T/2),w:wallW,d:WALL_T,h:.85});
+    const full=Math.abs(x2-x1),wallW=Math.max(.3,full-2*LINK_BEND_TRIM);
+    for(const sign of [-1,1]){
+      from.walls.push({x,z:z+sign*(LINK_WIDTH/2-WALL_T/2),w:wallW,d:WALL_T,h:.85});
+      (from.wallDecor??=[]).push({x,z:z+sign*(LINK_WIDTH/2-WALL_T/2),w:full,d:WALL_T,h:.85});
+    }
   }else{
-    const wallD=Math.max(.3,d-2*trim);
-    for(const sign of [-1,1])from.walls.push({x:x+sign*(LINK_WIDTH/2-WALL_T/2),z,w:WALL_T,d:wallD,h:.85});
+    const full=Math.abs(z2-z1),wallD=Math.max(.3,full-2*LINK_BEND_TRIM);
+    for(const sign of [-1,1]){
+      from.walls.push({x:x+sign*(LINK_WIDTH/2-WALL_T/2),z,w:WALL_T,d:wallD,h:.85});
+      (from.wallDecor??=[]).push({x:x+sign*(LINK_WIDTH/2-WALL_T/2),z,w:WALL_T,d:full,h:.85});
+    }
   }
   return floor;
 }
@@ -185,7 +203,13 @@ function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
   const straightRect={x:roomA.x,z:(aSouth+bNorth)/2,w:LINK_WIDTH,d:Math.abs(aSouth-bNorth)};
   const straight=!rectBlocked(straightRect,rooms,[roomA,roomB])&&!roomHasDir(roomA,{x:0,z:-1})&&!roomHasDir(roomB,{x:0,z:1});
   const doorId=`depth-door-${fromArea}`;
-  let doorX=roomA.x,doorZ=aSouth-1.2,doorW=LINK_WIDTH,doorD=DOOR_T;
+  // Every side wall (addLinkSegment, below) now trims back a full LINK_BEND_TRIM at each end so
+  // none of them pinch a capsule hugging a bend (v2.28.75). The locked door's own panel is the
+  // thing that actually has to seal the passage; since doorZ (below) can land close to a bend --
+  // inside a wide DEPTH_CHAMFER floor pad, where the trimmed-back walls leave the pad's full
+  // width open on purpose -- the door is widened to the pad's own width so it blocks that whole
+  // width while locked, instead of relying on walls that must stay open for bend clearance.
+  let doorX=roomA.x,doorZ=aSouth-1.2,doorW=LINK_WIDTH+2*DEPTH_CHAMFER,doorD=DOOR_T;
   if(straight){
     punchOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);chamferOpening(from,roomA,{x:0,z:-1},LINK_WIDTH);
     punchOpening(to,roomB,{x:0,z:1},LINK_WIDTH);chamferOpening(to,roomB,{x:0,z:1},LINK_WIDTH);
@@ -553,6 +577,14 @@ function blocksMainRoute(p,entry,exit){
   if(!exit)return false;
   return segmentLateral(p,entry,exit)<DEPTH_COVER_LANE_HALF;
 }
+// Keep cover clear of every area's extract pad, not just the lane -- a crate on the pad still
+// blocks the extraction beam even when it sits well off the entry-exit route (v2.28.75: Robert
+// 24 Nov 2026 Depth Raid playtest). The pad's own radius plus the cover box's half-extent, so a
+// box's near edge (not just its center) clears the pad.
+export const DEPTH_EXTRACT_COVER_CLEAR=DEPTH.extractRadius+COVER_HALF_EXTENT;
+function nearAnyExtract(level,p){
+  return (level.depthExits??[]).some(e=>Math.hypot(p.x-e.x,p.z-e.z)<DEPTH_EXTRACT_COVER_CLEAR);
+}
 // Every combat room (a room that has enemies) gets 2-4 cover pieces as tactical, flanking
 // options near the entry-to-enemy approach, with an open flank on one side. None of them may
 // sit inside the clear lane between the room's entry and its far (exit/connector) door.
@@ -572,8 +604,13 @@ export function placeDepthCover(level){
     const cz=enemies.reduce((s,e)=>s+e.z,0)/enemies.length;
     const dx=cx-entry.x,dz=cz-entry.z,len=Math.hypot(dx,dz)||1;
     const ux=dx/len,uz=dz/len,px=-uz,pz=ux;
+    const along=Math.abs(ux)>Math.abs(uz);
     const rng=mulberry(`${level.seed||''}:depth-cover:${room.x.toFixed(1)},${room.z.toFixed(1)}`);
     const flank=rng()<.5?-1:1;
+    // A candidate must actually be tactical cover (coverBetween), not just a loose spot near the
+    // entry-centroid line -- otherwise a rejected (e.g. extract-adjacent) first choice can fall
+    // through to a next candidate that passes every geometric check but sits too far from the
+    // entry-to-enemy approach to count, silently leaving the room under its 2-cover minimum.
     const ok=p=>{
       if(!inRoom(room,p,0.65))return false;
       if(!coverSpotFree(level,p,0.7))return false;
@@ -582,6 +619,7 @@ export function placeDepthCover(level){
       if(blocksMainRoute(p,entry,exit))return false;
       if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<2.0))return false;
       if(Math.hypot(p.x-entry.x,p.z-entry.z)<1.45)return false;
+      if(!coverBetween(entry,enemies,{x:p.x,z:p.z,w:along?1.25:.55,d:along?.55:1.25}))return false;
       return true;
     };
     // Lateral offsets start just past the clear lane so a candidate is a side option, not a wall.
@@ -613,7 +651,6 @@ export function placeDepthCover(level){
         w:along?1.25:.55,d:along?.55:1.25,h:.95,depthCover:true,depthArea:room.depthArea};
       (level.boxes??=[]).push(box);added++;
     };
-    const along=Math.abs(ux)>Math.abs(uz);
     for(const raw of candidates){
       if(added>=need)break;
       if(!ok(raw))continue;
@@ -624,7 +661,8 @@ export function placeDepthCover(level){
       const loose=p=>inRoom(room,p,0.5)&&coverSpotFree(level,p,0.55)&&!inWallOpening(level,p,0.8)
         &&!blocksMainRoute(p,entry,exit)
         &&!(level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.8)
-        &&Math.hypot(p.x-entry.x,p.z-entry.z)>=1.2;
+        &&Math.hypot(p.x-entry.x,p.z-entry.z)>=1.2
+        &&coverBetween(entry,enemies,{x:p.x,z:p.z,w:along?1.25:.55,d:along?.55:1.25});
       for(const t of [0.4,0.55,0.7]){
         if(added>=need)break;
         for(const fl of [1,-1]){
@@ -656,11 +694,15 @@ function topUpRoomCover(level,reserved){
       if(!inRoom(room,p,0.45))return false;
       if(inWallOpening(level,p,0.75))return false;
       if(blocksMainRoute(p,entry,exit))return false;
+      if(nearAnyExtract(level,p))return false;
       const solids=[...(level.walls??[]),...(level.boxes??[])];
       if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+0.5&&Math.abs(p.z-o.z)<(o.d||0)/2+0.5))return false;
       if((level.doors??[]).some(d=>d.depth&&Math.hypot(p.x-d.x,p.z-d.z)<1.6))return false;
       return true;
     };
+    // The whole-room fallback below only earns its keep (the 2-cover minimum) if it is
+    // actually tactical cover, not just a free square of floor (v2.28.75).
+    const tactical=p=>coverBetween(entry,enemies,{x:p.x,z:p.z,w:along?1.2:.55,d:along?.55:1.2});
     let need=2-between.length;
     const LANE=exit?DEPTH_COVER_LANE_HALF:1.15;
     const flanks=[LANE,LANE+0.55,LANE+0.95,-LANE,-LANE-0.55,-LANE-0.95];
@@ -669,7 +711,7 @@ function topUpRoomCover(level,reserved){
       for(const fl of flanks){
         if(need<=0)break;
         const p={x:entry.x+ux*len*t+px*fl,z:entry.z+uz*len*t+pz*fl};
-        if(!clear(p))continue;
+        if(!clear(p)||!tactical(p))continue;
         if(reserved?.near?.(p,0.5)&&need>0&&between.length+ (2-need)>0){
           // Prefer off the nav spine, but take it if the room is otherwise packed.
         }
@@ -678,11 +720,28 @@ function topUpRoomCover(level,reserved){
         need--;
       }
     }
+    // Last resort: the entry-centroid flank band can be entirely eaten by the lane/extract
+    // exclusions in a room where the pad sits close to the action. Scan the whole room so the
+    // 2-cover minimum is never traded away for extract clearance (v2.28.75).
+    if(need>0){
+      search:
+      for(let gx=room.x-room.w/2+0.9;gx<=room.x+room.w/2-0.9;gx+=0.6){
+        for(let gz=room.z-room.d/2+0.9;gz<=room.z+room.d/2-0.9;gz+=0.6){
+          if(need<=0)break search;
+          const p={x:gx,z:gz};
+          if(!clear(p)||!tactical(p))continue;
+          (level.boxes??=[]).push({x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,
+            w:along?1.2:.55,d:along?.55:1.2,h:.95,depthCover:true,depthArea:room.depthArea});
+          need--;
+        }
+      }
+    }
   }
 }
 function coverSpotFree(level,p,r=0.7){
   const solids=[...(level.walls??[]),...(level.boxes??[])];
   if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+r&&Math.abs(p.z-o.z)<(o.d||0)/2+r))return false;
+  if(nearAnyExtract(level,p))return false;
   const keep=[level.start,level.exit,...(level.lootBoxes??[]),...(level.enemies??[]),...(level.hazards??[]),...(level.nodes??[]),...(level.doors??[])];
   if(keep.some(o=>o&&typeof o.x==='number'&&Math.hypot(p.x-o.x,p.z-o.z)<1.25))return false;
   return (level.rooms??[]).some(rm=>Math.abs(p.x-rm.x)<=rm.w/2-0.7&&Math.abs(p.z-rm.z)<=rm.d/2-0.7);
