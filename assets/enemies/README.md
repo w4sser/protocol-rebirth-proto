@@ -27,3 +27,14 @@ Differences from the table above:
 - `optic` on `swarm_bot`, `rusher`, `artillery` and `sniper` is a separate red emissive material. `tank` and `shield_turret` keep `optic` (and `front_armor`) as empty nodes: their eyes are painted into the texture.
 - `weakpoint` / `back_battery` meshes use the base texture as an emissive map so the amber cells glow.
 - `patrol_grunt` keeps `upper_frame`, `front_plate`, `side_panel_*`, `hub_*`, `battery_cage`, `sensor_face` and `head_turntable` as empty nodes so the loader's part check still passes.
+
+## Patrol Grunt runtime asset
+
+`patrol_grunt.glb` is the LOD 0 model from the Blender pilot ([PR #315](https://github.com/w4sser/protocol-rebirth-proto/pull/315)). It replaces only the runtime asset: the URL, node names, hierarchy, transforms, and optic emission are unchanged. The unmodified textured source is kept at [`../reference/enemies/patrol_grunt_source.glb`](../reference/enemies/patrol_grunt_source.glb), outside the playable deployment.
+
+| Variant | Triangles | Bytes |
+|---|---:|---:|
+| Original source | 19,969 | 1,288,964 |
+| Runtime LOD 0 | 9,640 | 694,404 |
+
+The owner reported almost no visual difference after an in-raid A/B on mobile. No frame-rate or load-time improvement is claimed. There is no runtime LOD switching.
