@@ -56,7 +56,12 @@ async function bootToRaid(page, w, h) {
   });
   await page.touchscreen.tap(box.x, box.y);
   await page.waitForFunction(() => document.getElementById("tutorial")?.hidden, { timeout: 8000 });
-  await page.waitForFunction(() => window.__NR?.round?.()?.depth, { timeout: 10000 });
+  await page.waitForFunction(() => window.__NR?.round?.()?.depth, { timeout: 30000 }).catch(async error => {
+    console.error('raid boot failed', await page.evaluate(() => ({url:location.href,hasNR:!!window.__NR,
+      depth:window.__NR?.round?.()?.depth,ftue:window.__NR?.round?.()?.ftue,
+      fatal:document.getElementById('fatal')?.textContent})));
+    throw error;
+  });
   await page.evaluate(() => { window.__NR.setMoodAutoDowngradeEnabled?.(false); window.__NR.depthDismissIntro?.(); });
 }
 
@@ -71,14 +76,16 @@ try {
     await page.evaluate(() => {
       const r = window.__NR.round();
       r.health = 100000;
+      // Deterministic screenshot clock: render freely, advance hold via the real debug state machine.
+      const frozen = Date.now(); Date.now = () => frozen;
+      window.PRBitCard.dismiss();
+      window.PRBitCard.show = () => {};
       // Keep the scene stable without clearing the wing or pausing its clock.
       for (const e of r.level.enemies) { e.sleeping = true; e.aggro = false; }
     });
     const shot = async name => {
-      await page.evaluate(() => { window.__shotNow = Date.now; const frozen = Date.now(); Date.now = () => frozen; });
       await page.screenshot({ path: `${outDir}/${name}-${w}x${h}.png` });
       console.log("shot", name, `${w}x${h}`);
-      await page.evaluate(() => { Date.now = window.__shotNow; delete window.__shotNow; });
     };
     await new Promise(r => setTimeout(r, 600));
     await shot("01-area-start");
@@ -89,17 +96,18 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await page.evaluate(() => window.__NR.depthDismissIntro());
     await shot("02-terminal");
-    await page.evaluate(() => {
-      const n = window.__NR.round().level.depthTerminals[0];
-      window.__NR.teleport(n.x, n.z);
-    });
-    await page.waitForFunction(() => window.__NR.round().nodeInteraction?.progress >= .35);
-    await page.evaluate(() => window.__NR.depthDismissIntro());
-    const progress = await page.evaluate(() => window.__NR.round().level.depthTerminals[0].progress);
-    if (progress >= 1) throw new Error('Missed mid-hack frame');
+    const hold = await page.evaluate(() => window.__NR.depthHackHold(2000));
+    if (hold.progress !== .5) throw new Error('Expected mid-hack hold: '+JSON.stringify(hold));
+    await new Promise(r => setTimeout(r, 500));
     await shot("03-mid-hack");
-    await page.waitForFunction(() => !window.__NR.round().level.doors.find(d => d.depth).locked);
-    await new Promise(r => setTimeout(r, 300));
+    console.log('terminal HUD', await page.evaluate(() => {
+      const n=window.__NR.round().level.depthTerminals[0];
+      return {projected:window.__NR.projectAt(n.x,DATA.raidDepth.hack.labelHeight,n.z),
+        labels:[...document.querySelectorAll('.objective-node')].map(el=>({text:el.textContent,hidden:el.hidden,mode:el.dataset.mode,left:el.style.left,top:el.style.top}))};
+    }));
+    const done = await page.evaluate(() => window.__NR.depthHackHold(2000));
+    if (done.event !== 'hack-done') throw new Error('Expected completed hack: '+JSON.stringify(done));
+    await new Promise(r => setTimeout(r, 500));
     await shot("04-door-open");
     const state = await page.evaluate(() => ({paused: window.__NR.round().pauseAt, depth: window.__NR.depthState()}));
     if (state.paused != null) throw new Error("Depth unexpectedly paused");

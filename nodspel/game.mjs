@@ -1345,7 +1345,7 @@ function loadLevelInner(){
   bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label','bit','BIT');
   if(!bitAlong){bitLabel.el.hidden=true;}
   for(const v of world.nodes){
-    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node',v.node.depthTerminal?'HACK: HOLD POSITION':'GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,v.node.depthTerminal?DEPTH.hack.labelHeight:1.9,v.node.z),'objective-node','node',v.node.depthTerminal?'HACK: HOLD POSITION':'GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label',v.node.depthTerminal?'Door hack':'Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
@@ -1628,7 +1628,10 @@ function renderDepthExtractGuide(){
   const cs=getComputedStyle(document.documentElement);
   const sl=parseFloat(cs.getPropertyValue('--sl'))||0,sr=parseFloat(cs.getPropertyValue('--sr'))||0,sb=parseFloat(cs.getPropertyValue('--sb'))||0;
   const margin=Math.max(36,sl+18,sr+18,sb+18);
-  const {x,y,angleDeg}=hunterArrowScreenPoint({x:dx,z:dz},viewWidth,viewHeight,margin);
+  const guide=hunterArrowScreenPoint({x:dx,z:dz},viewWidth,viewHeight,margin);
+  const x=guide.x,angleDeg=guide.angleDeg,timer=$('.round-hud').getBoundingClientRect();
+  let y=guide.y;
+  if(x+DEPTH.guideHudGap>timer.left&&x-DEPTH.guideHudGap<timer.right&&y-DEPTH.guideHudGap<timer.bottom&&y+DEPTH.guideHudGap>timer.top)y=timer.bottom+DEPTH.guideHudGap;
   el.style.left=`${x}px`;el.style.top=`${y}px`;el.style.transform=`translate(-50%,-50%) rotate(${angleDeg.toFixed(1)}deg)`;el.hidden=false;
 }
 function renderStakesHUD(clock){
@@ -1641,10 +1644,11 @@ function renderStakesHUD(clock){
   if(bitAlong&&round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
   if(round.depth&&world.exitLabel){
     const p=round.depth.extracting?Math.min(1,(clock-round.depth.extracting.startedAt)/DEPTH.extractCountdownMs):0;
-    if(p>0)world.exitLabel.caption.textContent=`EXTRACTING ${Math.round(p*100)}%`;
+    if(p>0)setText(world.exitLabel.caption,depthExtractTexts[Math.round(p*100)]);
   }
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();renderDepthExtractGuide();
 }
+const depthExtractTexts=Array.from({length:101},(_,percent)=>`EXTRACTING ${percent}%`);
 // v2.22.4 hot-path DOM helpers: write (and build the string) only when the number changed.
 function setOpacity(el,v){if(el._op!==v){el._op=v;el.style.opacity=v;}}
 function setPx(el,prop,v){const k='_px'+prop;if(el[k]!==v){el[k]=v;el.style[prop]=v+'px';}}
@@ -1948,6 +1952,18 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     const dres=stepDepthRaid(round,gameClock(),position);
     onDepthStep(dres);
     updateHUD();return {event:dres,...round.depth};
+  },
+  depthHackHold(ms=0){
+    if(!round.depth)return null;
+    const terminal=round.level.depthTerminals.find(n=>n.depthArea===round.depth.zone);
+    if(!terminal)return null;
+    teleportPlayer(terminal.x,terminal.z);
+    const clock=gameClock();
+    onDepthStep(stepDepthRaid(round,clock,position));
+    round.depth.lastStepAt=clock-Math.max(0,ms);
+    const event=stepDepthRaid(round,clock,position);
+    onDepthStep(event);updateHUD();
+    return {event,progress:terminal.progress};
   },
   depthEnterNext(){
     if(!round.depth||round.level.doors.find(d=>d.depth&&d.depthAreaFrom===round.depth.zone)?.locked)return null;
