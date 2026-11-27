@@ -4,7 +4,7 @@
   class AudioManager {
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
-      this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.shotCache=new Map();this.explosionCache=null;this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
+      this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.decodedBuffers=new Map();this.shotCache=new Map();this.explosionCache=null;this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
       this.pendingVoices=new Set();this.consumedVoices=new Set();this.requestedVoices=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
       this.unlockPromise=null;this.stateWaiters=new Set();this.pendingDrain=null;this.suspendedByHidden=false;
@@ -281,9 +281,9 @@
         const request=this.decodeFile(file);
         this.cache.set(file,request);this.pendingFiles.add(file);
         request.then(
-          ()=>{this.pendingFiles.delete(file);this.decodedFiles.add(file);this.failedFiles.delete(file);},
+          buffer=>{this.pendingFiles.delete(file);this.decodedFiles.add(file);this.failedFiles.delete(file);this.decodedBuffers.set(file,buffer);},
           error=>{
-            this.pendingFiles.delete(file);this.decodedFiles.delete(file);
+            this.pendingFiles.delete(file);this.decodedFiles.delete(file);this.decodedBuffers.delete(file);
             if(this.cache.get(file)===request)this.cache.delete(file);
             const message=error&&error.message?error.message:String(error);
             this.failedFiles.set(file,message);this.lastError=message;
@@ -394,12 +394,16 @@
       this.lastSfx.set(key,now);
       if(shot){
         try{const C=this.config.shots,weapon=Object.prototype.hasOwnProperty.call(C.weapons,name.slice(6))?name.slice(6):'carbine',W=C.weapons[weapon],random=this.env.random||Math.random;
-        this.source(this.shotBuffer(weapon,enemy),'sfx',cue.gain*W.gain*(enemy?C.enemyGain:1)*(1+(random()*2-1)*this.config.gainVariation),W.pitch*(1+(random()*2-1)*this.config.pitchVariation),false,this.shotDestination());
+        // Prefer an already-decoded Lumina sample (never await a decode here -- iOS decode
+        // stalls must still fire the synth fallback synchronously instead of going silent).
+        const buffer=this.decodedBuffers.get(cue.file)||this.shotBuffer(weapon,enemy);
+        this.source(buffer,'sfx',cue.gain*W.gain*(enemy?C.enemyGain:1)*(1+(random()*2-1)*this.config.gainVariation),W.pitch*(1+(random()*2-1)*this.config.pitchVariation),false,this.shotDestination());
         return true;}catch(error){return this.drop(name,'synthesis: '+(error?.message||error));}
       }
       if(name==='explosion'){
         try{const random=this.env.random||Math.random;
-        this.source(this.explosionBuffer(),'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);
+        const buffer=this.decodedBuffers.get(cue.file)||this.explosionBuffer();
+        this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);
         return true;}catch(error){return this.drop(name,'synthesis: '+(error?.message||error));}
       }
       try{
