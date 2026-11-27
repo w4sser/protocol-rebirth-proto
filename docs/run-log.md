@@ -55,7 +55,7 @@ Debug-only, `?debug=1`: `window.PR_RUNLOG.get()` returns the same array in the c
 ### Timeline events
 
 Every event has `t` (milliseconds since the raid started, on the game clock -- paused time, like the
-area-clear choice popup or the pause menu, is excluded) and a `type`. At most 200 events are kept per
+pause menu, is excluded) and a `type`. At most 200 events are kept per
 raid; once a raid hits that cap, later events in that raid are silently dropped (the totals at the end
 are unaffected -- they come from separate counters, not from counting events).
 
@@ -66,14 +66,16 @@ are unaffected -- they come from separate counters, not from counting events).
 | `first_hit` | - | the first shot (or thrown tool) actually lands on an enemy |
 | `first_kill` | - | the first enemy dies |
 | `area_entered` | `zone` | the player enters a Depth Raid zone (including zone 1, at `t:0`) |
-| `area_cleared` | `zone`, `ms` | a zone's enemies are all down and the EXTRACT/GO DEEPER choice opens; `ms` is how long that zone took to clear, not the raid-wide timestamp (that's `t`) |
-| `door_passed` | `zone`, `how` | the player leaves a zone through its door -- `how:"clear"` via GO DEEPER (zone was cleared), `how:"push"` by forcing the still-locked door open without clearing (forfeits that zone's extract and remaining loot). Later PRs add `"key"`/`"hack"`. |
-| `choice` | `zone`, `kind` | the player picks `"extract"` or `"deeper"` at the area-clear choice |
-| `extract` | `zone`, `cleared` | the player successfully extracts |
+| `area_cleared` | `zone`, `ms` | a zone's enemies are all down, opening its door and spawning the clear cache; `ms` is how long that zone took to clear, not the raid-wide timestamp (that's `t`) |
+| `door_passed` | `zone`, `how` | the player leaves a zone through its door -- `how:"clear"`, `how:"hack"`, or `how:"key"` records what opened it. Walking through is the choice; combat never pauses. |
+| `choice` | `zone`, `kind` | the player completes the beam hold (`"extract"`) or walks through the open door (`"deeper"`) |
+| `hack_start` | `zone` | the player steps onto the terminal pad; nearby enemies are alerted |
+| `hack_done` | `zone` | the hold reaches its configured duration and opens the door |
+| `extract` | `zone`, `cleared` | the player successfully extracts; `cleared:false` means early extraction with the bag kept and no clear bonuses |
 | `death` | `cause`, `zone` | the raid ends in death; `cause` is the last hit's source and attack type |
-| `timeout` | - | the raid's 8-minute clock runs out |
+| `timeout` | - | the area clock (Depth) or raid clock (Node) runs out |
 | `loot_collected` | `item`, `rarity`, `value` | an item is added to the bag (not gear/weapon offers, which are a separate choice, not an automatic pickup) |
-| `pause_open` | - | the area-clear choice popup opens (an actual pause of the raid clock) |
+| `pause_open` | - | the settings/pause menu opens (an actual pause of the raid clock) |
 
 ### Totals, and the questions they answer
 

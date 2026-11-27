@@ -972,7 +972,7 @@ export function placeDepthTerminals(level){
     spots.sort((a,b)=>Math.hypot(a.x-door.x,a.z-door.z)-Math.hypot(b.x-door.x,b.z-door.z));
     const spot=spots[0];
     if(!spot)throw new Error(`No reachable depth terminal for area ${zone}`);
-    const node={...spot,id:`depth-terminal-${zone}`,depthTerminal:true,depthArea:zone,active:false,progress:0,collider:false,name:'HACK TERMINAL'};
+    const node={...spot,id:`depth-terminal-${zone}`,depthTerminal:true,depthArea:zone,r:DEPTH.hack.visualRadius,active:false,progress:0,collider:false,name:'HACK TERMINAL'};
     level.nodes.push(node);level.depthTerminals.push(node);
     const keySpot=spots.find(p=>Math.hypot(p.x-node.x,p.z-node.z)>DEPTH.hack.radius*2);
     if(!keySpot)throw new Error(`No reachable depth keycard for area ${zone}`);

@@ -429,7 +429,7 @@ export function extractRound(round,now){
   autoPickPerks(round,now,undefined,{all:true});
   secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';resetPerks(round);return true;
 }
-// Depth Raid (prototype PR1, nodspel/depth-raid.js stepDepthRaid): walk-in plus the 5s cancellable
+// Depth Raid (prototype PR1, nodspel/depth-raid.js stepDepthRaid): walk-in plus the data-tuned cancellable
 // countdown secures the bag exactly like extractRound above, except Z3's completion reason is
 // 'complete' (a full raid clear, same as enterExit's own level-3 branch) rather than 'extract'.
 // Depth mode never calls extractRound or enterExit itself -- no node gate, no checkpoint screen.
@@ -459,7 +459,7 @@ export function exitIsOpen(round) {
 export function activateNode(round,id,now) {
   tickRound(round,now);
   const node=round.level.nodes.find(n=>n.id===id);
-  if(round.over || round.pauseAt!=null || !node || node.active)return false;
+  if(round.over || round.pauseAt!=null || !node || node.depthTerminal || node.active)return false;
   node.active=true;round.nodesLit++;
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
   // Swarm rushers wait for their own spawn point, not for a node.

@@ -133,7 +133,7 @@ export function stepDepthRaid(round,now,position){
   const dt=Math.max(0,now-d.lastStepAt);d.lastStepAt=now;
   const door=depthDoor(round.level,d.zone),area=areaAt(round.level,position);
   if(door&&!door.locked&&area>d.zone){
-    d.lastDoorPassed={zone:d.zone,how:door.openedBy??'keycard'};
+    d.lastDoorPassed={zone:d.zone,how:door.openedBy==='keycard'?'key':door.openedBy??'key'};
     return enterArea(round,now,area);
   }
   d.phase=door&&!door.locked?'travel':'combat';

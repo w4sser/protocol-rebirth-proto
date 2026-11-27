@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage,collectLoot,stepDoors} from '../round.js';
 import {extractScrapBonus,generateLevel,RULES} from '../levels.js';
 import {walkMap} from '../encounters.js';
+import {traceTargets} from '../physics.mjs';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from '../weapon.js';
 import {depthModeEnabled,initDepthRound,stepDepthRaid,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,combatRoomsWithCover,depthConnectorPaths,DEPTH_CLEAR_WIDTH,LINK_WIDTH,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
@@ -242,10 +244,78 @@ test('terminal pads and keycards are reachable off the lane and never collide ac
    const walk=walkMap(L);const near=p=>walk(p);
    if(zone<3){
     const n=L.depthTerminals.find(n=>n.depthArea===zone),key=L.lootBoxes.find(b=>b.key===depthDoor(L,zone).key);
-    assert.equal(n.collider,false);assert.ok(n.laneDistance>=DEPTH_CLEAR_WIDTH/2);assert.ok(near(n),`${seed} terminal ${zone}`);assert.ok(near(key),`${seed} key ${zone}`);
+    assert.equal(n.collider,false);
+    assert.equal(traceTargets({x:n.x,z:n.z+DEPTH.hack.radius},n,L.walls,[n])?.kind,'node',`${seed} terminal must be visible before activation`);
+    assert.ok(n.laneDistance>=DEPTH_CLEAR_WIDTH/2);assert.ok(near(n),`${seed} terminal ${zone}`);assert.ok(near(key),`${seed} key ${zone}`);
     for(const b of [...L.walls,...L.boxes])assert.ok(Math.abs(n.x-b.x)>=b.w/2+DEPTH.hack.radius||Math.abs(n.z-b.z)>=b.d/2+DEPTH.hack.radius);
    }
    assert.ok(near(L.depthStarts[zone-1]));
   }
  }
+});
+
+
+test('area clock remains a loss while global clock cannot fail Depth by itself',()=>{
+ const r=startDepth('timeout-kills');r.bag={cable:2};
+ assert.deepEqual(DEPTH.zoneTimerMs,[90000,90000,120000]);
+ assert.equal(exitIsOpen(r),true);
+ tickRound(r,89999);assert.equal(stepDepthRaid(r,89999,r.level.start),null);assert.equal(r.over,false);
+ tickRound(r,90000);assert.equal(stepDepthRaid(r,90000,r.level.start),'timeout');
+ assert.equal(r.reason,'timeout');assert.equal(r.lost.cable,2);assert.equal(r.pauseAt,null);
+ const global=startDepth('global-clock');tickRound(global,9*60*1000);
+ assert.equal(global.over,false);assert.equal(global.reason,null);
+});
+
+test('FTUE retains Node activation and extraction with depth explicitly disabled',()=>{
+ const r=createRound('ftue-raid',0);
+ initDepthRound(r,depthModeEnabled({area:'bunker',ftue:true,depthParam:'1'}),0);
+ assert.equal(r.depth,null);r.ftue=true;
+ for(const node of r.level.nodes)activateNode(r,node.id,0);
+ assert.equal(exitIsOpen(r),true);assert.equal(enterExit(r,r.level.exit,1),'complete');
+ assert.equal(r.cleared,true);assert.equal(r.reason,'extract');
+});
+
+test('beam/hack BIT intros have new stable IDs and unique dry lines',()=>{
+ const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.hack,DEPTH.bitLines.hackStart,DEPTH.bitLines.goDeeper];
+ const known=new Set([POWER_PAD_BIT_LINE,SHELF_BIT_LINE]);
+ for(const pool of Object.values(globalThis.DATA.bitSummary.pools))for(const line of pool.lines)known.add(line);
+ for(const line of lines){assert.ok(line.length>0);assert.ok(!known.has(line));}
+ assert.equal(new Set(lines).size,lines.length);
+ assert.equal(DEPTH.bitLines.introId,'depth_walk_extract_intro');assert.equal(DEPTH.bitLines.hackId,'depth_loud_terminal_intro');
+});
+
+test('locked doors reject area crossing; key passage leaves old loot and enemies intact',()=>{
+ const r=startDepth('no-forfeit'),level=r.level,count=level.enemies.length;
+ assert.notEqual(walkTo(r,100,2),'area-entered');assert.equal(r.depth.zone,1);
+ const door=depthDoor(level,1),key=level.lootBoxes.find(b=>b.key===door.key);
+ const remaining=level.lootBoxes.find(b=>b.depthArea===1&&!b.key);
+ collectLoot(r,key,200);stepDoors(r,door,210);
+ assert.equal(walkTo(r,300,2),'area-entered');assert.equal(r.level,level);
+ assert.equal(level.enemies.length,count);assert.ok(areaEnemies(r,1).some(e=>e.health>0));
+ assert.equal(remaining.collected,false);assert.equal(r.depth.zoneDeadline,300+DEPTH.zoneTimerMs[1]);
+ assert.equal(r.pauseAt,null);
+});
+
+test('uncleared final area pays no final or ladder bonus after earlier clears',()=>{
+ const r=startDepth('final-early',0,{completedRaids:5});let now=0;
+ for(let zone=1;zone<3;zone++){
+  killArea(r,zone);stepDepthRaid(r,now+=100,r.level.depthStarts[zone-1]);walkTo(r,now+=100,zone+1);
+ }
+ assert.ok(r.level.junctions.length>0);
+ stepDepthRaid(r,now+=100,r.level.exit);assert.equal(stepDepthRaid(r,now+800,r.level.exit),'zone-extracted');
+ assert.equal(resultView(r).bonus,0);assert.equal(buildRaidResult(r).depthBonus,undefined);
+ assert.equal(r.reason,'extract');assert.equal(r.depth.earlyExtract,true);
+});
+
+
+test('walk-through terminal cannot activate from shots, block bullets or attract aim assist',()=>{
+ const r=startDepth('hack-no-shot'),n=r.level.depthTerminals[0],w=createWeapon();
+ const origin={x:n.x-2,z:n.z},direction={x:1,z:0};
+ assert.equal(activateNode(r,n.id,10),false);assert.equal(n.active,false);
+ assert.equal(assistAim(origin,direction,[n],[]).target,null);
+ // Isolate a real bullet sweep through the terminal from unrelated room targets.
+ r.level.enemies=[];r.level.barrels=[];r.level.junctions=[];r.level.shelves=[];
+ fireWeapon(w,origin,direction,100);stepWeapon(w,r,400,.3,[]);
+ assert.equal(n.active,false);assert.equal(r.nodesLit,0);
+ assert.equal(w.projectiles.length,1);assert.ok(w.projectiles[0].x>n.x);
 });

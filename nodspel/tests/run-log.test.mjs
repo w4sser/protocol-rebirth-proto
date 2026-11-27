@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRunLog,recordEvent,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,classifyUserAgent,buildDeviceInfo,RUN_LOG_KEY} from '../run-log.js';
-import {createRound,tickRound} from '../round.js';
+import {createRound,tickRound,takeDamage,collectLoot,stepDoors} from '../round.js';
 import {initDepthRound,stepDepthRaid} from '../depth-raid.js';
 
 function fakeStorage(){
@@ -161,4 +161,41 @@ test('walking and hacking event schema preserves zone and cleared state',()=>{
  assert.deepEqual(log.events.map(e=>e.type),['hack_start','hack_done','choice','door_passed','extract']);
  assert.equal(log.events.at(-1).cleared,false);
  assert.equal(log.events[3].how,'hack');
+});
+
+// Drive real depth transitions, then mirror game.mjs onDepthStep/finishRound event wiring.
+// Storage, caps and totals tests above remain independent of the gameplay state machine.
+for (const how of ['clear','hack','key']) test(`depth walk timeline via ${how}, early extract and no pause`,()=>{
+ const r=createRound(`timeline-${how}`,0);initDepthRound(r,true,0);
+ const log=createRunLog({mode:'depth'});recordAreaEntered(log,1,0);
+ let now=100;
+ if(how==='clear'){
+  for(const e of r.level.enemies)if(e.depthArea===1)e.health=0;
+  assert.equal(stepDepthRaid(r,now,r.level.start),'area-cleared');
+  recordAreaCleared(log,1,now,now);
+ }else if(how==='hack'){
+  const n=r.level.depthTerminals[0];
+  assert.equal(stepDepthRaid(r,now,n),'hack-start');recordEvent(log,'hack_start',{zone:1},now);
+  now+=4000;assert.equal(stepDepthRaid(r,now,n),'hack-done');recordEvent(log,'hack_done',{zone:1},now);
+ }else{
+  const door=r.level.doors.find(d=>d.depth),box=r.level.lootBoxes.find(b=>b.key===door.key);
+  assert.equal(collectLoot(r,box,now),true);assert.equal(stepDoors(r,door,now),true);
+ }
+ now+=100;assert.equal(stepDepthRaid(r,now,r.level.depthStarts[1]),'area-entered');
+ const passed=r.depth.lastDoorPassed;assert.deepEqual(passed,{zone:1,how});
+ recordChoice(log,passed.zone,'deeper',now);recordDoorPassed(log,passed.zone,passed.how,now);recordAreaEntered(log,2,now);
+ now+=100;assert.equal(stepDepthRaid(r,now,r.level.exit),'extract-started');
+ now+=800;assert.equal(stepDepthRaid(r,now,r.level.exit),'zone-extracted');
+ recordChoice(log,2,'extract',now);recordExtract(log,2,r.depth.extractCleared,now);
+ const prefix=how==='clear'?['area_cleared']:how==='hack'?['hack_start','hack_done']:[];
+ assert.deepEqual(log.events.map(e=>e.type),['area_entered',...prefix,'choice','door_passed','area_entered','choice','extract']);
+ assert.deepEqual(log.events.at(-1),{t:now,type:'extract',zone:2,cleared:false});
+ assert.equal(log.events.some(e=>e.type==='pause_open'),false);assert.equal(r.pauseAt,null);
+});
+
+test('depth death preserves zone and cause for terminal run-log event',()=>{
+ const r=createRound('timeline-death',0);initDepthRound(r,true,0);tickRound(r,0);
+ takeDamage(r,10000,500);assert.equal(r.over,true);assert.equal(r.reason,'death');
+ const log=createRunLog({mode:'depth'});recordDeath(log,'Sentry projectile',r.depth.zone,500);
+ assert.deepEqual(log.events,[{t:500,type:'death',cause:'Sentry projectile',zone:1}]);
 });

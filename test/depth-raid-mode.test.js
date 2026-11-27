@@ -1,13 +1,13 @@
 // Depth Raid is an opt-in game mode (NODE RAID = existing loop, DEPTH RAID = prototype).
 // Ordinary launches stay unchanged; the selector appears only on Bunker after FTUE.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","data/raid-depth.js"];
 function boot(save, url){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url: url || "http://localhost/index.html", pretendToBeVisual:true });
   const w = dom.window; if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = u => { w.__nav = u; };
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, depthRaidAvailable, depthRaidOn, depthRaidSelected, setDepthRaid, coreLaunchUrl, ftueOver:typeof ftueOver==='function'?ftueOver:undefined, guidedRaid:typeof guidedRaid==='function'?guidedRaid:undefined };");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, ingestRaidResult, extractScrapBonus, depthRaidAvailable, depthRaidOn, depthRaidSelected, setDepthRaid, coreLaunchUrl, ftueOver:typeof ftueOver==='function'?ftueOver:undefined, guidedRaid:typeof guidedRaid==='function'?guidedRaid:undefined };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();
@@ -100,4 +100,15 @@ const fresh = (mut, url) => { const st = JSON.parse(JSON.stringify(base)); if(mu
   assert(!/depth=/.test(off.w.__nav), "meta ?depth=0 keeps a Node Raid launch: " + off.w.__nav);
 }
 
+// Real base ingestion must agree with the in-raid reward preview, including after prior clears.
+for(const earlyExtract of [true,false]){
+  const b=fresh(),before=b.S().cur.scrap||0,cableBefore=b.S().stash.cable||0;
+  const r={schema:"protocol-rebirth/raid-result",version:1,raidId:"depth-payout-"+earlyExtract,
+    outcome:"extract",area:"bunker",levelsCleared:3,extracted:["cable"],lost:[],
+    earlyExtract,depthBonus:b.D.raidDepth.z3ClearBonusScrap};
+  assert.equal(b.T.ingestRaidResult(r).ok,true);
+  const expected=earlyExtract?0:b.T.extractScrapBonus(3)+b.D.raidDepth.z3ClearBonusScrap;
+  assert.equal(b.S().cur.scrap-before,expected,"only a cleared extract pays the ladder and final bonus");
+  assert.equal(b.S().stash.cable,cableBefore+1,"early extraction still keeps carried loot");
+}
 console.log("depth-raid-mode.test: ok");

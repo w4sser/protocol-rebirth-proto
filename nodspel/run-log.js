@@ -47,6 +47,7 @@ export function recordAreaEntered(log,zone,ms){return recordEvent(log,'area_ente
 export function recordAreaCleared(log,zone,clearMs,ms){return recordEvent(log,'area_cleared',{zone,ms:Math.max(0,Math.round(clearMs)||0)},ms);}
 export function recordDoorPassed(log,zone,how,ms){return recordEvent(log,'door_passed',{zone,how},ms);}
 export function recordChoice(log,zone,kind,ms){return recordEvent(log,'choice',{zone,kind},ms);}
+// Depth timeline: hack_start/hack_done carry {zone}; door_passed.how is clear, hack or key.
 export function recordExtract(log,zone,cleared,ms){return recordEvent(log,'extract',{zone,cleared:!!cleared},ms);}
 export function recordDeath(log,cause,zone,ms){return recordEvent(log,'death',{cause,zone},ms);}
 export function recordTimeout(log,ms){return recordEvent(log,'timeout',{},ms);}

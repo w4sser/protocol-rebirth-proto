@@ -9,7 +9,7 @@ RAID_DEPTH_ROOT.DATA.raidDepth = Object.freeze({
   extractCountdownMs: 800,
   unclearedExtract: {scrapBonusMul:0},
   clearCache: {enabled:true, items:['cable','memory_module','encrypted_drive'], offset:2, angleStep:0.25, clearance:0.4},
-  hack: {holdMs:4000, radius:1.3, decayPerSec:0.25, noiseRadius:12, introRadius:8, placementStep:0.5},
+  hack: {holdMs:4000, radius:1.3, visualRadius:0.8, decayPerSec:0.25, noiseRadius:12, introRadius:8, placementStep:0.5},
   extractRadius: 1.45,
   // Prototype tuning: Area 3's full-clear bonus, paid on top of the existing RULES.extractScrapBonus
   // ladder (5/10/15 for areas reached) -- not a replacement for it.

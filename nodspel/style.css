@@ -438,11 +438,9 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
 }
 
 /* Depth Raid (v2.28.58): THIS area's clock + three area pips replace the global 8-minute timer
-   top-center (#round-timer-box hides while #depth-hud is shown). The EXTRACT / GO DEEPER choice
-   is a forced pop-card (no close badge); GO DEEPER is coral, EXTRACT is cyan. */
+   top-center (#round-timer-box hides while #depth-hud is shown). */
 .depth-hud{display:flex;align-items:center;gap:10px}
 .depth-pips.room-pips{display:flex;align-items:center;gap:5px}
-.depth-hud.is-paused #depth-timer{opacity:.85}
 /* Paired junction instructions stay compact beside the box at phone sizes. */
 .hazard-label.junction-label{font-size:10px;line-height:1.2;color:var(--ad-loot);background:var(--ad-night);padding:3px 5px;border:1px solid var(--ad-loot);text-shadow:none;white-space:nowrap}
 .hazard-label.junction-label[data-state=on],.hazard-label.junction-label[data-state=overload]{font-size:10px;color:var(--ad-danger);border-color:var(--ad-danger)}

@@ -850,13 +850,13 @@ function renderDepthHud(){
   if(pips.dataset.key!==pipKey){
     pips.dataset.key=pipKey;
     pips.replaceChildren(...roomPips(d.zone,3).map(c=>{const i=document.createElement('i');i.className=c;return i;}));
-    zoneEl.textContent=d.phase==='travel'?`AREA ${d.zone+1} AHEAD`:d.zone<3?`AREA ${d.zone}`:'FINAL AREA';
+    zoneEl.textContent=d.zone<3?`AREA ${d.zone}`:'FINAL AREA';
   }
   const seconds=Math.ceil(d.zoneRemainingMs/1000);
-  const text=d.phase==='travel'?'WALK':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+  const text=d.clearedZones.includes(d.zone)?'CLEAR':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   if(timerEl.textContent!==text)timerEl.textContent=text;
-  timer?.classList.toggle('warn',d.phase==='combat'&&seconds<=30&&seconds>10);
-  timer?.classList.toggle('urgent',d.phase==='combat'&&seconds<=10);
+  timer?.classList.toggle('warn',!d.clearedZones.includes(d.zone)&&seconds<=30&&seconds>10);
+  timer?.classList.toggle('urgent',!d.clearedZones.includes(d.zone)&&seconds<=10);
 
 }
 // Pickup toasts: icon + name in rarity colour under the bag panel; stack of at most 3, each fades after TOAST_MS.
@@ -1080,7 +1080,7 @@ function renderEncounterLabels(clock){
       const depthLocked=d.depth&&d.locked,depthOpen=d.depth&&!d.locked;
 
       setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthLocked?'SEALED: CLEAR THE AREA OR HACK THE TERMINAL':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
-      setIconText(l.shortEl,icon,d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
+      setIconText(l.shortEl,icon,depthLocked?(round.keys?.includes(d.key)?'KEYCARD: WALK TO DOOR':'SEALED: CLEAR OR HACK'):d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
     else{const warn=e.sp.state==='warning';
       setIconText(l.caption,warn?'warning':'threat',warn?'! SWARM INCOMING':'SPAWN POINT');setIconText(l.shortEl,'threat','');
       l.el.classList.toggle('winding',warn);l.defeated=e.sp.state==='spawned';}
@@ -1345,8 +1345,8 @@ function loadLevelInner(){
   bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label','bit','BIT');
   if(!bitAlong){bitLabel.el.hidden=true;}
   for(const v of world.nodes){
-    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node','GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
-    const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node',v.node.depthTerminal?'HACK: HOLD POSITION':'GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
+    const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label',v.node.depthTerminal?'Door hack':'Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
   hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,h.junctionId?1.8:.35,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),h.junctionId?'hazard-label junction-label':'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
