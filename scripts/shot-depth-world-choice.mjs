@@ -84,6 +84,8 @@ try {
       for (const e of r.level.enemies) { e.sleeping = true; e.aggro = false; }
     });
     const shot = async name => {
+      // headless Chrome throttles rAF between evaluates: let three frames render so labels reflect the latest state
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
       await page.screenshot({ path: `${outDir}/${name}-${w}x${h}.png` });
       console.log("shot", name, `${w}x${h}`);
     };
@@ -99,6 +101,8 @@ try {
     const hold = await page.evaluate(() => window.__NR.depthHackHold(2000));
     if (hold.progress !== .5) throw new Error('Expected mid-hack hold: '+JSON.stringify(hold));
     await new Promise(r => setTimeout(r, 500));
+    await page.waitForFunction(() => [...document.querySelectorAll('.objective-node')].some(el => !el.hidden && el.textContent.includes('HACK')), { polling: 'raf', timeout: 10000 });
+    await new Promise(r => setTimeout(r, 400));
     await shot("03-mid-hack");
     console.log('terminal HUD', await page.evaluate(() => {
       const n=window.__NR.round().level.depthTerminals[0];
