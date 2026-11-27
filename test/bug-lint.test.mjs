@@ -704,3 +704,22 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 assert.equal(by('run-log-no-network').check({runLogSrc:'export function saveRunLog(){}'}).length,0,'PR 0 passes with no network calls');
 for(const bad of ['fetch(url)','new XMLHttpRequest()','navigator.sendBeacon(url,body)','new WebSocket(url)'])
   assert.equal(by('run-log-no-network').check({runLogSrc:`export function x(){${bad};}`}).length,1,`PR 0 fires on ${bad}`);
+
+{
+ const rule=by('bit-card-raid-top-right');
+ assert.equal(rule.check().length,0,'PR 2 bit-card-raid-top-right holds on real source');
+ assert.equal(rule.check({cardCssSrc:'.bit-card{left:50%}'}).length,1,'PR 2 fires when the ctx-raid rule is missing entirely');
+ assert.equal(rule.check({cardCssSrc:'.bit-card.ctx-raid{left:50%;right:calc(12px + var(--sr));top:calc(64px + var(--st));}'}).length,1,'PR 2 fires on a regression back to left:50%');
+ assert.equal(rule.check({cardCssSrc:'.bit-card.ctx-raid{right:calc(12px + var(--sr));top:calc(180px + var(--st));}'}).length,1,'PR 2 fires when top drops the card down toward the play area');
+ assert.equal(rule.check({cardCssSrc:'.bit-card.ctx-raid{left:auto;right:calc(12px + var(--sr));top:calc(64px + var(--st));bottom:auto;}'}).length,0,'PR 2 passes with the approved top-right rule');
+}
+{
+ const rule=by('raid-hud-no-seed-chip');
+ const html=fs.readFileSync(new URL('../nodspel/index.html',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0,'PR 2 raid-hud-no-seed-chip holds on real source');
+ assert.equal(rule.check({htmlSrc:'<div></div>'}).length,1,'PR 2 fires without a #raid-settings panel at all (counted once, panel missing short-circuits)');
+ const leaked=html.replace('<span id="room-obj" class="room-obj" aria-label="Gate controls"></span>','<span id="room-obj" class="room-obj" aria-label="Gate controls"></span><span id="seed-label" hidden></span>');
+ assert.equal(rule.check({htmlSrc:leaked}).length,1,'PR 2 fires when #seed-label leaks back into the permanent raid HUD outside the pause panel');
+ const dropped=html.replace('<span id="seed-label" hidden></span>','');
+ assert.equal(rule.check({htmlSrc:dropped}).length,1,'PR 2 fires when #seed-label is removed from the pause panel entirely');
+}

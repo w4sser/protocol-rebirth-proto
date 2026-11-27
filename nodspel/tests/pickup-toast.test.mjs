@@ -38,8 +38,11 @@ test('toast container wiring: under the bag panel, rarity colour, tokens only, r
 test('pickup toasts are HUD rects for world-label collision avoidance',()=>{
   assert.match(src('../game.mjs').match(/const HUD_SELECTORS='([^']*)'/)[1],/\.pickup-toast\b/);
 });
-test('debug seed label stays inside the safe area',()=>{
-  assert.match(src('../style.css'),/#seed-label\{[^}]*max-width:calc\(100vw - var\(--sl\) - var\(--sr\)/);
+test('debug seed label lives in the pause panel, not floating loose over the safe area',()=>{
+  // HUD diet (v2.28.79): #seed-label moved out of the permanent raid HUD into the pause panel's reminder
+  // row, which is bounded by the shared popup/dialog sizing (no longer needs its own safe-area max-width).
+  assert.match(src('../index.html'),/<div class="pause-reminder"[\s\S]*?<span id="seed-label" hidden><\/span><\/div><div class="audio-menu-body">/);
+  assert.doesNotMatch(src('../style.css'),/#seed-label\{[^}]*position:\s*(fixed|absolute)/);
 });
 
 test('an extra payload (value/needed-for text, from loot-value.js) rides along on the toast and refreshes on repeat pickups',()=>{

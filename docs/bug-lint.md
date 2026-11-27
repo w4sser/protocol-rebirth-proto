@@ -461,3 +461,32 @@ opens the door. Terminals have no collider and stay off the main lane. Depth tes
 cover hold/decay/noise, rewards, current beam, keycards and seed-based reachability.
 Run-log tests drive the walking state machine and retain storage/capping/death checks;
 hack_start/hack_done and door_passed how clear/hack/key replace the old push flow.
+
+### BIT top-right + raid HUD diet (PR 2, v2.28.79, 27 November 2026)
+
+Owner feedback: "Clean up the HUD and move communication/dialogue to the top-right
+to avoid obscuring the player and enemies." The raid BIT card (`.bit-card.ctx-raid`
+in `ui/bit-card.css`) moved from a centered `left:50%` overlay near the top to the
+top-right corner (`right:calc(12px + var(--sr));top:calc(64px + var(--st))`), clear
+of `#raid-settings-open` (the pause button) and the sticks/buttons. `bit-card-raid-top-right`
+fails if the rule goes back to `left:50%` or drops that `top`/`right` anchor.
+
+The permanent raid HUD also went on a diet: `#seed-label`, `#room-pips` and
+`#quest-chip` moved out of the always-on HUD into the pause panel (`#raid-settings`,
+inside a new `.pause-reminder` row), `#weapon-name` now shows for only ~2 s after a
+weapon change instead of staying up, and the bag panel collapsed to just the
+icon + count button (`#open-bag`), which tints amber (`.heavy`) past half capacity
+instead of showing a separate weight gauge bar. The depth timer/zone label/pips were
+already a single `#depth-hud` chip with `#round-timer-box` hidden underneath in depth
+mode, so no further merge was needed there. `raid-hud-no-seed-chip` fails if
+`#seed-label`/`#room-pips`/`#quest-chip` render anywhere in `nodspel/index.html`
+outside `#raid-settings`.
+
+`scripts/layout-check.mjs`'s `raidDepthBitTopRightRun` boots a depth raid, asserts
+those three removed ids stay out of the permanent HUD, forces a BIT line via
+`window.PRBitCard.show`, and asserts the card's rect stays inside the safe area, in
+the top-right quadrant, and clear of the move/aim sticks, DASH/BIT/tool buttons,
+health/shield/ammo HUD and the player's/every visible enemy's projected position.
+`scripts/measure-hud-coverage.mjs` reports the viewport-coverage percentage of the
+full HUD selector union before/after, at 844x390 (goal: at most 12%), plus the
+same informational-panel-only subset, before and with a BIT line forced.

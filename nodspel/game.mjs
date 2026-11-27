@@ -59,7 +59,7 @@ import {createBIT,stepBIT} from './bit.js?v=2.28.78';
 import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.78';
 import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.78';
 import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDistract} from './bit-distract.js?v=2.28.78';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,roomPips,bagTiles} from './hud.js?v=2.28.78';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,roomPips} from './hud.js?v=2.28.78';
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.78';
 import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.78';
 import {powerPadBitLine} from './pad-intro.js?v=2.28.78';
@@ -900,7 +900,6 @@ function combatSnapshotChanged(before,round){const after=combatSnapshot(round);r
 function updateHUD(){
   placeKitButton();placePickupToasts();renderQuestChip();
   renderGoalTracker();
-  renderBagContents($('#bag-items'),round.bag);
   renderBackpackHUD();
   {const n=carriedCount(round),cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
@@ -929,12 +928,6 @@ function updateHUD(){
 // Bag and NEED rows are icon tiles: item icon + count (bag) or have/need (goal). Names live in the tile title.
 function itemTile(id,text,cls=''){const t=document.createElement('span');t.className=`item-tile ${cls}`.trim();t.title=ITEM_NAMES[id]??MATERIALS[id]?.name??id;t.dataset.item=id;
   const r=rarityOf(id);t.style.setProperty('--rc',RARITY_COLORS[r]);t.append(svgIcon(MATERIALS[id]?.icon??'pickup'));const b=document.createElement('b');b.textContent=text;t.append(b);return t;}
-function renderBagContents(el,bag){
-  const tiles=bagTiles(bag),key=JSON.stringify(tiles);if(el.dataset.tiles===key)return;el.dataset.tiles=key;
-  el.replaceChildren();
-  if(!tiles.length)return;
-  for(const {id,n} of tiles)el.append(itemTile(id,n>1?`${n}`:'',n>1?'counted':''));
-}
 // v2.0 weapon backpack: tap a stashed weapon to compare before confirming; the one it replaces stays in the backpack.
 function renderBackpackHUD(){
   const row=$('#backpack-row'),tiles=$('#backpack-tiles');if(!row||!tiles)return;
@@ -1550,7 +1543,7 @@ function setupWeaponHUD(){
   renderKitHUD();
 }
 // Weapon name is a brief toast (switch / raid start), not a permanent label.
-function weaponToast(){const name=$('#weapon-name');if(!name)return;name.hidden=false;clearTimeout(weaponToast.t);weaponToast.t=setTimeout(()=>{name.hidden=true;},1500);}
+function weaponToast(){const name=$('#weapon-name');if(!name)return;name.hidden=false;clearTimeout(weaponToast.t);weaponToast.t=setTimeout(()=>{name.hidden=true;},2000);}
 function useKit(){if(!round||round.over||inputPaused(round)||resultPending)return;if(round.hitstopUntil!=null){pendingKit=true;return;}const reason=healthKitBlock(round);if(reason){notice(reason);return;}const before=round.health;if(useHealthKit(round,gameClock())){updateHUD();notice(`Medkit: +${Math.round(round.health-before)} HP`,1600);}}
 function renderKitHUD(){refreshKitLabels();const b=$('#use-kit');if(!b)return;const n=(round.kit?.medkit??0)+(round.bag.medkit??0);b.querySelector('b').textContent=n;b.disabled=round.over;b.setAttribute('aria-disabled',String(!!healthKitBlock(round)));b.title=healthKitBlock(round)||'Use medkit';b.setAttribute('aria-label',`Use medkit (Q) · ${n} left`);const show=n>0&&round.health<round.maxHealth;b.hidden=!show;b.classList.toggle('pulse',show&&round.health<40);const m=$('#heal-budget-meter');if(m)m.hidden=!show;}
 function renderWeaponHUD(clock){
@@ -1600,9 +1593,10 @@ function renderCarryValueHUD(clock){
   }
   skipNextCarryPulse=false;lastCarryValue=value;
 }
+// HUD diet (v2.28.79): the bag panel collapsed to just the icon + count button, so the weight
+// gauge bar is gone -- the icon itself tints amber past half capacity (see .bag-panel #open-bag.heavy).
 function renderBagWeightHUD(){
-  const fill=$('#bag-weight-fill');if(!fill)return;
-  fill.style.width=`${Math.round(carriedWeight(round)*100)}%`;
+  $('#open-bag')?.classList.toggle('heavy',carriedWeight(round)>=.5);
 }
 function renderAlarmBanner(clock){
   const title=$('#alarm-banner-title'),sub=$('#alarm-banner-sub'),el=$('#alarm-banner');if(!el)return;

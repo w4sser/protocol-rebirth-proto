@@ -950,6 +950,62 @@ async function pauseMapRun([w,h]){
   await shot(page,`pause-map-${w}x${h}`);await page.close();
 }
 
+// PR2 (HUD diet + BIT top-right, v2.28.79): the seed/room-pips/quest-chip reminder moved out of the
+// permanent raid HUD into the pause panel, and the raid BIT card moved from a centered overlay to the
+// top-right corner, clear of #raid-settings-open, the sticks/buttons and the player/enemies. This boots a
+// Depth raid, forces a BIT line via PRBitCard.show and checks both.
+async function raidDepthBitTopRightRun([w,h]){
+  const tag=`raid depth bit-top-right ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=bit-top-right&area=bunker&debug=1&q=high&depth=1`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');
+  await page.waitForFunction(()=>window.__NR?.round?.()?.depth,{timeout:30000});
+  await page.evaluate(()=>{
+    window.__NR.setRoomClearsEnabled(false);window.__NR.depthDismissIntro?.();
+    const r=window.__NR.round();r.health=100000;
+    for(const e of r.level.enemies??[]){e.sleeping=true;e.aggro=false;}
+  });
+  await settle(700);
+  // (c) the elements moved into the pause panel must not reappear in the permanent raid HUD
+  const removed=await page.evaluate(()=>{
+    const vis=el=>!!el&&!el.hidden&&!el.closest('[hidden]')&&getComputedStyle(el).visibility!=='hidden'&&el.getClientRects().length>0;
+    return {seedLabel:vis(document.getElementById('seed-label')),roomPips:vis(document.getElementById('room-pips')),questChip:vis(document.getElementById('quest-chip'))};
+  });
+  for(const [k,v] of Object.entries(removed))if(v)fail(tag,`#${k} is visible in the permanent raid HUD -- it must only show inside the pause panel`);
+  // (b) force a BIT line and check the card's rect
+  await page.evaluate(()=>{window.PRBitCard?.show?.({id:'layout-check-bit-top-right',text:'Area ahead. Stay sharp.'});});
+  await settle(200);
+  const m=await page.evaluate(()=>{
+    const el=document.querySelector('.bit-card.ctx-raid');
+    if(!el||el.hidden||!el.getClientRects().length)return null;
+    const r=el.getBoundingClientRect(),st=window.__NR.state(),sp=window.__NR.project(st.position.x,st.position.z);
+    // "enemy within view": drop projections behind the camera or outside the viewport (THREE.Vector3.project
+    // gives garbage-but-not-NaN coordinates for points behind the camera).
+    const enemies=(st.level.enemies??[]).map(e=>window.__NR.project(e.x,e.z)).filter(p=>p.x>=0&&p.x<=innerWidth&&p.y>=0&&p.y<=innerHeight);
+    const rect=sel=>{const e=document.querySelector(sel);if(!e||!e.getClientRects().length)return null;const rr=e.getBoundingClientRect();return {l:rr.left,t:rr.top,r:rr.right,b:rr.bottom};};
+    return {rect:{l:r.left,t:r.top,r:r.right,b:r.bottom},vw:innerWidth,vh:innerHeight,sp,enemies,
+      move:rect('#move-stick'),aim:rect('#aim-stick'),dash:rect('#dash'),tool:rect('#tool-btn'),distract:rect('#bit-distract'),
+      health:rect('#player-health'),shield:rect('#shield-hud'),ammo:rect('#ammo-hud'),pause:rect('#raid-settings-open')};
+  });
+  if(!m)fail(tag,'BIT card did not appear when forced via PRBitCard.show');
+  else{
+    const ov=(a,b)=>!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
+    if(m.rect.l<INSETS.left-1||m.rect.r>m.vw-INSETS.right+1||m.rect.t<INSETS.top-1||m.rect.b>m.vh-INSETS.bottom+1)
+      fail(tag,`BIT card rect ${JSON.stringify(m.rect)} is outside the safe area (${m.vw}x${m.vh}, insets ${JSON.stringify(INSETS)})`);
+    if(!(m.rect.l>=m.vw*.5&&m.rect.t<=m.vh*.5))
+      fail(tag,`BIT card is not in the top-right quadrant (${JSON.stringify(m.rect)} in ${m.vw}x${m.vh})`);
+    for(const [name,r] of [['move stick',m.move],['aim stick',m.aim],['DASH button',m.dash],['tool button',m.tool],['BIT distract button',m.distract],['health bar',m.health],['shield bar',m.shield],['ammo HUD',m.ammo],['pause button',m.pause]])
+      if(ov(m.rect,r))fail(tag,`BIT card overlaps the ${name}`);
+    // the central 40% width x 60% height region around the player is off-limits
+    const cw=m.vw*.4,ch=m.vh*.6,central={l:m.sp.x-cw/2,t:m.sp.y-ch/2,r:m.sp.x+cw/2,b:m.sp.y+ch/2};
+    if(ov(m.rect,central))fail(tag,'BIT card overlaps the central play area around the player');
+    for(const e of m.enemies){const er={l:e.x-20,t:e.y-20,r:e.x+20,b:e.y+20};if(ov(m.rect,er))fail(tag,'BIT card overlaps an enemy on screen');}
+  }
+  await shot(page,`raid-depth-bit-top-right-${w}x${h}`);
+  await page.close();
+}
+
 const layoutGroup=process.env.LAYOUT_GROUP||'all';
 if(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
 const group=name=>layoutGroup==='all'||layoutGroup===name;
@@ -1007,7 +1063,7 @@ try{
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
   }
-  if(group('raid-bunker'))for(const vp of VIEWPORTS)await raidRun(vp,'bunker');
+  if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);}
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
 // Debug-unlock sandbox smoke (both modes x every world, normal save untouched) rides on the
