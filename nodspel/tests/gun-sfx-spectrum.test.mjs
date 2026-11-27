@@ -1,11 +1,14 @@
 // v2.28.75 (Robert 24 Nov 2026): shots still sounded like pea-shooters; mortar had no muffled boom.
 // v2.28.76 (Robert 24 Nov 2026, t452u item 3): "still no bang" -- peak was already near 0 dBFS, the
-// RMS/punch was the weak link, and UI taps/backs/confirms were cutesy sine chirps. Assert the
-// procedural powder report is both loud (RMS louder than the pre-v2.28.76 BEFORE numbers below) and
-// a real crack (a genuinely short crack_decay time constant), with real low-end energy in a sane
-// range (not a muffled thump), explosion still heavier below 200 Hz than a carbine, air still a
-// hiss, and that the UI click generators are dry noise bursts, never a sine/square tone sweep.
-// Uses the same gen-sfx.py the shipping files come from.
+// RMS/punch was the weak link, and UI taps/backs/confirms were cutesy sine chirps.
+// v2.28.80 (Lumina SFX pass): shoot-*/explosion/mortar-launch now ship as Lumina SFX renders that
+// ui/audio.js play() prefers over the procedural fallback, so the numbers that matter are the
+// shipping files' (tools/audio/measure-sfx.py decodes assets/audio/sfx/*.ogg), not the synth's own
+// output. Assert the shipping powder report is both loud (RMS louder than the pre-v2.28.76 BEFORE
+// numbers below) and a real crack (low-end energy in a sane range, not a muffled thump), the
+// explosion is heavier below 200 Hz than a carbine shot and the new mortar-launch thump reads
+// lighter than the full boom, air stays a hiss, and that the UI click generators and the fallback
+// synth are dry noise bursts, never a sine/square tone sweep.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
@@ -17,7 +20,7 @@ const root=resolve(fileURLToPath(new URL('../..',import.meta.url)));
 // BEFORE v2.28.76 (measured from the then-shipping files; see t452u item 3 task notes).
 const BEFORE={'shoot-carbine':-10.32,'shoot-smg':-12.59,'shoot-shotgun':-7.98,'shoot-rifle':-10.15};
 
-test('powder shots and the mortar boom have punch and low-end energy',()=>{
+test('shipping powder shots, mortar launch and the explosion boom have punch and low-end energy',()=>{
   // CI has no numpy: fall back to the committed measurement (regenerate with measure-sfx.py > sfx-measure.json).
   const hasNumpy=spawnSync('python3',['-c','import numpy'],{cwd:root}).status===0;
   let m;
@@ -41,6 +44,21 @@ test('powder shots and the mortar boom have punch and low-end energy',()=>{
   assert.ok(m.explosion.lowFrac>m['shoot-carbine'].lowFrac,'explosion must be heavier in the sub/low band than a carbine shot');
   // Air stays a hiss, not a powder thump.
   assert.ok(m['shoot-air'].lowFrac<0.05,'air cue must stay a hiss, not pick up a powder thump');
+  // The launch thump is audible but must read lighter in the low band than the full detonation --
+  // it is a tube report, not the boom (that stays on 'explosion', fired from stepBlasts/detonateDrum).
+  assert.ok(m['mortar-launch'].peakDb>-3,`mortar-launch peak ${m['mortar-launch'].peakDb} dBFS is too quiet`);
+  assert.ok(m['mortar-launch'].lowFrac<m.explosion.lowFrac,'mortar-launch must read lighter than the full explosion boom');
+});
+
+test('play() prefers an already-decoded Lumina sample over synthesis for shots/explosion, and never awaits a decode to do it',()=>{
+  const src=readFileSync(resolve(root,'ui/audio.js'),'utf8');
+  const body=src.slice(src.indexOf('async play(name'),src.indexOf('cancelVoice('));
+  const shotBranch=(body.match(/if\(shot\)\{[\s\S]*?\n {6}\}\n/)||[''])[0];
+  assert.match(shotBranch,/this\.decodedBuffers\.get\(cue\.file\)\|\|this\.shotBuffer\(/,'play() must prefer an already-decoded sample over shotBuffer()');
+  assert.ok(!/await\s+this\.(load|raceLoad)\(/.test(shotBranch),'shot playback must never await a decode -- fall back to synthesis synchronously instead');
+  const explosionBranch=(body.match(/if\(name===['"]explosion['"]\)\{[\s\S]*?\n {6}\}\n/)||[''])[0];
+  assert.match(explosionBranch,/this\.decodedBuffers\.get\(cue\.file\)\|\|this\.explosionBuffer\(/,'play() must prefer an already-decoded sample over explosionBuffer()');
+  assert.ok(!/await\s+this\.(load|raceLoad)\(/.test(explosionBranch),'explosion playback must never await a decode -- fall back to synthesis synchronously instead');
 });
 
 test('every powder weapon has a genuinely short (<5ms) broadband crack transient',()=>{
