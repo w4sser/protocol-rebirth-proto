@@ -634,7 +634,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 {
  const rule=by('powder-and-mortar-boom');
  assert.equal(rule.check().length,0,'powder and mortar boom holds on real source');
- assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,12,'all powder-and-mortar-boom guards fire');
+ assert.equal(rule.check({audioDataSrc:'',audioSrc:'',genSfxSrc:'',combatSrc:'',roundSrc:''}).length,16,'all powder-and-mortar-boom guards fire');
  const data=fs.readFileSync(new URL('../data/audio.js',import.meta.url),'utf8');
  const audio=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
  const gen=fs.readFileSync(new URL('../tools/audio/gen-sfx.py',import.meta.url),'utf8');
@@ -642,7 +642,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  const round=fs.readFileSync(new URL('../nodspel/round.js',import.meta.url),'utf8');
  assert.equal(rule.check({audioDataSrc:data.replace("add('explosion',0.85,150);",'')}).length,1,'dropping the explosion cue fires');
  assert.equal(rule.check({audioDataSrc:data.replace('thumpHz:90','thumpHz:160')}).length,1,'raising the default thump back to midrange fires');
- assert.equal(rule.check({audioSrc:audio.replaceAll('explosionBuffer','boomBuffer')}).length,1,'renaming explosionBuffer fires');
+ assert.equal(rule.check({audioSrc:audio.replaceAll('explosionBuffer','boomBuffer')}).length,2,'renaming explosionBuffer fires both the synth-exists and the decoded-sample-preference guards');
  assert.equal(rule.check({genSfxSrc:gen.replaceAll('explosion(','boom(')}).length,2,'renaming explosion() fires the def and the cue route');
  assert.equal(rule.check({combatSrc:combat.replace("audioEvent('explosion')",'')}).length,1,'dropping the mortar explosion cue fires');
  assert.equal(rule.check({roundSrc:round.replace("audioEvent('explosion')",'')}).length,1,'dropping the drum explosion cue fires');
@@ -651,6 +651,10 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({audioDataSrc:data.replace('compressor:{threshold:-2,knee:0,ratio:20,attack:.0005,release:.06}','compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08}')}).length,1,'reverting the limiter back to the old squashing compressor fires');
  assert.equal(rule.check({audioDataSrc:data.replace('sfx:0.95','sfx:0.75')}).length,1,'reverting defaults.sfx back to the old 0.75 fires');
  assert.equal(rule.check({genSfxSrc:gen.replace("crack_decay=.003,","crack_decay=.007,")}).length,1,'reintroducing the old 7ms crack_decay in POWDER_PROFILES fires');
+ assert.equal(rule.check({audioDataSrc:data.replace("add('mortar-launch',0.6,120);",'')}).length,1,'dropping the mortar-launch cue fires');
+ assert.equal(rule.check({audioSrc:audio.replace('this.decodedBuffers.get(cue.file)||this.shotBuffer(','this.shotBuffer(')}).length,1,'dropping the decoded-sample preference for shots fires');
+ assert.equal(rule.check({audioSrc:audio.replace('this.decodedBuffers.get(cue.file)||this.explosionBuffer(','this.explosionBuffer(')}).length,1,'dropping the decoded-sample preference for the explosion fires');
+ assert.equal(rule.check({combatSrc:combat.replace("audioEvent('mortar-launch')",'')}).length,1,'dropping the mortar-launch launch cue in lobGrenade fires');
 }
 
 {
