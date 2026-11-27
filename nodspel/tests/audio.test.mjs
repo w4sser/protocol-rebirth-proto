@@ -426,6 +426,32 @@ test('interrupted contexts recover through every gesture, visibility and playbac
   a.context.state='running';a.context.onstatechange();assert.equal(a.unlocked,true);
 });
 
+test('play() prefers an already-decoded sample for shots and explosion, falling back to synthesis otherwise',async()=>{
+  const f=fixture(),a=f.audio;await a.unlock();
+  const sample=a.context.createBuffer(1,4,a.context.sampleRate);
+  a.decodedBuffers.set('sfx/shoot-carbine',sample);
+  assert.equal(await a.play('shoot-carbine'),true);
+  assert.equal(a.context.sources.at(-1).buffer,sample);
+  assert.equal(a.context.decodes,0,'the decoded-sample path never triggers a decode of its own');
+  a.decodedBuffers.delete('sfx/shoot-carbine');f.advance(100);
+  assert.equal(await a.play('shoot-carbine'),true);
+  assert.equal(a.context.sources.at(-1).buffer,a.shotBuffer('carbine',false),'falls back to synthesis once the sample is gone');
+  const boom=a.context.createBuffer(1,4,a.context.sampleRate);
+  a.decodedBuffers.set('sfx/explosion',boom);
+  assert.equal(await a.play('explosion'),true);
+  assert.equal(a.context.sources.at(-1).buffer,boom);
+  a.decodedBuffers.delete('sfx/explosion');f.advance(200);
+  assert.equal(await a.play('explosion'),true);
+  assert.equal(a.context.sources.at(-1).buffer,a.explosionBuffer());
+});
+test('a successful file decode populates decodedBuffers for later shot/explosion playback',async()=>{
+  const f=fixture(),a=f.audio;await a.unlock();
+  await a.load('sfx/shoot-carbine');
+  assert.ok(a.decodedBuffers.has('sfx/shoot-carbine'));
+  f.advance(100);assert.equal(await a.play('shoot-carbine'),true);
+  assert.equal(a.context.sources.at(-1).buffer,a.decodedBuffers.get('sfx/shoot-carbine'));
+  assert.notEqual(a.context.sources.at(-1).buffer,a.shotBuffer('carbine',false));
+});
 test('unknown shot uses carbine and synthesis errors return false',async()=>{
   const f=fixture(),a=f.audio;await a.unlock();assert.equal(await a.play('shoot-unknown'),true);
   const source=a.context.sources.at(-1);assert.equal(source.buffer,a.shotBuffer('carbine',false));
