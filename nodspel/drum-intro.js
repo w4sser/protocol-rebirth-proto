@@ -1,7 +1,7 @@
 // Fuel drum BIT intro (docs/bit-narrator.md): first sight of a drum, in a calm beat, once per profile.
 // Pure and DOM-free (persistence/`PRBitCard` wiring is nodspel/game.mjs's job) so the trigger condition
 // is testable headless, the same split as nodspel/loot-value.js's materialPickupBitLine.
-import {RULES} from './levels.js?v=2.28.76';
+import {RULES} from './levels.js?v=2.28.77';
 
 export const FUEL_DRUM_BIT_LINE="Red bands mean a plan. I'd kick it myself, but I don't have legs.";
 

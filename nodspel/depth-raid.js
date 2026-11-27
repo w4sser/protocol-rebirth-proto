@@ -2,11 +2,11 @@
 // cleared, then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door and the player
 // walks into the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area
 // extract. Area-clock timeout is a loss. NODE RAID is untouched (opt-in via depthModeEnabled).
-import '../data/raid-depth.js?v=2.28.76';
-import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from './depth-level.js?v=2.28.76';
-import {timeoutRound,extractDepthZone} from './round.js?v=2.28.76';
-import {pausePick,resumePick} from './perks.js?v=2.28.76';
-import {rarityOf} from './rarity.js?v=2.28.76';
+import '../data/raid-depth.js?v=2.28.77';
+import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from './depth-level.js?v=2.28.77';
+import {timeoutRound,extractDepthZone} from './round.js?v=2.28.77';
+import {pausePick,resumePick} from './perks.js?v=2.28.77';
+import {rarityOf} from './rarity.js?v=2.28.77';
 
 export const DEPTH=globalThis.DATA.raidDepth;
 export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR};

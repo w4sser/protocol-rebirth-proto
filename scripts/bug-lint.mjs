@@ -714,6 +714,10 @@ export const RULES=[
      if(!(timeout>=10000))out.push('data/raid-enemies.js: models.timeoutMs must give a ~1.3-1.7MB enemy GLB enough time on a phone sharing bandwidth with env textures (at least 10000ms, matching nodspel/town.js loadKit\'s 20000ms convention), not the old 3500ms');
      if(!/loadEnemyModel\.preload\?\.\(\(round\.level\.enemies\?\?\[\]\)\.map\(e=>visualFor\(e\)\?\.archetype\)\.filter\(Boolean\)\);/.test(game))out.push('nodspel/game.mjs: loadLevelInner must preload every archetype round.level.enemies will need before buildWorld() starts competing for bandwidth');
      return out;}},
+  {id:'run-log-no-network',pr:'PR 0 (raid run log, v2.28.77)',why:'the run log (docs/run-log.md) exists specifically so Robert can get playtest data with NO external services -- nodspel/run-log.js must stay a pure localStorage-only module, never gaining a network path that would silently turn local telemetry into something leaving the device.',
+   check(ctx={}){const src=ctx.runLogSrc??read('nodspel/run-log.js');const out=[];
+     if(/\bfetch\s*\(|\bXMLHttpRequest\b|\bsendBeacon\s*\(|\bWebSocket\b/.test(src))out.push('nodspel/run-log.js must not contain fetch(/XMLHttpRequest/sendBeacon(/WebSocket -- run log storage is localStorage-only, no network');
+     return out;}},
 ];
 
 

@@ -3,9 +3,9 @@
  * Drag rotates the operator; gameplay animation must never cancel this yaw.
  */
 import * as THREE from '../nodspel/vendor/three.module.js';
-import {createMenuBit} from './raid-prep-models.mjs?v=2.28.76';
-import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.76';
-import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.76-hero-stage';
+import {createMenuBit} from './raid-prep-models.mjs?v=2.28.77';
+import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.77';
+import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.77-hero-stage';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // BIT belongs behind OP-01, not in the foreground. Camera is on +Z;

@@ -723,3 +723,6 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({gameSrc:game.replace(
    "loadEnemyModel.preload?.((round.level.enemies??[]).map(e=>visualFor(e)?.archetype).filter(Boolean));\n  ",'')}).length,1,'dropping the loadLevelInner preload call fires');
 }
+assert.equal(by('run-log-no-network').check({runLogSrc:'export function saveRunLog(){}'}).length,0,'PR 0 passes with no network calls');
+for(const bad of ['fetch(url)','new XMLHttpRequest()','navigator.sendBeacon(url,body)','new WebSocket(url)'])
+  assert.equal(by('run-log-no-network').check({runLogSrc:`export function x(){${bad};}`}).length,1,`PR 0 fires on ${bad}`);

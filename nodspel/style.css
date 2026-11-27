@@ -216,6 +216,10 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 #round-over .result-all-loot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:5px 10px}
 #round-over .result-detail-columns{grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr)}
 #round-over .result-detail-tip{font-size:10px;line-height:1.35;color:var(--ad-bit);margin-top:10px}
+/* PR 0 run log (docs/run-log.md): a quiet playtest-only utility, not a gameplay action -- styled like
+   result-details-toggle (no fill, bit-cyan text) so it never competes with the real result actions. */
+#round-over .result-copy-log{align-self:flex-start;margin-top:10px;min-height:28px;padding:4px 8px;border:1px solid var(--ad-bit);border-radius:4px;background:none;color:var(--ad-bit);font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.3px}
+#round-over .result-copy-log.copied{border-color:var(--ad-loot);color:var(--ad-loot)}
 @media(max-height:400px){.result-footer-copy #result-next{display:none}#result-report .death-tip{display:none}.result-item.compact{padding:2px 0}}
 
 #round-over .result-item.result-recovered>b,#round-over .result-item.result-recovered .pr-ic{color:var(--ad-bit)}
