@@ -1,11 +1,7 @@
-// Depth Raid prototype (Bunker only, v2.28.58). Carlos's paper: an area completes when it is
-// cleared, then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door and the player
-// walks into the next area of the same stitched level. Robert's lock (21 Nov 2026): no mid-area
-// extract. Area-clock timeout is a loss. NODE RAID is untouched (opt-in via depthModeEnabled).
+// Walking choices, always-live current beam and loud hold-to-hack terminals.
 import '../data/raid-depth.js?v=2.28.77';
 import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from './depth-level.js?v=2.28.77';
 import {timeoutRound,extractDepthZone} from './round.js?v=2.28.77';
-import {pausePick,resumePick} from './perks.js?v=2.28.77';
 import {rarityOf} from './rarity.js?v=2.28.77';
 
 export const DEPTH=globalThis.DATA.raidDepth;
@@ -26,7 +22,7 @@ export function depthModeEnabled({area,ftue,intro,big,depthParam}={}){
 export function createDepthState(now){
   const zone=1,zoneDurationMs=DEPTH.zoneTimerMs[zone-1];
   return {zone,zoneDurationMs,zoneDeadline:now+zoneDurationMs,zoneRemainingMs:zoneDurationMs,
-    phase:'combat',choice:null,extractOpen:false,extracting:null,goDeeperUsed:null,z3ClearBonus:0};
+    phase:'combat',extractOpen:true,extracting:null,clearedZones:[],z3ClearBonus:0,lastStepAt:now};
 }
 
 // Called once per raid right after createRound (same spot initFtueRound/initEquip run from).
@@ -36,6 +32,7 @@ export function initDepthRound(round,enabled,now,opts={}){
   const level=generateDepthLevel(round.seed,{area:opts.area,hard:opts.hard??round.hard,completedRaids:round.completedRaids,ftue:!!round.ftue});
   round.level=level;
   round.depth=createDepthState(now);
+  activateAreaExit(round,1);
   wakeArea(level,1);
   applyAreaCombat(level,1);
   return round.depth;
@@ -57,70 +54,58 @@ export function nextAreaPreview(round,nextZone){
   return {zone:nextZone,enemyCount:enemies.length,enemyTypes:types,lootCount:loot.length,lootTiers:tiers,harder:true,betterLoot:true};
 }
 
-export function openChoice(round,now){
-  const d=round.depth;
-  if(!d||round.over||d.phase==='choice')return null;
-  d.phase='choice';
-  d.choice={zone:d.zone,at:now,canGoDeeper:d.zone<3};
-  d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
-  pausePick(round,now);
-  return 'choice-opened';
-}
-
-export function chooseExtract(round,now){
-  const d=round.depth;
-  if(!d||round.over||d.phase!=='choice')return null;
-  const zone=d.zone;
-  d.extractOpen=true;d.extracting=null;d.choice=null;d.phase='combat';
+export function activateAreaExit(round,zone){
+  round.depth.extractOpen=true;
   const exit=round.level.depthExits?.[zone-1];
-  if(exit){round.level.exit={x:exit.x,z:exit.z,r:exit.r??DEPTH.extractRadius};}
-  resumePick(round,now);
-  return {kind:'extract',zone};
+  if(exit)round.level.exit={...exit,r:DEPTH.extractRadius};
 }
 
-export function canPushDeeper(round){
-  const d=round?.depth;
-  if(!d||round.over||d.zone>=3)return false;
-  if(d.phase!=='combat'||d.extractOpen)return false;
-  return !areaIsCleared(round,d.zone);
-}
-export function nearDepthDoor(round,position,reach=1.7){
-  const door=depthDoor(round?.level,round?.depth?.zone);
-  if(!door||!position)return null;
-  return Math.hypot(position.x-door.x,position.z-door.z)<=reach?door:null;
-}
-// Walk through the still-locked door without a clear: same travel/unlock as GO DEEPER,
-// but the leftover loot and the extract in this area are forfeited.
-export function pushDeeper(round,now){
-  const d=round.depth;
-  if(!canPushDeeper(round))return null;
-  const zoneLeft=d.zone;
-  const door=depthDoor(round.level,zoneLeft);
-  if(door){door.locked=false;door.openedAt=now;}
-  round.levelsCleared=Math.max(round.levelsCleared,zoneLeft);
-  d.phase='travel';d.choice=null;d.extractOpen=false;d.extracting=null;
-  d.goDeeperUsed={zone:zoneLeft,nextZone:zoneLeft+1,at:now,pushed:true};
-  d.forfeitZones=[...d.forfeitZones??[],zoneLeft];
-  return {zoneLeft,nextZone:zoneLeft+1,doorId:door?.id,pushed:true};
+// Keep the same nodeInteraction contract used by the node hold ring, without node activation.
+export function stepDepthHack(round,now,position,dt){
+  const d=round.depth,door=depthDoor(round.level,d.zone);
+  const terminal=round.level.nodes.find(n=>n.depthTerminal&&n.depthArea===d.zone);
+  if(!terminal||!door?.locked){round.nodeInteraction=null;return null;}
+  const inside=Math.hypot(position.x-terminal.x,position.z-terminal.z)<=DEPTH.hack.radius;
+  const wasInside=!!terminal.hacking;
+  terminal.hacking=inside;
+  terminal.progress=Math.max(0,Math.min(1,(terminal.progress??0)+(inside?dt/DEPTH.hack.holdMs:-dt/1000*DEPTH.hack.decayPerSec)));
+  round.nodeInteraction=terminal.progress>0||inside?{id:terminal.id,startedAt:now-terminal.progress*DEPTH.hack.holdMs,progress:terminal.progress}:null;
+  if(terminal.progress>=1){
+    terminal.active=true;door.locked=false;door.openedAt=now;door.openedBy='hack';
+    round.nodeInteraction=null;return 'hack-done';
+  }
+  if(inside&&!wasInside){
+    for(const enemy of areaEnemies(round,d.zone))if(enemy.health>0&&Math.hypot(enemy.x-terminal.x,enemy.z-terminal.z)<=DEPTH.hack.noiseRadius){enemy.aggro=true;enemy.alertAt=null;}
+    return 'hack-start';
+  }
+  return null;
 }
 
-export function goDeeper(round,now){
+export function clearDepthArea(round,now){
   const d=round.depth;
-  if(!d||round.over||d.phase!=='choice'||d.zone>=3||!d.choice?.canGoDeeper)return null;
-  const zoneLeft=d.zone;
-  const door=depthDoor(round.level,zoneLeft);
-  if(door){door.locked=false;door.openedAt=now;}
-  round.levelsCleared=Math.max(round.levelsCleared,zoneLeft);
-  d.phase='travel';d.choice=null;d.extractOpen=false;d.extracting=null;
-  d.goDeeperUsed={zone:zoneLeft,nextZone:zoneLeft+1,at:now};
-  resumePick(round,now);
-  return {zoneLeft,nextZone:zoneLeft+1,doorId:door?.id};
+  if(d.clearedZones.includes(d.zone)||!areaIsCleared(round))return false;
+  d.clearedZones.push(d.zone);
+  round.levelsCleared=Math.max(round.levelsCleared,d.zone);
+  const door=depthDoor(round.level,d.zone);
+  if(door?.locked){door.locked=false;door.openedAt=now;door.openedBy='clear';}
+  const terminal=round.level.nodes.find(n=>n.depthArea===d.zone&&n.depthTerminal);
+  if(terminal){terminal.active=true;terminal.hacking=false;}
+  round.nodeInteraction=null;
+  if(DEPTH.clearCache.enabled){
+    const exit=round.level.exit;
+    const box={id:`depth-clear-cache-${d.zone}`,depthArea:d.zone,x:exit.x+DEPTH.clearCache.offset,z:exit.z,
+      item:DEPTH.clearCache.items[d.zone-1],revealed:true,collected:false,clearCache:true};
+    round.level.lootBoxes.push(box);d.lastClearCache=box;
+  }
+  return true;
 }
 
 export function enterArea(round,now,area){
   const d=round.depth;
   if(!d||round.over||area<=d.zone)return null;
-  d.zone=area;d.phase='combat';d.extractOpen=false;d.extracting=null;d.choice=null;
+  d.zone=area;d.phase='combat';d.extractOpen=true;d.extracting=null;
+  round.nodeInteraction=null;d.lastStepAt=now;
+  activateAreaExit(round,area);
   d.zoneDurationMs=DEPTH.zoneTimerMs[area-1];
   d.zoneDeadline=now+d.zoneDurationMs;d.zoneRemainingMs=d.zoneDurationMs;
   wakeArea(round.level,area);
@@ -140,43 +125,32 @@ export function inDepthExtract(round,position){
   return Math.hypot(position.x-beam.x,position.z-beam.z)<=extractRadiusOf(round);
 }
 
-// Advances the area timer / clear-check / walk-in extract countdown by one frame. Mirrors
-// round.js's own tick-then-act functions: combat ticking is guarded on pauseAt, but the
-// clear check must still run (and travel must still detect the next area) using the same
-// paused-aware game clock nodspel/game.mjs already passes in.
+// No depth interaction pauses combat. Area changes require the current door to be open.
 export function stepDepthRaid(round,now,position){
   const d=round.depth;
-  if(!d||round.over)return null;
-  if(d.phase==='choice')return null;
-  if(d.phase==='travel'){
-    const area=areaAt(round.level,position);
-    if(area&&area>d.zone)return enterArea(round,now,area);
-    return null;
+  if(!d||round.over||round.pauseAt!=null)return null;
+  const dt=Math.max(0,now-d.lastStepAt);d.lastStepAt=now;
+  const door=depthDoor(round.level,d.zone),area=areaAt(round.level,position);
+  if(door&&!door.locked&&area>d.zone){
+    d.lastDoorPassed={zone:d.zone,how:door.openedBy??'keycard'};
+    return enterArea(round,now,area);
   }
-  if(round.pauseAt!=null)return null;
-  if(d.extractOpen){
-    const inBeam=inDepthExtract(round,position);
-    if(!inBeam){
-      if(d.extracting){d.extracting=null;return 'extract-canceled';}
-      return null;
-    }
-    // Countdown 0 = extract on entry (v2.28.63). A positive value still starts, then completes.
-    if(!d.extracting){
-      d.extracting={startedAt:now};
-      if((DEPTH.extractCountdownMs??0)>0)return 'extract-started';
-    }else if(now-d.extracting.startedAt<(DEPTH.extractCountdownMs??0))return null;
-    const zone=d.zone,complete=zone>=3;
-    if((d.forfeitZones??[]).includes(zone)){d.extracting=null;d.extractOpen=false;return 'extract-forfeit';}
-    d.extracting=null;
-    if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;
-    extractDepthZone(round,now,zone,complete);
-    return complete?'zone3-complete':'zone-extracted';
-  }
+  d.phase=door&&!door.locked?'travel':'combat';
   d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
-  if(d.zoneRemainingMs<=0){
-    timeoutRound(round,now);
-    return 'timeout';
-  }
-  if(areaIsCleared(round,d.zone))return openChoice(round,now);
+  const cleared=clearDepthArea(round,now);
+  const hack=stepDepthHack(round,now,position,dt);
+  if(inDepthExtract(round,position)){
+    if(!d.extracting){d.extracting={startedAt:now};return 'extract-started';}
+    if(now-d.extracting.startedAt>=DEPTH.extractCountdownMs){
+      const cleared=areaIsCleared(round),complete=d.zone>=3&&cleared;
+      d.earlyExtract=!cleared;d.extractCleared=cleared;d.extracting=null;
+      if(complete)d.z3ClearBonus=DEPTH.z3ClearBonusScrap;
+      extractDepthZone(round,now,cleared?d.zone:0,complete);
+      return complete?'zone3-complete':'zone-extracted';
+    }
+  }else if(d.extracting){d.extracting=null;return 'extract-canceled';}
+  if(cleared)return 'area-cleared';
+  if(hack)return hack;
+  if(!d.clearedZones.includes(d.zone)&&d.zoneRemainingMs<=0){timeoutRound(round,now);return 'timeout';}
   return null;
 }
