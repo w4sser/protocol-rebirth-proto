@@ -20,7 +20,7 @@ function context(round,launch,events){
   const elements=new Map();
   const element=selector=>{if(!elements.has(selector))elements.set(selector,{hidden:true,setAttribute(){},focus(){}});return elements.get(selector);};
   return {round,launch,world:{disposeVfx(){}},resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},
-    localStorage:{setItem:()=>{},getItem:()=>null},
+    localStorage:{setItem:()=>{},getItem:()=>null},runLog:null,
     audioEvent:()=>{},
     handoffRaidResult:(r)=>{events.push('handoff');assert.equal(r,round,'handoffRaidResult receives the real round');return true;},
     clearInput:()=>events.push('clear'),hideSwap(){},clearBullets(){},updateHUD(){},lastCombatFeedback:()=>'',deathTip:()=>null,setIconText(){},

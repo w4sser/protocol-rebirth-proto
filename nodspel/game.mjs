@@ -37,6 +37,7 @@ import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.76';
 import {safeSpawn} from './spawn.js?v=2.28.76';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.76-ftue-opening-v1';
 import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,nextAreaPreview,scaleDepthRules,inDepthExtract,extractRadiusOf,canPushDeeper,pushDeeper,nearDepthDoor,DEPTH} from './depth-raid.js?v=2.28.76';
+import {createRunLog,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,buildDeviceInfo} from './run-log.js?v=2.28.76';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.76';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.76-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.76';
@@ -95,6 +96,17 @@ const TOTAL_NODES=totalNodes();
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 const playerHealthSegments=createHealthSegments($('#player-health'),100,10);
+// PR 0 raid run log (docs/run-log.md): local-only telemetry for Robert's external playtests, no
+// network, no paid tools. runLog is (re)created once per raid in reset(); the counters below are
+// plain closures so frameInner (hot) only ever calls plain functions, never builds literals itself.
+const CORE_VERSION=$('#core-version')?.textContent?.trim()||'';
+let runLog=null,raidStartClock=0,runShotsFired=0,runShotsHit=0,runLootValue=0;
+function noteShotFired(ms){runShotsFired++;recordFirst(runLog,'first_shot',ms);}
+function noteHitFeel(kind,ms){runShotsHit++;recordFirst(runLog,'first_hit',ms);if(kind!=='hit')recordFirst(runLog,'first_kill',ms);}
+function noteLootCollected(item,ms){
+  const def=globalThis.DATA?.items?.find(i=>i.id===item),value=def?.sellValue>0?def.sellValue:0;
+  runLootValue+=value;recordLootCollected(runLog,item,rarityOf(item),value,ms);
+}
 // FTUE direct path (docs/ftue-design.md): launch is read early so the tutorial card can be skipped
 // for ?ftue=1 from the very first synchronous render, not just via the start-requested race below.
 // ftue is distinct from intro: intro is the long-standing guided-raid script (any player still on
@@ -209,6 +221,9 @@ if(DEBUG){
     ftueDebugEl.textContent=`FTUE step:${ftue.step||'-'} attempts:${ftue.attempts||0}\nplay:${fmt('play')} raidStart:${fmt('raidStart')} firstShot:${fmt('firstShot')} firstKill:${fmt('firstKill')} firstExtract:${fmt('firstExtract')}`;
   },500);
 }
+// PR 0 run log debug hook (docs/run-log.md), ?debug=1 only: read or wipe the stored playtest raids
+// from the console without needing the result-screen COPY RUN LOG button.
+if(DEBUG)window.PR_RUNLOG={get:()=>loadRunLogs(globalThis.localStorage),clear:()=>clearRunLogs(globalThis.localStorage)};
 function extractToastLane(){
   const move=document.getElementById('move-stick'),aim=document.getElementById('aim-stick'),gap=8;
   if(move&&aim){const mr=move.getBoundingClientRect(),al=aim.getBoundingClientRect();if(mr.width>2&&al.width>2&&al.left>mr.right)return Math.max(80,Math.floor(al.left-mr.right-gap*2));}
@@ -1190,6 +1205,7 @@ function hideDepthChoice(){const pop=$('#depth-choice');if(pop)pop.hidden=true;}
 function onDepthExtract(){
   if(!round?.depth||round.depth.phase!=='choice'||round.over)return;
   const res=chooseExtract(round,gameClock());if(!res)return;
+  recordChoice(runLog,res.zone,'extract',gameClock()-raidStartClock);
   hideDepthChoice();
   const line=res.zone>=3?DEPTH.bitLines.extractFinal:DEPTH.bitLines.extract;
   const id=res.zone>=3?'depth_extract_final':DEPTH.bitLines.extractId;
@@ -1200,14 +1216,20 @@ function onDepthExtract(){
 function onDepthGoDeeper(){
   if(!round?.depth||round.depth.phase!=='choice'||round.depth.zone>=3||round.over)return;
   const zoneLeft=round.depth.zone,res=goDeeper(round,gameClock());if(!res)return;
+  const ms=gameClock()-raidStartClock;recordChoice(runLog,zoneLeft,'deeper',ms);recordDoorPassed(runLog,zoneLeft,'clear',ms);
   hideDepthChoice();
   if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
   updateHUD();
 }
 function onDepthStep(dres){
   if(!dres)return;
-  if(dres==='choice-opened')showDepthChoice();
+  if(dres==='choice-opened'){
+    const ms=gameClock()-raidStartClock,clearMs=round.depth.zoneDurationMs-round.depth.zoneRemainingMs;
+    recordAreaCleared(runLog,round.depth.choice.zone,clearMs,ms);recordPauseOpen(runLog,ms);
+    showDepthChoice();
+  }
   if(dres==='area-entered'){
+    recordAreaEntered(runLog,round.depth.zone,gameClock()-raidStartClock);
     if(round.depth?.zone>=3&&DEPTH.bitLines.finalArea)
       globalThis.PRBitCard?.show({id:DEPTH.bitLines.finalAreaId,text:DEPTH.bitLines.finalArea,mood:'skeptical'});
     renderDepthHud();
@@ -1226,6 +1248,7 @@ function showDepthPushPrompt(show){
 function onDepthPushConfirm(){
   if(!round?.depth||round.over||!canPushDeeper(round))return;
   const res=pushDeeper(round,gameClock());if(!res)return;
+  recordDoorPassed(runLog,res.zoneLeft,'push',gameClock()-raidStartClock);
   showDepthPushPrompt(false);
   if(!depthPushShownThisSession){
     depthPushShownThisSession=true;
@@ -1433,7 +1456,11 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;hideDepthChoice();if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);if(round.depth)scaleDepthRules(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;hideDepthChoice();
+  raidStartClock=Date.now();runShotsFired=0;runShotsHit=0;runLootValue=0;
+  runLog=createRunLog({v:CORE_VERSION,raidId:round.seed,seed:round.seed,mode:round.depth?'depth':'node',ftue:!!launch.ftue,area:AREA_SEL,
+    device:buildDeviceInfo({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,coarsePointer:(navigator.maxTouchPoints??0)>0,userAgent:navigator.userAgent})});
+  if(round.depth)recordAreaEntered(runLog,1,0); // stepDepthRaid only emits 'area-entered' for zone 2+; zone 1 starts here.if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);if(round.depth)scaleDepthRules(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro&&!launch.ftue)notice(RULES.intro.tip,6000);
   if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);if(bitAlong)void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
@@ -1464,6 +1491,22 @@ function finishRound(outcome=round.reason){
     },Date.now());
     saveDdaState(ddaState,localStorage);
   }
+  // Run log (docs/run-log.md): finalized exactly once per raid, right when it is actually over --
+  // a Node Raid checkpoint (resultPending, round.over still false) does not finish it. death/timeout/
+  // extract/complete all reach here; abandon only sets round.over+reason elsewhere and also lands here.
+  if(round.over&&runLog&&!runLog.totals){
+    const ms=gameClock()-raidStartClock,zone=round.depth?.zone??round.level.number;
+    if(round.reason==='death'){
+      const hit=round.lastDamageEvent,cause=hit?`${hit.source} ${hit.attack}`:'Unknown';
+      recordDeath(runLog,cause,zone,ms);
+    }
+    if(round.reason==='timeout')recordTimeout(runLog,ms);
+    if(['extract','complete'].includes(round.reason))recordExtract(runLog,zone,true,ms);
+    const runOutcome=round.reason==='death'?'died':round.reason==='timeout'?'timeout':round.reason==='abandon'?'abandoned':'extracted';
+    finishRunLog(runLog,{outcome:runOutcome,durationMs:ms,zonesReached:round.depth?.zone??round.levelsCleared,enemiesKilled:round.enemiesDefeated,
+      shotsFired:runShotsFired,shotsHit:runShotsHit,damageTaken:round.telemetry.damageTaken,lootValue:runLootValue});
+    saveRunLog(runLog,localStorage);
+  }
   // FTUE raid (docs/ftue-design.md): a death/timeout/abandon retries straight into the FTUE raid in
   // place -- no base detour, no round-over screen. Only the attempt counter is bumped; assist ramps
   // land in a later release. The retry keeps launch.seed (not a fresh random one): handoffRaidResult
@@ -1492,6 +1535,21 @@ function finishRound(outcome=round.reason){
   const primary=resultPending?$('#extract-raid'):launch.returnUrl?$('#return-base'):$('#new-round');primary.focus({preventScroll:true});
 }
 $('#result-details-toggle').addEventListener('click',()=>toggleResultDetails($('#round-over')));
+// PR 0 run log (docs/run-log.md): copies every stored raid (not just this one) so Robert can pull a
+// whole playtest session's worth of data off a device in one paste. Same clipboard/execCommand
+// fallback pattern as app.js's devExport/profile export (no DOM dependency inside run-log.js itself).
+$('#result-copy-log').addEventListener('click',async()=>{
+  const btn=$('#result-copy-log'),json=JSON.stringify(loadRunLogs(globalThis.localStorage));
+  const showCopied=()=>{btn.textContent='COPIED';btn.classList.add('copied');clearTimeout(btn.copyResetTimer);
+    btn.copyResetTimer=setTimeout(()=>{btn.textContent='COPY RUN LOG';btn.classList.remove('copied');},2000);};
+  try{await navigator.clipboard.writeText(json);showCopied();}
+  catch{
+    const ta=document.createElement('textarea');ta.value=json;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.append(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');showCopied();}catch{btn.textContent='COPY FAILED';}
+    ta.remove();
+  }
+});
 $('#result-close').addEventListener('click',()=>{const action=resultPending?(launch.intro?'#extract-raid':'#continue-raid'):launch.returnUrl?'#return-base':'#new-round';$(action).click();});
 // acknowledged:true marks that the player already saw this outcome's in-raid result screen,
 // so the base can ingest a death/timeout/abandon silently instead of showing it a second time.
@@ -1514,6 +1572,7 @@ function fire(tap=false){
   tickRound(round,gameClock());if(round.over){finishRound();return;}
   const clock=gameClock();round.shooter=position;const direction=tap?{x:Math.sin(player.rotation.y),z:Math.cos(player.rotation.y)}:aim;const shot=fireAimedWeapon(weapon,round,position,direction,clock,playerSolids,playerMoving,tap);round.shooter=null;
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
+  noteShotFired(clock-raidStartClock);noteActivity(runLog,clock-raidStartClock);
   // Lock the actual projectile heading, not the last walking heading.
   // This is visual-only and never changes the shot that was already fired.
   op01Facing?.record(shot.dx,shot.dz);
@@ -2190,6 +2249,7 @@ function frameInner(now){
     if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=depthJambAssist(round.level,position,doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale)));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
       if(launch.ftue&&!ftueMoveMarked){ftueMoveMarked=true;fadeStickLabel(ftueMoveLabel);}}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
+    if(round.telemetry.distanceM>.5)recordFirst(runLog,'first_move',clock-raidStartClock);
     playerMoving=playerDisplaced(positionBefore,position);
     const beforeDash=copyXZ(hotPosDash,position);
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
@@ -2220,7 +2280,7 @@ function frameInner(now){
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){releaseBullet(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     computeBitThreat(round.level.enemies,position.x,position.z,BIT_THREAT_RANGE2);
     const bitQuiet=combatIsHot(hotBitThreat.aggroCount,hotBitThreat.telegraphNear);
-    if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.lastBagPickup?.at===clock)pickupToast(round.lastBagPickup.item);{const h=nextPickupHint(round.bag);const t=h&&hintText(h);if(t)notice(t,6000);}renderKitHUD();if(round.bagFull&&round.bagFull.at===clock)notifyBagFull();if(round.kitFull&&round.kitFull.at===clock)notifyKitFull();if(round.lastEquip&&round.lastEquip.at===clock)onEquip();if(round.gearOffer&&round.gearOffer.at===clock)notifyGearOffer();if(round.weaponOffer&&round.weaponOffer.at===clock)notifyWeaponOffer();if(round.lastPickup?.item==='keycard'&&round.lastPickup.at===clock)notice('KEYCARD · WALK UP TO THE LOCKED DOOR');}
+    if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.lastBagPickup?.at===clock){pickupToast(round.lastBagPickup.item);noteLootCollected(round.lastBagPickup.item,clock-raidStartClock);}{const h=nextPickupHint(round.bag);const t=h&&hintText(h);if(t)notice(t,6000);}renderKitHUD();if(round.bagFull&&round.bagFull.at===clock)notifyBagFull();if(round.kitFull&&round.kitFull.at===clock)notifyKitFull();if(round.lastEquip&&round.lastEquip.at===clock)onEquip();if(round.gearOffer&&round.gearOffer.at===clock)notifyGearOffer();if(round.weaponOffer&&round.weaponOffer.at===clock)notifyWeaponOffer();if(round.lastPickup?.item==='keycard'&&round.lastPickup.at===clock)notice('KEYCARD · WALK UP TO THE LOCKED DOOR');}
     if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
@@ -2263,9 +2323,11 @@ function frameInner(now){
       hitstop(round,feel.kind==='lastKill'?RULES.hitstop.lastKillMs:isKill?RULES.hitstop.killMs:RULES.hitstop.hitMs);
       const shake=isKill?RULES.feedback.cameraShake.kill:RULES.feedback.cameraShake.hit;addShake(shake.distance,shake.ms,now);
       if(isKill){hapticPulse(RULES.feedback.hapticKillMs);spawnKillMarker(feel.x,feel.z);world.burst(feel.x,feel.z,RULES.enemyTypes[feel.type]?.color??PALETTE.warm,true);}
+      noteHitFeel(feel.kind,clock-raidStartClock);
     }
     if(round.hitFeels?.length)round.hitFeels=[]; // hot-ok: only on frames with hits; consumers may hold the old array
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
+    if(moving)noteActivity(runLog,clock-raidStartClock);
     hotCountdown.remainingMs=round.remainingMs;audioEvent('countdown',hotCountdown);
     // M42: while a distract is flying/holding, BIT's position comes from stepBitDistract, not its
     // ordinary follow trail; stepBIT resumes the instant the distraction ends.
