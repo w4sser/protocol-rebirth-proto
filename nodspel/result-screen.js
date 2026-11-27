@@ -1,11 +1,11 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.28.77';
-import {resultReaction} from './result-bit.js?v=2.28.77';
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.77';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.77';
-import {extractScrapBonus} from './levels.js?v=2.28.77';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.77';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.77';
+import '../data/bit.js?v=2.28.78';
+import {resultReaction} from './result-bit.js?v=2.28.78';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.78';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.78';
+import {extractScrapBonus} from './levels.js?v=2.28.78';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.78';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.78';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -33,7 +33,7 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
     }
   }
   const rows=count(bag);if(safe)rows.sort(valuableFirst);
-  const bonus=checkpoint||safe?extractScrapBonus(round.levelsCleared):0;
+  const bonus=checkpoint||safe?(round.depth?.earlyExtract?globalThis.DATA.raidDepth.unclearedExtract.scrapBonusMul:1)*extractScrapBonus(round.levelsCleared)+(round.depth?.earlyExtract?0:round.depth?.z3ClearBonus??0):0;
   const goal=launch.goal,progress=goal?goalProgress(goal,checkpoint?round.bag:safe?round.extracted:{}):null;
   let goalText='',goalTitle='',goalReady=false;
   if(goal&&(checkpoint||safe)){
@@ -50,7 +50,7 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const level=checkpoint?(round.exitLevel??round.level):round.level;
   // D3.1 / D3.10: BIT stays silent through the FTUE intro raid; the first speech is the bunker greeting.
   const reaction=safe&&bitAccompaniesRaid(launch)?resultReaction(round,{rows,gear,home}):null;
-  return {reaction,kind,checkpoint,safe,integrated,eyebrow,title,deathCause,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
+  return {reaction,kind,checkpoint,safe,integrated,eyebrow,title,deathCause,description:safe&&round.depth?.earlyExtract?'Early extraction: loot secured, no clear bonus.':safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
     lootTitle:checkpoint?'CARRIED · NOT SECURED':safe?'SECURED LOOT':'LOST FROM BAG',empty:checkpoint?'Your bag is empty.':safe?'No loot carried out.':'No items lost from your bag.',
     retained:!checkpoint&&integrated?'XP and supplies kept':'',
     meta:`${String(level.area??'bunker').toUpperCase()} · ${round.levelsCleared} SECTOR${round.levelsCleared===1?'':'S'} CLEARED`,

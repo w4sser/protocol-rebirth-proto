@@ -3,8 +3,8 @@
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
 // v2.28.64: corridors are at least 2.4 m clear with chamfered joints so the capsule does not
 // snag, and every combat room gets 2-4 cover pieces between the entry and the enemies.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.77';
-import '../data/raid-depth.js?v=2.28.77';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.78';
+import '../data/raid-depth.js?v=2.28.78';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
@@ -455,6 +455,15 @@ export function generateDepthLevel(seed,opts={}){
   level.extracts=depthExits.map(e=>({x:e.x,z:e.z,r:e.r??1,depthArea:e.depthArea}));
   level.exit={x:depthExits[0].x,z:depthExits[0].z,r:depthExits[0].r,depthArea:1};
   level.depthAreaRules=rules;
+  for(const exit of level.depthExits){
+    const candidates=[];
+    for(let angle=0;angle<Math.PI*2;angle+=DEPTH.clearCache.angleStep){
+      const p={x:exit.x+Math.cos(angle)*DEPTH.clearCache.offset,z:exit.z+Math.sin(angle)*DEPTH.clearCache.offset};
+      if(depthSpotFree(level,p,DEPTH.clearCache.clearance))candidates.push(p);
+    }
+    exit.cacheSpot=candidates[0]??{x:exit.x,z:exit.z};
+  }
+  placeDepthTerminals(level);
   level.hard=hard||undefined;
   return level;
 }
@@ -936,3 +945,37 @@ export function depthConnectorPaths(level){
 }
 
 export function depthCorridorClearWidth(){return DEPTH_CLEAR_WIDTH;}
+
+// Walk-through terminals and key crates live on reachable room flanks, outside the main lane.
+export function placeDepthTerminals(level){
+  level.depthTerminals=[];
+  for(const door of level.doors.filter(d=>d.depth)){
+    const zone=door.depthAreaFrom;
+    door.key=`depth-key-${zone}`;
+    const rooms=level.rooms.filter(r=>r.depthArea===zone).sort((a,b)=>Math.hypot(a.x-door.x,a.z-door.z)-Math.hypot(b.x-door.x,b.z-door.z));
+    // Prove reachability with this wing's door sealed and previous doors open.
+    const locks=level.doors.map(d=>d.locked);
+    for(const d of level.doors)if(d.depth)d.locked=d.depthAreaFrom>=zone;
+    const reachable=navReachable(level);
+    level.doors.forEach((d,i)=>d.locked=locks[i]);
+    const spots=[];
+    for(const room of rooms){
+      const entry=roomEntry(level,room),exit=roomExitPoint(level,room,entry);
+      for(let x=room.x-room.w/2+DEPTH.hack.radius;x<=room.x+room.w/2-DEPTH.hack.radius;x+=DEPTH.hack.placementStep){
+        for(let z=room.z-room.d/2+DEPTH.hack.radius;z<=room.z+room.d/2-DEPTH.hack.radius;z+=DEPTH.hack.placementStep){
+          const p={x,z};
+          if(!depthSpotFree(level,p,DEPTH.hack.radius)||blocksMainRoute(p,entry,exit)||nearAnyExtract(level,p)||!reachable(p))continue;
+          spots.push({...p,laneDistance:exit?segmentLateral(p,entry,exit):Infinity});
+        }
+      }
+    }
+    spots.sort((a,b)=>Math.hypot(a.x-door.x,a.z-door.z)-Math.hypot(b.x-door.x,b.z-door.z));
+    const spot=spots[0];
+    if(!spot)throw new Error(`No reachable depth terminal for area ${zone}`);
+    const node={...spot,id:`depth-terminal-${zone}`,depthTerminal:true,depthArea:zone,r:DEPTH.hack.visualRadius,active:false,progress:0,collider:false,name:'HACK TERMINAL'};
+    level.nodes.push(node);level.depthTerminals.push(node);
+    const keySpot=spots.find(p=>Math.hypot(p.x-node.x,p.z-node.z)>DEPTH.hack.radius*2);
+    if(!keySpot)throw new Error(`No reachable depth keycard for area ${zone}`);
+    level.lootBoxes.push({...keySpot,id:`depth-key-crate-${zone}`,depthArea:zone,item:'keycard',key:door.key,revealed:true,collected:false});
+  }
+}

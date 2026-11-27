@@ -518,29 +518,23 @@ export const RULES=[
      if(!physics.includes('if(box.movementOnly)return Infinity')||!physics.includes('previous>0&&Math.hypot(x-b.x,z-b.z)>Math.hypot(p.x-b.x,p.z-b.z)')||!game.includes('(round.level.shelves??[]).map(s=>s.collider)'))out.push('fallen shelves must block movement but allow shots and LOS');
      if(!game.includes("push('shelf_intro')")||!game.includes('shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids)')||!intro.includes('Gravity: still free, still rude.')||!intro.includes('e.health>0&&e.aggro'))out.push('shelf BIT first sight must stay calm, exact and profile-persisted');
      return out;}},
-  {id:'depth-raid-area-clear-choice',pr:'v2.28.58 depth-raid-clear-choice',why:"Carlos's paper / Robert 21 Nov 2026: a Depth Raid area completes when its enemies are cleared (not when the timer hits 0), then a paused EXTRACT vs GO DEEPER choice; GO DEEPER unlocks a door in the same stitched level (no generateLevel/loadLevel teleport, no refuse horde); extract stays closed mid-area; area-clock timeout is a loss; the global 8-minute clock never fails a depth raid",
-   check(ctx={}){const round=ctx.roundSrc??read('nodspel/round.js'),depth=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),stakes=ctx.stakesSrc??read('nodspel/stakes.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
-     if(!round.includes('if(round.depth)return !!round.depth.extractOpen;'))out.push('nodspel/round.js: exitIsOpen must gate depth-mode extract on extractOpen (the EXTRACT choice), never on the node gate or a timer window');
-     if(!round.includes('if(round.remainingMs===0&&!round.depth)'))out.push('nodspel/round.js: tickRound must not let the global 8-minute clock fail a depth raid');
-     if(!round.includes('export function extractDepthZone('))out.push('nodspel/round.js: extractDepthZone() (the walk-in+countdown success path) is missing');
-     if(!round.includes('export function timeoutRound('))out.push('nodspel/round.js: timeoutRound() (area-clock death) is missing');
-     if(!depth.includes('export function areaIsCleared(')||!depth.includes('openChoice('))out.push('nodspel/depth-raid.js: area clear must open the EXTRACT / GO DEEPER choice via areaIsCleared/openChoice');
-     if(depth.includes('d.window=true'))out.push('nodspel/depth-raid.js: the 15s timer-window path must stay removed -- a timeout is a loss, not a beam');
-     const goDeeperFn=(depth.match(/export function goDeeper\([^)]*\)\{[\s\S]*?\n\}/)||[''])[0];
-     if(goDeeperFn.includes('generateLevel')||goDeeperFn.includes('spawnRefuseHorde')||goDeeperFn.includes('loadLevel'))out.push('nodspel/depth-raid.js: goDeeper must unlock a door in the same level -- no generateLevel, loadLevel, or refuse horde');
-     if(!goDeeperFn.includes('d.zone>=3')||!goDeeperFn.includes("d.phase!=='choice'"))out.push('nodspel/depth-raid.js: goDeeper must require an open choice and reject it on zone 3');
-     if(!stakes.includes('round.ftue || round.depth'))out.push('nodspel/stakes.js: stepStakes must skip the global hunter-wave clock in depth mode');
-     if(!/if\(round\.depth\)\{\s*const dres=stepDepthRaid\(round,clock,position\);[\s\S]*?\}else\{\s*const result=enterExit\(round,position,clock\);/.test(game))out.push('nodspel/game.mjs: the node-gated enterExit/checkpoint path must never run for a depth round -- stepDepthRaid and enterExit must stay mutually exclusive on round.depth');
-     if(game.includes("const res=goDeeper(round,clock,position,target)")&&game.includes('loadLevel();depthHudRevealed'))out.push('nodspel/game.mjs: GO DEEPER must not rebuild the world with loadLevel()');
+  {id:'depth-no-choice-popup',pr:'v2.28.78',why:'Robert 27 Nov: walking choices must never pause combat or open a depth prompt.',
+   check(ctx={}){const depth=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
+     if(/\b(?:pausePick|resumePick)\s*\(/.test(depth))out.push('Depth must never pause for a choice');
+     if(/id=["']depth-(?:choice|push)["']/.test(html))out.push('Depth choice/push popups must stay removed');
      return out;}},
-  {id:'depth-choice-touch',pr:'v2.28.59 depth-choice-touch',why:"Robert 21 Nov 2026: EXTRACT / GO DEEPER must work with real phone taps, not just harness/__NR clicks. The paused-input capture gate must allow #depth-choice (and the BIT intro card). The buttons use bindHUDTap so pointerup activates them without a synthesized click. The popup backdrop must not cover the tiles or swallow pointers. The old in-HUD #go-deeper chip must stay gone.",
-   check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),css=ctx.cssSrc??read('nodspel/style.css'),html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
-     if(!game.includes("bindHUDTap($('#depth-extract'),onDepthExtract)")||!game.includes("bindHUDTap($('#depth-go-deeper'),onDepthGoDeeper)"))out.push('nodspel/game.mjs: EXTRACT / GO DEEPER must use bindHUDTap so a phone pointerup activates them without a synthesized click');
-     if(!game.includes("e.target.closest?.('#depth-choice,.bit-card')"))out.push('nodspel/game.mjs: the paused-input capture gate must treat #depth-choice and .bit-card as owned, otherwise it swallows taps while the choice is paused');
-     const covered=(game.match(/const covered=\[\.\.\.document\.querySelectorAll\('([^']*)'\)\]/)||[])[1]??'';
-     if(!covered.includes('#depth-choice')||!game.includes(".pop-backdrop,.stick,#depth-choice"))out.push('nodspel/game.mjs: stick routing must treat #depth-choice as covered UI so playfield aims cannot steal the tap');
-     if(!css.includes('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}')||!css.includes('.depth-choice-frame{position:relative;z-index:1'))out.push('nodspel/style.css: the depth-choice backdrop must sit behind the card and ignore pointer events so it cannot cover EXTRACT / GO DEEPER');
-     if(html.includes('id="go-deeper"'))out.push('nodspel/index.html: the stale v2.28.57 #go-deeper HUD chip must stay removed');
+  {id:'depth-extract-always-open',pr:'v2.28.78',why:'The 21 Nov lock was reversed: every current area opens its beam on entry.',
+   check(ctx={}){const depth=ctx.depthRaidSrc??read('nodspel/depth-raid.js');const out=[];
+     const enter=(depth.match(/export function enterArea\([^)]*\)\{[\s\S]*?\n\}/)||[''])[0];
+     const init=(depth.match(/export function initDepthRound\([^\n]*[\s\S]*?\n\}/)||[''])[0];
+     if(!enter.includes('extractOpen=true')||!enter.includes('activateAreaExit(round,area)'))out.push('Area entry must open and retarget extract');
+     if(!init.includes('activateAreaExit(round,1)')||!depth.includes('round.depth.extractOpen=true'))out.push('Raid start must open area 1 extract');
+     return out;}},
+  {id:'depth-raid-world-flow',pr:'v2.28.78',why:'Depth keeps area timers, stitched doors and isolation from Node Raid checkpoints.',
+   check(ctx={}){const round=ctx.roundSrc??read('nodspel/round.js'),depth=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!round.includes('if(round.depth)return !!round.depth.extractOpen;')||!round.includes('if(round.remainingMs===0&&!round.depth)'))out.push('Depth extract/timer isolation is missing');
+     if(!depth.includes('clearDepthArea(round,now)')||!depth.includes('timeoutRound(round,now)')||!depth.includes('stepDepthHack(round,now,position,dt)'))out.push('Depth clear/hack/timer paths must remain');
+     if(!/if\(round\.depth\)\{\s*const dres=stepDepthRaid\(round,clock,position\);[\s\S]*?\}else\{\s*const result=enterExit\(round,position,clock\);/.test(game))out.push('Depth must bypass Node Raid checkpoints');
      return out;}},
   {id:'depth-raid-retag-refs',pr:'v2.28.60 raid-start-crash',why:"Robert 21 Nov 2026: a progressed Depth Raid (2+ completed raids) crashed on entry. retagPart prefixed hazard/junction/enemy ids but left padId/junctionId/patrolId/guardId/enemyId pointing at the old ids, so buildWorld read pad.x of undefined and the fatal overlay covered Start.",
    check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),world=ctx.worldSrc??read('nodspel/world.js');const out=[];
@@ -550,16 +544,16 @@ export const RULES=[
   {id:'depth-final-extract-signpost',pr:'v2.28.61 depth-final-area',why:"Robert 21 Nov 2026: could not find the exit in the last Depth Raid area, and the mode was too easy. generateDepthLevel used to set level.exit (and therefore the only 3D hatch/beam) to the area-1 pad, while chooseExtract remapped gameplay to depthExits[zone-1]. Area 3 had no visible hatch. Areas 2 and 3 also needed a modest difficulty ramp.",
    check(ctx={}){const depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),raid=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),world=ctx.worldSrc??read('nodspel/world.js'),game=ctx.gameSrc??read('nodspel/game.mjs'),data=ctx.raidDepthSrc??read('data/raid-depth.js'),html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
      if(!depth.includes('level.extracts=depthExits.map(')||!depth.includes('applyDepthAreaScale(parts[i],i+1)'))out.push('nodspel/depth-level.js: must publish one extract per area and apply the area 2/3 difficulty ramp');
-     if(!raid.includes('const exit=round.level.depthExits?.[zone-1]'))out.push('nodspel/depth-raid.js: chooseExtract must aim the beam at the current area hatch');
+     if(!raid.includes('const exit=round.level.depthExits?.[zone-1]'))out.push('nodspel/depth-raid.js: activateAreaExit must aim the beam at the current area hatch');
      if(!world.includes('depthExtractOpen')||!world.includes('hatchPoints=level.depth&&(level.extracts??[]).length?level.extracts:[exit]'))out.push('nodspel/world.js: Depth Raid must build a hatch at every area extract and open only the current one');
      if(!game.includes('renderDepthExtractGuide')||!game.includes('EXTRACT · CLEAR THE AREA')||!game.includes("depthExit.x,1.8,depthExit.z"))out.push('nodspel/game.mjs: the current-area hatch must stay labelled and a guide arrow must point at the open extract');
      if(!html.includes('id="depth-extract-guide"'))out.push('nodspel/index.html: #depth-extract-guide marker is missing');
-     if(!data.includes('extractFinal')||!data.includes('finalArea')||!data.includes('enemyCountAdd: 2')||!data.includes('enemyCountAdd: 3')||!data.includes('healthMul: 1.25')||!data.includes('healthMul: 1.5')||!data.includes('damageMul: 1.15')||!data.includes('damageMul: 1.3'))out.push('data/raid-depth.js: area 2/3 scale numbers and extract BIT lines must stay in the prototype tuning');
+     if(!data.includes('depth_walk_extract_intro')||!data.includes('depth_loud_terminal_intro')||!data.includes('enemyCountAdd: 2')||!data.includes('enemyCountAdd: 3')||!data.includes('healthMul: 1.25')||!data.includes('healthMul: 1.5')||!data.includes('damageMul: 1.15')||!data.includes('damageMul: 1.3'))out.push('data/raid-depth.js: area 2/3 scale numbers and extract BIT lines must stay in the prototype tuning');
      return out;}},
   {id:'depth-extract-pad-trigger',pr:'v2.28.63 depth-extract-trigger',why:"Robert 22 Nov 2026: walked into the lit Depth Raid extract beam and did not extract. The visible pad/fence is 1.45/1.15 m, but the trigger used r=1, and a silent 5s countdown cancelled if you drifted. A gear/equip label over the hatch hid the EXTRACT prompt.",
    check(ctx={}){const data=ctx.raidDepthSrc??read('data/raid-depth.js'),raid=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),vfx=ctx.beamSrc??read('nodspel/vfx-extract-beam.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
-     if(!/extractCountdownMs:\s*0/.test(data)||!data.includes('extractRadius: 1.45'))out.push('data/raid-depth.js: extract must fire on entry (countdown 0) and use extractRadius 1.45, matching the visible pad');
-     if(!raid.includes('export function inDepthExtract(')||!raid.includes('DEPTH.extractRadius')||!raid.includes('if((DEPTH.extractCountdownMs??0)>0)return \'extract-started\''))out.push('nodspel/depth-raid.js: inDepthExtract must use extractRadius and extract immediately when the countdown is 0');
+     if(!/extractCountdownMs:\s*800/.test(data)||!data.includes('extractRadius: 1.45'))out.push('data/raid-depth.js: extract must use a visible 800ms hold and use extractRadius 1.45, matching the visible pad');
+     if(!raid.includes('export function inDepthExtract(')||!raid.includes('DEPTH.extractRadius')||!raid.includes("d.extracting={startedAt:now};return 'extract-started'"))out.push('nodspel/depth-raid.js: inDepthExtract must use extractRadius and start a cancellable hold only inside the beam');
      if(!depth.includes('r:DEPTH.extractRadius'))out.push('nodspel/depth-level.js: each depth exit must use DEPTH.extractRadius so the gameplay radius matches the pad');
      if(!vfx.includes('export const EXTRACT_PAD_RADIUS=1.45')||!vfx.includes('RingGeometry(PAD_INNER,EXTRACT_PAD_RADIUS'))out.push('nodspel/vfx-extract-beam.js: the ground pad outer radius must be EXTRACT_PAD_RADIUS 1.45');
      if(!game.includes('hideForExtract')||!game.includes('extractRadiusOf(round)+1.2'))out.push('nodspel/game.mjs: loot/equip labels on an open extract pad must hide so they cannot cover the hatch');
@@ -575,10 +569,9 @@ export const RULES=[
      return out;}},
   {id:'depth-push-cover-nav',pr:'v2.28.64 depth-push-cover',why:"Robert 22 Nov 2026: had to kill every enemy to move on, got stuck in a narrow corridor doorway, and met enemies in an empty under-lit area 3 with no cover. He wanted to push forward without a clear, wider corridors, and tactical cover.",
    check(ctx={}){const game=ctx.gameSrc??read('nodspel/game.mjs'),raid=ctx.depthRaidSrc??read('nodspel/depth-raid.js'),depth=ctx.depthLevelSrc??read('nodspel/depth-level.js'),data=ctx.raidDepthSrc??read('data/raid-depth.js'),html=ctx.htmlSrc??read('nodspel/index.html'),css=ctx.cssSrc??read('nodspel/style.css'),bunker=ctx.bunkerSrc??read('nodspel/bunker.js'),world=ctx.worldSrc??read('nodspel/world.js');const out=[];
-     if(!raid.includes('export function pushDeeper(')||!raid.includes('export function canPushDeeper(')||!raid.includes('forfeitZones'))out.push('nodspel/depth-raid.js: pushing through the next-area door without a clear must be GO DEEPER and forfeit extract in that area');
-     if(!data.includes('pushId')||!data.includes('depth_push_intro')||!data.includes('Leaving live hostiles in the rear-view'))out.push('data/raid-depth.js: the first uncleared push needs a unique dry BIT line and a stable pushId');
+     if(!raid.includes('stepDepthHack')||!data.includes('depth_loud_terminal_intro'))out.push('Depth needs a loud hack and its BIT introduction');
      if(!depth.includes('DEPTH_CLEAR_WIDTH=2.4')||!depth.includes('function chamferOpening(')||!depth.includes('export function placeDepthCover(')||!depth.includes('export function depthConnectorPaths('))out.push('nodspel/depth-level.js: depth corridors must be 2.4 m clear with chamfered joints, cover in combat rooms, and a connector nav path');
-     if(!game.includes('GO DEEPER · skip remaining enemies')||!html.includes('id="depth-push"')||!game.includes('onDepthPushConfirm'))out.push('the first uncleared push must show a small GO DEEPER confirm on the door');
+
      if(!bunker.includes('if(level.depth)')||!world.includes('if(level.depth)'))out.push('nodspel/bunker.js / world.js: Depth Raid must light every area, not only the first Q.lights anchors');
      return out;}},
   {id:'depth-scale-light-gun-sfx',pr:'v2.28.65 depth lighting and gunpowder SFX',why:"Robert 22 Nov 2026: asked if the Depth Raid character was bigger and if the rim light was too strong, and said shots sounded like lasers instead of gunpowder or air weapons.",

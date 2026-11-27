@@ -444,3 +444,20 @@ pieces in every combat room that actually block bullets, and lights in
 every depth area rather than only the first two lamp anchors.
 
 Raid run log, PR 0 (v2.28.77): Robert runs external playtests of the Depth Raid and the FTUE with no backend yet, so `nodspel/run-log.js` is a pure, DOM-free module that records a compact per-raid JSON (timeline events + end totals) straight to `localStorage` (`pr_runlog_v1`, last 20 raids) -- no network path of any kind. `game.mjs` wires it at the real call sites (movement/shot/hit/kill, `collectLoot`, `stepDepthRaid`'s `choice-opened`/`area-entered` outcomes, `chooseExtract`/`goDeeper`/`pushDeeper`, and `finishRound`'s terminal reasons), and the raid result screen's quiet "COPY RUN LOG" button copies every stored raid to the clipboard for Robert to paste off-device. See `docs/run-log.md` for the schema. Guarded by `run-log-no-network` in bug-lint (forbids `fetch(`/`XMLHttpRequest`/`sendBeacon(`/`WebSocket` anywhere in `nodspel/run-log.js`) plus `nodspel/tests/run-log.test.mjs` (event capping, last-20 retention, idle-gap counting, outcome totals, quota/exception safety, JSON round trip, and a depth-raid-level test driving the real `depth-raid.js` state machine).
+
+
+### Depth Raid world choices (v2.28.78, 27 November 2026)
+
+This supersedes the historical clear-only extract and push-confirmation rules above.
+`depth-no-choice-popup` rejects pausePick/resumePick in depth-raid.js and the removed
+depth-choice/depth-push markup. `depth-extract-always-open` requires both initial
+activation and enterArea to open and retarget the current beam. `depth-raid-world-flow`
+keeps the stitched level, area timeout and Node checkpoint isolation.
+
+Walking inside the beam holds for 800 ms; leaving cancels. Early extraction keeps
+loot but pays no clear bonuses and says so in the results. Clearing opens the door
+and spawns a guaranteed cache. A loud four-second hold or an existing keycard also
+opens the door. Terminals have no collider and stay off the main lane. Depth tests
+cover hold/decay/noise, rewards, current beam, keycards and seed-based reachability.
+Run-log tests drive the walking state machine and retain storage/capping/death checks;
+hack_start/hack_done and door_passed how clear/hack/key replace the old push flow.

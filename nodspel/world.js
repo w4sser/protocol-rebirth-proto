@@ -1,20 +1,20 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.77';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.77';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.78';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.78';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.77';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.77';
-import {buildTown} from './town.js?v=2.28.77';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.77';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.77-glacial-merge1';
-import {dressPines,dressFuelDrum,dressSupplyCrates,dressLockedDoor} from './granite-kit.js?v=2.28.77';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.77-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.77';
-import {controlCablePath} from './control-cables.js?v=2.28.77';
-import {extractAvailable} from './big-level.js?v=2.28.77';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.77';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.77';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.77';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.78';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.78';
+import {buildTown} from './town.js?v=2.28.78';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.78';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.78-glacial-merge1';
+import {dressPines,dressFuelDrum,dressSupplyCrates,dressLockedDoor} from './granite-kit.js?v=2.28.78';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.78-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.78';
+import {controlCablePath} from './control-cables.js?v=2.28.78';
+import {extractAvailable} from './big-level.js?v=2.28.78';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.78';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.78';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.78';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -82,9 +82,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const display=new THREE.Mesh(cube,coreMaterial);display.scale.set(.48,.025,.25);display.position.set(0,1.52,.1);display.rotation.x=.24;g.add(display);
     for(const x of [-.48,.48])box(x,.3,.55,.14,.2,.14,PALETTE.base,g);
     const light=new THREE.PointLight('#3FE0D0',0,8,1.6);light.position.y=1.9;g.add(light);
-    const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+    const nodeReach=node.depthTerminal?globalThis.DATA.raidDepth.hack.radius:RULES.resources.nodeReach;
+    const halo=new THREE.Mesh(new THREE.RingGeometry(nodeReach-.1,nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,fog:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
-    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false,fog:false}));
+    const holdRing=new THREE.Mesh(new THREE.RingGeometry(nodeReach-.16,nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false,fog:false}));
     holdRing.rotation.x=-Math.PI/2;holdRing.position.y=.026;holdRing.visible=false;holdRing.geometry.setDrawRange(0,0);g.add(holdRing);
     const v={node,group:g,coreMaterial,light,halo,holdRing,kit};nodeKit(v);return v;
   });
@@ -260,7 +261,12 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const fx=createExtractBeam({color:EXTRACT_COLOR,quality});
     fx.group.position.set(point.x,0,point.z);group.add(fx.group);
     for(const cue of [fx.pad,fx.rim,fx.fence,fx.beam,fx.core,fx.points,...fx.pulseRings])tagBloom(cue);
-    return {point,fx};
+    let holdRing=null;
+    if(level.depth){
+      holdRing=new THREE.Mesh(new THREE.RingGeometry(point.r-.16,point.r,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+      holdRing.rotation.x=-Math.PI/2;holdRing.position.set(point.x,.035,point.z);holdRing.visible=false;group.add(holdRing);
+    }
+    return {point,fx,holdRing};
   });
   const extractBeamFx=extractionEffects[0].fx;
   const gateProgress=nodes.map((v,i)=>{
@@ -328,6 +334,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       const distance=playerPos?Math.hypot(playerPos.x-point.x,playerPos.z-point.z):Infinity;
       const progress=open?Math.max(0,Math.min(1,1-distance/(point.r+3))):0;
       record.fx.update(time,open,progress);
+      if(record.holdRing){
+        const hold=round?.depth?.extracting,fill=open&&hold?Math.min(1,((round.gameNow??0)-hold.startedAt)/globalThis.DATA.raidDepth.extractCountdownMs):0;
+        record.holdRing.visible=fill>0;record.holdRing.geometry.setDrawRange(0,Math.floor(fill*64)*6);
+      }
     }
     lootBurstFx.update(dt,playerPos?playerPos.x:0,LOOT_BURST_HOME_Y,playerPos?playerPos.z:0);
   }

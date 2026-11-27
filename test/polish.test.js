@@ -20,3 +20,6 @@ assert(/pr-loader\.out|\.pr-loader\.out/.test(fs.readFileSync(path + "/ui/loader
 const app = fs.readFileSync(path + "/app.js", "utf8");
 assert(/const pad = \{left:0,right:0,top:0,bottom:0\}/.test(app), "camera pan is clamped to the art bounds (no bottom gutter)");
 console.log("POLISH TEST PASSED");
+
+// Dispose application timers after the assertions; queued toasts can otherwise keep Node alive.
+w.close();

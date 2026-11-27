@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=2.28.77';
+import {RULES} from './levels.js?v=2.28.78';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
 export function facingDirection(aiming,walking,aim){return aiming?aim:walking;}
 export function dragAim(gesture,x,y){

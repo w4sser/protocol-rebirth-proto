@@ -1,88 +1,88 @@
-import {shootShelf,stepShelves} from './round.js?v=2.28.77-ftue-opening-v1';
-import {shelfBitLine} from './shelf-intro.js?v=2.28.77';
+import {shootShelf,stepShelves} from './round.js?v=2.28.78-ftue-opening-v1';
+import {shelfBitLine} from './shelf-intro.js?v=2.28.78';
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
-import {initFtueRound} from './ftue.js?v=2.28.77-ftue-opening-v1';
-import {artilleryFlight} from './artillery-flight.mjs?v=2.28.77-bridge1';
-import {isShieldTurret,ENEMY_COLORS,visualFor} from './enemies.js?v=2.28.77';
-import {animateEnemyModel} from './enemy-animation.js?v=2.28.77';
-import {loadEnemyModel} from './enemy-models.js?v=2.28.77';
-import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.77';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.77';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.77-op01-default';
-import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.77-scale-rim-experiment';
-import {createRobotPresence} from './robot-operator.js?v=2.28.77';
-import {createOperatorFX} from './operator-fx.js?v=2.28.77';
-import {createAudioSettings} from './audio-settings.js?v=2.28.77';
-import {createPixelFX} from './fx-pixel.js?v=2.28.77';
-import {createPixelFeedback} from './fx-feedback.js?v=2.28.77';
-import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.77';
-import {audio,audioEvent,waitForRaidAudio} from './audio.js?v=2.28.77';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.77';
-import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,roomAt,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.77';
+import {initFtueRound} from './ftue.js?v=2.28.78-ftue-opening-v1';
+import {artilleryFlight} from './artillery-flight.mjs?v=2.28.78-bridge1';
+import {isShieldTurret,ENEMY_COLORS,visualFor} from './enemies.js?v=2.28.78';
+import {animateEnemyModel} from './enemy-animation.js?v=2.28.78';
+import {loadEnemyModel} from './enemy-models.js?v=2.28.78';
+import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.78';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.78';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.78-op01-default';
+import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.78-scale-rim-experiment';
+import {createRobotPresence} from './robot-operator.js?v=2.28.78';
+import {createOperatorFX} from './operator-fx.js?v=2.28.78';
+import {createAudioSettings} from './audio-settings.js?v=2.28.78';
+import {createPixelFX} from './fx-pixel.js?v=2.28.78';
+import {createPixelFeedback} from './fx-feedback.js?v=2.28.78';
+import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.78';
+import {audio,audioEvent,waitForRaidAudio} from './audio.js?v=2.28.78';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.78';
+import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,roomAt,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.78';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.77';
-import {loadBunkerAssets} from './bunker.js?v=2.28.77';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted,setGuaranteeLoot,isBigLevelMode} from './levels.js?v=2.28.77';
-import {applyDifficulty} from './difficulty.js?v=2.28.77';
-import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.77';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.28.77';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.77';
-import {createRobotSocket} from './operator-gear.js?v=2.28.77';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.78';
+import {loadBunkerAssets} from './bunker.js?v=2.28.78';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted,setGuaranteeLoot,isBigLevelMode} from './levels.js?v=2.28.78';
+import {applyDifficulty} from './difficulty.js?v=2.28.78';
+import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.78';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.28.78';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.78';
+import {createRobotSocket} from './operator-gear.js?v=2.28.78';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.28.77';import '../data/recipes.js?v=2.28.77';import '../data/vendors.js?v=2.28.77';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.77';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.77';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.77-organic-v2';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.77';
-import {safeSpawn} from './spawn.js?v=2.28.77';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.77-ftue-opening-v1';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,nextAreaPreview,scaleDepthRules,inDepthExtract,extractRadiusOf,canPushDeeper,pushDeeper,nearDepthDoor,DEPTH} from './depth-raid.js?v=2.28.77';
-import {createRunLog,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,buildDeviceInfo} from './run-log.js?v=2.28.77';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.77';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.77-ftue-opening-v1';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.77';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.77';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.77-ftue-opening-v1-glacial-merge1';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.77';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.77-ftue-opening-v1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.77';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.77';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.77';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.77-ftue-opening-v1';
-// import {stepScavenging} from './scavenging.js?v=2.28.77';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.77';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.77';
-import {routeComplete} from './objectives.js?v=2.28.77';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.77';
-import {createDashAbility,createBitDistractAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.77';
-import {createBIT,stepBIT} from './bit.js?v=2.28.77';
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.77';
-import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.77';
-import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDistract} from './bit-distract.js?v=2.28.77';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,roomPips,bagTiles} from './hud.js?v=2.28.77';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.77';
-import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.77';
-import {powerPadBitLine} from './pad-intro.js?v=2.28.77';
-import {fuelDrumBitLine} from './drum-intro.js?v=2.28.77';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.77';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.77';
-import {applyEnvironmentLight,applyEnvironmentMap} from './environment-look.js?v=2.28.77';
-import {createRaidProfiler} from './raid-profiler.js?v=2.28.77';
-import {createPostFX,tagBloom} from './postfx.js?v=2.28.77';
-import {createDustField} from './dust.js?v=2.28.77';
-import {createQualityUI} from './quality-ui.js?v=2.28.77';
-import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.77-granite8';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.77';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.77';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.77';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.77';
-import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.77';
-import {attachBitModel} from './bit-model.js?v=2.28.77';
+import '../data/modules.js?v=2.28.78';import '../data/recipes.js?v=2.28.78';import '../data/vendors.js?v=2.28.78';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.78';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.78';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.78-organic-v2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.78';
+import {safeSpawn} from './spawn.js?v=2.28.78';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.78-ftue-opening-v1';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,areaIsCleared,nextAreaPreview,scaleDepthRules,inDepthExtract,extractRadiusOf,DEPTH} from './depth-raid.js?v=2.28.78';
+import {createRunLog,recordEvent,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,buildDeviceInfo} from './run-log.js?v=2.28.78';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.78';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.78-ftue-opening-v1';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.78';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.78';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.78-ftue-opening-v1-glacial-merge1';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.78';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.78-ftue-opening-v1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.78';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.78';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.78';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.78-ftue-opening-v1';
+// import {stepScavenging} from './scavenging.js?v=2.28.78';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.78';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.78';
+import {routeComplete} from './objectives.js?v=2.28.78';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.78';
+import {createDashAbility,createBitDistractAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.78';
+import {createBIT,stepBIT} from './bit.js?v=2.28.78';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.78';
+import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.78';
+import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDistract} from './bit-distract.js?v=2.28.78';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,roomPips,bagTiles} from './hud.js?v=2.28.78';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.78';
+import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.78';
+import {powerPadBitLine} from './pad-intro.js?v=2.28.78';
+import {fuelDrumBitLine} from './drum-intro.js?v=2.28.78';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.78';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.78';
+import {applyEnvironmentLight,applyEnvironmentMap} from './environment-look.js?v=2.28.78';
+import {createRaidProfiler} from './raid-profiler.js?v=2.28.78';
+import {createPostFX,tagBloom} from './postfx.js?v=2.28.78';
+import {createDustField} from './dust.js?v=2.28.78';
+import {createQualityUI} from './quality-ui.js?v=2.28.78';
+import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.78-granite8';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.78';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.78';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.78';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.78';
+import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.78';
+import {attachBitModel} from './bit-model.js?v=2.28.78';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.28.77');
+const orderResponse=await fetch('./order.json?v=2.28.78');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -270,7 +270,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.77',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.78',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 // Depth Raid prototype (PR1, Bunker only, v2.28.57): opt-in via Raid Prep (NODE RAID / DEPTH RAID)
@@ -590,12 +590,12 @@ function setupStick(selector,value,onShot){
   // Route touches from open playfield space; only real interactive controls (and dialogs) keep their
   // own events -- floating HUD labels like ammo/health/shield must never steal an aim-stick touch.
   document.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='mouse'||el.contains(e.target)||e.target.closest('button,a,input,select,[role=dialog],.pop-card,.pop-backdrop,.stick,#depth-choice'))return;
+    if(e.pointerType==='mouse'||el.contains(e.target)||e.target.closest('button,a,input,select,[role=dialog],.pop-card,.pop-backdrop,.stick'))return;
     const r=viewport.getBoundingClientRect(),split=RULES.aimControls.zoneFraction;
     const inZone=onShot?e.clientX>=r.left+r.width*(1-split):e.clientX<=r.left+r.width*split;
     const hud=$('.hud').getBoundingClientRect();
     if(!inZone||e.clientY<hud.bottom||e.clientY>r.bottom||e.clientX<r.left||e.clientX>r.right)return;
-    const covered=[...document.querySelectorAll('.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice')].some(n=>{const b=n.getBoundingClientRect(),gap=n.id==='dash'||n.id==='bit-distract'?12:0;return !n.hidden&&e.clientX>=b.left-gap&&e.clientX<=b.right+gap&&e.clientY>=b.top-gap&&e.clientY<=b.bottom+gap;});
+    const covered=[...document.querySelectorAll('.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open')].some(n=>{const b=n.getBoundingClientRect(),gap=n.id==='dash'||n.id==='bit-distract'?12:0;return !n.hidden&&e.clientX>=b.left-gap&&e.clientX<=b.right+gap&&e.clientY>=b.top-gap&&e.clientY<=b.bottom+gap;});
     if(!covered)start(e);
   });
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
@@ -842,7 +842,7 @@ function renderRoomBox(level){
 // hidden until maybeIntroduceDepth()'s one-time BIT card reveals it (bit-introduces-systems-first).
 function renderDepthHud(){
   const timerBox=$('#round-timer-box'),box=$('#depth-hud');
-  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;hideDepthChoice();return;}
+  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;return;}
   if(timerBox)timerBox.hidden=true;
   if(!box)return;
   box.hidden=false;
@@ -850,14 +850,14 @@ function renderDepthHud(){
   if(pips.dataset.key!==pipKey){
     pips.dataset.key=pipKey;
     pips.replaceChildren(...roomPips(d.zone,3).map(c=>{const i=document.createElement('i');i.className=c;return i;}));
-    zoneEl.textContent=d.phase==='travel'?`AREA ${d.zone+1} AHEAD`:d.zone<3?`AREA ${d.zone}`:'FINAL AREA';
+    zoneEl.textContent=d.zone<3?`AREA ${d.zone}`:'FINAL AREA';
   }
   const seconds=Math.ceil(d.zoneRemainingMs/1000);
-  const text=d.phase==='travel'?'WALK':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+  const text=d.clearedZones.includes(d.zone)?'CLEAR':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   if(timerEl.textContent!==text)timerEl.textContent=text;
-  timer?.classList.toggle('warn',d.phase==='combat'&&seconds<=30&&seconds>10);
-  timer?.classList.toggle('urgent',d.phase==='combat'&&seconds<=10);
-  box.classList.toggle('is-paused',d.phase==='choice');
+  timer?.classList.toggle('warn',!d.clearedZones.includes(d.zone)&&seconds<=30&&seconds>10);
+  timer?.classList.toggle('urgent',!d.clearedZones.includes(d.zone)&&seconds<=10);
+
 }
 // Pickup toasts: icon + name in rarity colour under the bag panel; stack of at most 3, each fades after TOAST_MS.
 let pickupToasts=[];
@@ -911,7 +911,7 @@ function updateHUD(){
   // so the 2/3 node counter cannot leak (Robert's v2.28.57 live shot).
   if(round.depth)$('#level-corner').hidden=true;else renderRoomBox(level);
   renderDepthHud();
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());if(round.depth)v.label.el.hidden=true;}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());if(round.depth)v.label.el.hidden=!v.node.depthTerminal||v.node.depthArea!==round.depth.zone;}
   const depthExit=round.depth?(round.level.depthExits?.[round.depth.zone-1]??round.level.exit):round.level.exit;
   if(world.exitLabel&&depthExit)world.exitLabel.point.set(depthExit.x,1.8,depthExit.z);
   // Depth Raid: keep the CURRENT area's hatch labelled (locked or open) so the last wing is findable.
@@ -1078,9 +1078,9 @@ function renderEncounterLabels(clock){
   for(const e of encounterLabels){const l=e.label;
     if(e.door){const d=e.door,icon=d.locked?'lock':'unlock';
       const depthLocked=d.depth&&d.locked,depthOpen=d.depth&&!d.locked;
-      const depthPush=d.depth&&d.locked&&canPushDeeper(round);
-      setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthPush?'GO DEEPER · skip remaining enemies':depthLocked?'LOCKED · CHOOSE AT THE PROMPT':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
-      setIconText(l.shortEl,icon,d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
+
+      setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthLocked?'SEALED: CLEAR THE AREA OR HACK THE TERMINAL':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
+      setIconText(l.shortEl,icon,depthLocked?(round.keys?.includes(d.key)?'KEYCARD: WALK TO DOOR':'SEALED: CLEAR OR HACK'):d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
     else{const warn=e.sp.state==='warning';
       setIconText(l.caption,warn?'warning':'threat',warn?'! SWARM INCOMING':'SPAWN POINT');setIconText(l.shortEl,'threat','');
       l.el.classList.toggle('winding',warn);l.defeated=e.sp.state==='spawned';}
@@ -1169,102 +1169,52 @@ function checkShelfIntro(){
 // reveals the HUD immediately -- there is nothing to wait for.
 const depthIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[DEPTH.bitLines.introId];}catch{return false;}})();
 function maybeIntroduceDepth(){
-  // Clock and pips are visible immediately; BIT introduces the CHOICE the first time it appears,
-  // not at raid start (the old raid-start intro hid the clock and leaked the 2/3 node counter).
+  // Introduce the always-open beam at raid start without pausing combat.
   if(!round.depth)return;
   depthHudRevealed=true;renderDepthHud();
-}
-function rarityLabel(tier){return String(tier||'').replace(/_/g,' ');}
-function showDepthChoice(){
-  const pop=$('#depth-choice');if(!pop||!round.depth?.choice)return;
-  const d=round.depth,zone=d.choice.zone,title=$('#depth-choice-title'),q=$('#depth-choice-q');
-  title.textContent=`AREA ${zone} CLEARED`;
-  const extractCopy=$('#depth-extract-copy'),deeperBtn=$('#depth-go-deeper'),deeperCopy=$('#depth-deeper-copy');
-  if(zone>=3){
-    q.textContent='The level is clear. Take everything home, plus a bonus.';
-    extractCopy.textContent=`Go home with your loot · +${DEPTH.z3ClearBonusScrap} Scrap bonus`;
-    deeperBtn.hidden=true;
-  }else{
-    q.textContent='Extract now, or risk it and go deeper?';
-    extractCopy.textContent='Go home with your loot';
-    const preview=nextAreaPreview(round,zone+1);
-    const types=preview.enemyTypes.length?preview.enemyTypes.join(', '):'harder hostiles';
-    const loot=preview.lootTiers.length?preview.lootTiers.map(rarityLabel).join(', ')+' loot':'better loot';
-    deeperCopy.textContent=`Area ${zone+1}: ${types} · ${loot}`;
-    deeperBtn.hidden=false;
-  }
-  pop.hidden=false;
   if(!depthIntroShownThisSession&&bitAlong&&!depthIntroSeenAtLaunch&&globalThis.PRBitCard){
-    depthIntroShownThisSession=true;
-    (round.bitSeen??=[]).push(DEPTH.bitLines.introId);
+    depthIntroShownThisSession=true;(round.bitSeen??=[]).push(DEPTH.bitLines.introId);
     globalThis.PRBitCard.show({id:DEPTH.bitLines.introId,text:DEPTH.bitLines.intro,mood:'skeptical'});
-  }else depthIntroShownThisSession=true;
-  renderDepthHud();
+  }
 }
-function hideDepthChoice(){const pop=$('#depth-choice');if(pop)pop.hidden=true;}
-function onDepthExtract(){
-  if(!round?.depth||round.depth.phase!=='choice'||round.over)return;
-  const res=chooseExtract(round,gameClock());if(!res)return;
-  recordChoice(runLog,res.zone,'extract',gameClock()-raidStartClock);
-  hideDepthChoice();
-  const line=res.zone>=3?DEPTH.bitLines.extractFinal:DEPTH.bitLines.extract;
-  const id=res.zone>=3?'depth_extract_final':DEPTH.bitLines.extractId;
-  if(res.zone>=3)globalThis.PRBitCard?.show({id,text:line,mood:'skeptical'});
-  else if(globalThis.PRBitCard)globalThis.PRBitCard.show({id,text:line,mood:'skeptical'});
-  updateHUD();
+let depthHackIntroduced=false;
+function introduceDepthHack(){
+  if(depthHackIntroduced||!bitAlong||!globalThis.PRBitCard||globalThis.PRBitCard.isOpen())return;
+  const terminal=round.level.depthTerminals?.find(n=>n.depthArea===round.depth.zone);
+  if(!terminal||Math.hypot(position.x-terminal.x,position.z-terminal.z)>DEPTH.hack.introRadius)return;
+  depthHackIntroduced=true;
+  if(!bitCardSeen(DEPTH.bitLines.hackId)){
+    (round.bitSeen??=[]).push(DEPTH.bitLines.hackId);
+    globalThis.PRBitCard.show({id:DEPTH.bitLines.hackId,text:DEPTH.bitLines.hack,mood:'skeptical'});
+  }
 }
-function onDepthGoDeeper(){
-  if(!round?.depth||round.depth.phase!=='choice'||round.depth.zone>=3||round.over)return;
-  const zoneLeft=round.depth.zone,res=goDeeper(round,gameClock());if(!res)return;
-  const ms=gameClock()-raidStartClock;recordChoice(runLog,zoneLeft,'deeper',ms);recordDoorPassed(runLog,zoneLeft,'clear',ms);
-  hideDepthChoice();
-  if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
-  updateHUD();
-}
+function bitCardSeen(id){try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[id];}catch{return false;}}
 function onDepthStep(dres){
   if(!dres)return;
-  if(dres==='choice-opened'){
-    const ms=gameClock()-raidStartClock,clearMs=round.depth.zoneDurationMs-round.depth.zoneRemainingMs;
-    recordAreaCleared(runLog,round.depth.choice.zone,clearMs,ms);recordPauseOpen(runLog,ms);
-    showDepthChoice();
+  const ms=gameClock()-raidStartClock,d=round.depth;
+  if(dres==='area-cleared'){
+    recordAreaCleared(runLog,d.zone,d.zoneDurationMs-d.zoneRemainingMs,ms);
+    if(d.lastClearCache)labelLoot(world.addLoot(d.lastClearCache));
+    notice(d.zone<3?'DOOR OPEN · CLEAR CACHE AT BEAM':'AREA CLEAR · CACHE AT BEAM');
+    setCollisions();updateHUD();
+  }
+  if(dres==='hack-start'){
+    recordEvent(runLog,'hack_start',{zone:d.zone},ms);
+    if(!d.hackSpoken){d.hackSpoken=true;globalThis.PRBitCard?.show({id:'depth_hack_noise',text:DEPTH.bitLines.hackStart,mood:'skeptical'});}
+  }
+  if(dres==='hack-done'){
+    recordEvent(runLog,'hack_done',{zone:d.zone},ms);
+    notice('DOOR OPEN');setCollisions();updateHUD();
   }
   if(dres==='area-entered'){
-    recordAreaEntered(runLog,round.depth.zone,gameClock()-raidStartClock);
-    if(round.depth?.zone>=3&&DEPTH.bitLines.finalArea)
-      globalThis.PRBitCard?.show({id:DEPTH.bitLines.finalAreaId,text:DEPTH.bitLines.finalArea,mood:'skeptical'});
-    renderDepthHud();
+    const passed=d.lastDoorPassed;
+    recordChoice(runLog,passed.zone,'deeper',ms);recordDoorPassed(runLog,passed.zone,passed.how,ms);
+    recordAreaEntered(runLog,d.zone,ms);
+    if(d.zone===2)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
+    updateHUD();
   }
-  if(dres==='extract-started'||dres==='extract-canceled')renderDepthHud();
+  if(dres==='zone-extracted'||dres==='zone3-complete')recordChoice(runLog,d.zone,'extract',ms);
 }
-bindHUDTap($('#depth-extract'),onDepthExtract);
-bindHUDTap($('#depth-go-deeper'),onDepthGoDeeper);
-const depthPushSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[DEPTH.bitLines.pushId];}catch{return false;}})();
-let depthPushShownThisSession=false,depthForcePushPrompt=false;
-function depthPushAlreadySeen(){return !depthForcePushPrompt&&(depthPushShownThisSession||depthPushSeenAtLaunch);}
-function showDepthPushPrompt(show){
-  const el=$('#depth-push');if(!el)return;
-  el.hidden=!show;
-}
-function onDepthPushConfirm(){
-  if(!round?.depth||round.over||!canPushDeeper(round))return;
-  const res=pushDeeper(round,gameClock());if(!res)return;
-  recordDoorPassed(runLog,res.zoneLeft,'push',gameClock()-raidStartClock);
-  showDepthPushPrompt(false);
-  if(!depthPushShownThisSession){
-    depthPushShownThisSession=true;
-    (round.bitSeen??=[]).push(DEPTH.bitLines.pushId);
-    globalThis.PRBitCard?.show({id:DEPTH.bitLines.pushId,text:DEPTH.bitLines.push,mood:'skeptical'});
-  }
-  updateHUD();
-}
-function updateDepthPushPrompt(){
-  if(!round?.depth||round.over||round.pauseAt!=null||round.depth.phase==='choice'){showDepthPushPrompt(false);return;}
-  const door=nearDepthDoor(round,position,RULES.encounters.door.reach);
-  const show=!!door&&canPushDeeper(round);
-  showDepthPushPrompt(show);
-  if(show&&depthPushAlreadySeen()&&nearDepthDoor(round,position,0.95))onDepthPushConfirm();
-}
-bindHUDTap($('#depth-push-confirm'),onDepthPushConfirm);
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
 function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=ref.progress??0,done=door?ref.open:ref.searched,busy=!done&&p>0;
@@ -1319,7 +1269,7 @@ function groundStatus(message){
 let groundPreviewV2=null;
 // Preview of asset PRs #184-#186: ?props=1 (archipelago only, visual-only, no colliders).
 const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
-const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.77'):null;
+const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.78'):null;
 let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
@@ -1395,8 +1345,8 @@ function loadLevelInner(){
   bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label','bit','BIT');
   if(!bitAlong){bitLabel.el.hidden=true;}
   for(const v of world.nodes){
-    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node','GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
-    const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,v.node.depthTerminal?DEPTH.hack.labelHeight:1.9,v.node.z),'objective-node','node',v.node.depthTerminal?'HACK: HOLD POSITION':'GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
+    const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label',v.node.depthTerminal?'Door hack':'Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
   hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,h.junctionId?1.8:.35,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),h.junctionId?'hazard-label junction-label':'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
@@ -1456,7 +1406,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;hideDepthChoice();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;
   raidStartClock=Date.now();runShotsFired=0;runShotsHit=0;runLootValue=0;
   runLog=createRunLog({v:CORE_VERSION,raidId:round.seed,seed:round.seed,mode:round.depth?'depth':'node',ftue:!!launch.ftue,area:AREA_SEL,
     device:buildDeviceInfo({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,coarsePointer:(navigator.maxTouchPoints??0)>0,userAgent:navigator.userAgent})});
@@ -1503,7 +1453,7 @@ function finishRound(outcome=round.reason){
       recordDeath(runLog,cause,zone,ms);
     }
     if(round.reason==='timeout')recordTimeout(runLog,ms);
-    if(['extract','complete'].includes(round.reason))recordExtract(runLog,zone,true,ms);
+    if(['extract','complete'].includes(round.reason))recordExtract(runLog,zone,round.depth?round.depth.extractCleared:true,ms);
     const runOutcome=round.reason==='death'?'died':round.reason==='timeout'?'timeout':round.reason==='abandon'?'abandoned':'extracted';
     finishRunLog(runLog,{outcome:runOutcome,durationMs:ms,zonesReached:round.depth?.zone??round.levelsCleared,enemiesKilled:round.enemiesDefeated,
       shotsFired:runShotsFired,shotsHit:runShotsHit,damageTaken:round.telemetry.damageTaken,lootValue:runLootValue});
@@ -1678,7 +1628,10 @@ function renderDepthExtractGuide(){
   const cs=getComputedStyle(document.documentElement);
   const sl=parseFloat(cs.getPropertyValue('--sl'))||0,sr=parseFloat(cs.getPropertyValue('--sr'))||0,sb=parseFloat(cs.getPropertyValue('--sb'))||0;
   const margin=Math.max(36,sl+18,sr+18,sb+18);
-  const {x,y,angleDeg}=hunterArrowScreenPoint({x:dx,z:dz},viewWidth,viewHeight,margin);
+  const guide=hunterArrowScreenPoint({x:dx,z:dz},viewWidth,viewHeight,margin);
+  const x=guide.x,angleDeg=guide.angleDeg,timer=$('.round-hud').getBoundingClientRect();
+  let y=guide.y;
+  if(x+DEPTH.guideHudGap>timer.left&&x-DEPTH.guideHudGap<timer.right&&y-DEPTH.guideHudGap<timer.bottom&&y+DEPTH.guideHudGap>timer.top)y=timer.bottom+DEPTH.guideHudGap;
   el.style.left=`${x}px`;el.style.top=`${y}px`;el.style.transform=`translate(-50%,-50%) rotate(${angleDeg.toFixed(1)}deg)`;el.hidden=false;
 }
 function renderStakesHUD(clock){
@@ -1689,8 +1642,13 @@ function renderStakesHUD(clock){
   // heals (applied while rendering is paused), whose timestamp almost never equals the next rendered frame.
   if(bitAlong&&round.healBudgetLow&&!round.healBudgetLow.shown){round.healBudgetLow.shown=true;notice('BIT: healing budget is running low this raid.');}
   if(bitAlong&&round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
+  if(round.depth&&world.exitLabel){
+    const p=round.depth.extracting?Math.min(1,(clock-round.depth.extracting.startedAt)/DEPTH.extractCountdownMs):0;
+    if(p>0)setText(world.exitLabel.caption,depthExtractTexts[Math.round(p*100)]);
+  }
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();renderDepthExtractGuide();
 }
+const depthExtractTexts=Array.from({length:101},(_,percent)=>`EXTRACTING ${percent}%`);
 // v2.22.4 hot-path DOM helpers: write (and build the string) only when the number changed.
 function setOpacity(el,v){if(el._op!==v){el._op=v;el.style.opacity=v;}}
 function setPx(el,prop,v){const k='_px'+prop;if(el[k]!==v){el[k]=v;el.style[prop]=v+'px';}}
@@ -1703,7 +1661,7 @@ function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=st
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,#depth-choice,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
+const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -1870,14 +1828,14 @@ const LABEL_SHOW_HOLD_MS=1200;
 const audioSettings=createAudioSettings({document,audio,
   canOpen:()=>!!round&&!round.over&&round.pauseAt==null&&!resultPending&&!tutorialOpen&&$('#inventory').hidden,
   onPause:()=>{clearInput();cancelToolDrag();hideSwap();pausePick(round,Date.now());},
-  onResume:()=>{if(round.depth?.phase==='choice')pausePick(round,Date.now());else resumePick(round,Date.now());clearInput();}
+  onResume:()=>{resumePick(round,Date.now());clearInput();}
 });
 createQualityUI({document,container:$('#raid-settings .audio-menu-body'),quality:QUALITY,onChange:setGraphicsQuality});
 createVibrationUI({document,container:$('#raid-settings .audio-menu-body'),haptics});
 $('#resume').addEventListener('click',()=>audioSettings.close());
 window.__NR={...window.__NR,openSettings:audioSettings.open,closeSettings:audioSettings.close};
 for(const type of ['pointerdown','pointerup','pointercancel','click','keydown','keyup'])document.addEventListener(type,e=>{
-  const modal=inputPaused(round),owned=audioSettings.contains(e.target)||!!e.target.closest?.('#depth-choice,.bit-card');
+  const modal=inputPaused(round),owned=audioSettings.contains(e.target)||!!e.target.closest?.('.bit-card');
   const blocked=type.startsWith('pointer')?fireInputGate.handle(e,modal):modal;
   if(modal)clearInput();
   if(blocked&&!owned){e.preventDefault();e.stopImmediatePropagation();}
@@ -1924,7 +1882,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   // mid-raid result (Continue raid / Extract) opens deterministically without fighting. Debug-only hook.
   pendingResultDemo(){if(round.level.big)return null;for(const n of round.level.nodes)activateNode(round,n.id,gameClock());const r=enterExit(round,{x:round.level.exit.x,z:round.level.exit.z},gameClock());if(r)finishRound('extraction');return r;},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.77');round.level=generateLevel(n,round.seed);loadLevel();},
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.78');round.level=generateLevel(n,round.seed);loadLevel();},
   // M40 QA: force a BIT expression state (or 'idle') for 844x390 screenshots without playing a full raid.
   bitExpress(id){return forceBitExpression(bitExpr,id,gameClock());},
   bitExpression(){const clock=gameClock();return {state:currentBitExpression(bitExpr,clock),...bitExpressionPresentation(bitExpr,clock),...bitExpressionFace(currentBitExpression(bitExpr,clock))};},
@@ -1984,8 +1942,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     round.shooter=position;const applied=detonateDrum(round,drum.id,gameClock(),solids);round.shooter=null;
     setCollisions();return {applied,health:round.health,id:drum.id};
   },
-  // Depth Raid (v2.28.58) screenshot/debug hooks: clear the current area to prompt the choice,
-  // then pick EXTRACT or GO DEEPER through the real state machine (nodspel/depth-raid.js).
+  // Depth Raid screenshot/debug hooks drive the walking state machine.
   depthState(){return round.depth?{...round.depth}:null;},
   depthDismissIntro(){globalThis.PRBitCard?.dismiss();depthHudRevealed=true;renderDepthHud();},
   depthClearArea(){
@@ -1996,14 +1953,20 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     onDepthStep(dres);
     updateHUD();return {event:dres,...round.depth};
   },
-  depthChooseExtract(){onDepthExtract();return round.depth;},
-  depthGoDeeper(){onDepthGoDeeper();return round.depth;},
-  depthPushDeeper(){onDepthPushConfirm();return {event:round.depth?.goDeeperUsed,...round.depth};},
-  depthForcePushPrompt(on=true){depthForcePushPrompt=!!on;updateDepthPushPrompt();return {forced:depthForcePushPrompt,prompt:!($('#depth-push')?.hidden)};},
+  depthHackHold(ms=0){
+    if(!round.depth)return null;
+    const terminal=round.level.depthTerminals.find(n=>n.depthArea===round.depth.zone);
+    if(!terminal)return null;
+    teleportPlayer(terminal.x,terminal.z);
+    const clock=gameClock();
+    onDepthStep(stepDepthRaid(round,clock,position));
+    round.depth.lastStepAt=clock-Math.max(0,ms);
+    const event=stepDepthRaid(round,clock,position);
+    onDepthStep(event);updateHUD();
+    return {event,progress:terminal.progress};
+  },
   depthEnterNext(){
-    if(!round.depth||round.depth.phase!=='travel')return null;
-    const start=round.level.depthStarts?.[round.depth.zone]; // next area is zone+1 after goDeeper? phase travel keeps current zone
-    const dest=round.level.depthStarts?.[round.depth.zone]; // after goDeeper, zone is still the cleared one
+    if(!round.depth||round.level.doors.find(d=>d.depth&&d.depthAreaFrom===round.depth.zone)?.locked)return null;
     const next=round.level.depthStarts?.find(s=>s.depthArea===round.depth.zone+1);
     if(!next)return null;
     teleportPlayer(next.x,next.z);
@@ -2290,7 +2253,7 @@ function frameInner(now){
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();
-    if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
+    if(!round.depth&&stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     {const hs=stepHouse(round.level,position,clock,round.stats.searchMult);if(hs.loot.length)round.telemetry.searches=(round.telemetry.searches||0)+hs.loot.length;if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const combatBefore=combatSnapshot(round);
     const ftueHitBefore=round.ftueHitSerial;
@@ -2342,12 +2305,12 @@ function frameInner(now){
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
-    // Depth Raid (v2.28.58): area-clear opens the choice popup; extract uses the walk-in beam
-    // only after EXTRACT is chosen. enterExit / the mid-raid checkpoint never run here.
+    // Depth Raid: clear opens the door; walking holds extraction or enters the next wing.
+    // enterExit / the mid-raid checkpoint never run in this mode.
     if(round.depth){
       const dres=stepDepthRaid(round,clock,position);
       onDepthStep(dres);
-      updateDepthPushPrompt();
+      introduceDepthHack();
       if(round.over)finishRound();
     }else{
       const result=enterExit(round,position,clock);
@@ -2401,7 +2364,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
     v.label.meter.hidden=!hold;setAttr(v.label.meter,'aria-valuenow',Math.round((hold?.progress??0)*100));{const pct=(hold?.progress??0)*100;if(v.label.fillPct!==pct){v.label.fillPct=pct;v.label.fill.style.width=pct+'%';}}
-    setText(v.label.caption,nodeCaption(v.node,clock));
+    setText(v.label.caption,v.node.depthTerminal?(v.node.active?'TERMINAL · DOOR OPEN':'HACK · HOLD POSITION'):nodeCaption(v.node,clock));
   }
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);

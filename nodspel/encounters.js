@@ -1,4 +1,4 @@
-import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.77';
+import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.78';
 // Encounters (docs/design-encounters-toolkit.md §1, PR C): one named problem per level, placed in the
 // existing seeded rooms. This file is the pure part: placement + small geometry helpers. The live behaviour
 // (guard turning, patrol sight, swarm spawn) runs in combat.js, hit rules in round.js, visuals in world.js.
@@ -13,9 +13,9 @@ import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.77';
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.28.77';
-import {traceTargets} from './physics.mjs?v=2.28.77';
-import {detectionMultiplier} from './stakes.js?v=2.28.77';
+import {RULES} from './levels.js?v=2.28.78';
+import {traceTargets} from './physics.mjs?v=2.28.78';
+import {detectionMultiplier} from './stakes.js?v=2.28.78';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','shield_turret','patrol','swarm','shield','door','grenadier'];
@@ -62,7 +62,7 @@ export function deathTip(round){
 }
 
 // ---- placement ----
-const solidsOf=level=>[...level.walls,...level.boxes,...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
+const solidsOf=level=>[...level.walls,...level.boxes,...level.nodes.filter(n=>n.collider!==false).map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
 const nearRect=(o,p,m)=>Math.abs(p.x-o.x)<o.w/2+m&&Math.abs(p.z-o.z)<o.d/2+m;
 const onFloor=(level,p,m=.3)=>level.floors.some(f=>Math.abs(p.x-f.x)<=f.w/2-m&&Math.abs(p.z-f.z)<=f.d/2-m);
 // The town's enterable house is cut into a room's back (north / west) wall later; keep that band free of encounter

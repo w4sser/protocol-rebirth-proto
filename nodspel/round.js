@@ -1,16 +1,16 @@
 // @hot stepShelves
-import {applyFtueLevel} from './ftue.js?v=2.28.77-ftue-opening-v1';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.77';
-import {extractAvailable} from './big-level.js?v=2.28.77';
-import {rarityOf} from './rarity.js?v=2.28.77';
-import {audioEvent} from './audio.js?v=2.28.77';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.77';
-import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.77';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.77';
-import {emptyBag,bagItems} from './raid.js?v=2.28.77';
-import {traceTargets,movePlayer} from './physics.mjs?v=2.28.77';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.28.77';
-import {createStakesState,heal} from './stakes.js?v=2.28.77-ftue-opening-v1';
+import {applyFtueLevel} from './ftue.js?v=2.28.78-ftue-opening-v1';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.78';
+import {extractAvailable} from './big-level.js?v=2.28.78';
+import {rarityOf} from './rarity.js?v=2.28.78';
+import {audioEvent} from './audio.js?v=2.28.78';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.78';
+import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.78';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.78';
+import {emptyBag,bagItems} from './raid.js?v=2.28.78';
+import {traceTargets,movePlayer} from './physics.mjs?v=2.28.78';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.28.78';
+import {createStakesState,heal} from './stakes.js?v=2.28.78-ftue-opening-v1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -238,7 +238,7 @@ export function stepDoors(round,position,now){
     if(!door.locked)continue;const k=round.keys?.indexOf(door.key)??-1;if(k<0)continue;
     const dx=Math.max(0,Math.abs(position.x-door.x)-door.w/2),dz=Math.max(0,Math.abs(position.z-door.z)-door.d/2);
     if(Math.hypot(dx,dz)>RULES.encounters.door.reach)continue;
-    door.locked=false;door.openedAt=now;round.keys.splice(k,1);round.lastDoor={id:door.id,at:now};opened=true;
+    door.locked=false;door.openedAt=now;door.openedBy='keycard';round.keys.splice(k,1);round.lastDoor={id:door.id,at:now};opened=true;
   }
   return opened;
 }
@@ -246,7 +246,7 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
   if(round.pauseAt!=null)return false;
   if(round.over){round.nodeInteraction=null;return false;}
-  const node=round.level.nodes.filter(n=>!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
+  const node=round.level.nodes.filter(n=>!n.depthTerminal&&!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
   if(!node){round.nodeInteraction=null;return false;}
   if(nodeShielded(round,node,now)){round.nodeInteraction=null;return false;}
   let hold=round.nodeInteraction;
@@ -429,7 +429,7 @@ export function extractRound(round,now){
   autoPickPerks(round,now,undefined,{all:true});
   secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';resetPerks(round);return true;
 }
-// Depth Raid (prototype PR1, nodspel/depth-raid.js stepDepthRaid): walk-in plus the 5s cancellable
+// Depth Raid (prototype PR1, nodspel/depth-raid.js stepDepthRaid): walk-in plus the data-tuned cancellable
 // countdown secures the bag exactly like extractRound above, except Z3's completion reason is
 // 'complete' (a full raid clear, same as enterExit's own level-3 branch) rather than 'extract'.
 // Depth mode never calls extractRound or enterExit itself -- no node gate, no checkpoint screen.
@@ -459,7 +459,7 @@ export function exitIsOpen(round) {
 export function activateNode(round,id,now) {
   tickRound(round,now);
   const node=round.level.nodes.find(n=>n.id===id);
-  if(round.over || round.pauseAt!=null || !node || node.active)return false;
+  if(round.over || round.pauseAt!=null || !node || node.depthTerminal || node.active)return false;
   node.active=true;round.nodesLit++;
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
   // Swarm rushers wait for their own spawn point, not for a node.

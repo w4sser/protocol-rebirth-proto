@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage,collectLoot} from '../round.js';
+import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage,collectLoot,stepDoors} from '../round.js';
 import {extractScrapBonus,generateLevel,RULES} from '../levels.js';
 import {walkMap} from '../encounters.js';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,canPushDeeper,pushDeeper,nearDepthDoor,combatRoomsWithCover,depthConnectorPaths,DEPTH_CLEAR_WIDTH,LINK_WIDTH,DEPTH} from '../depth-raid.js';
+import {traceTargets} from '../physics.mjs';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from '../weapon.js';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,inDepthExtract,extractRadiusOf,combatRoomsWithCover,depthConnectorPaths,DEPTH_CLEAR_WIDTH,LINK_WIDTH,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
+import {resultView} from '../result-screen.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.77';
+import '../../data/bit-lines.js?v=2.28.78';
 
 function startDepth(seed,now=0,ctx={}){
   const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});
@@ -38,182 +41,12 @@ test('depth mode: default off (Node Raid unchanged); opt-in via ?depth=1; FTUE/i
   assert.equal(depthModeEnabled({area: 'bunker', intro: true, depthParam: '1'}), false);
 });
 
-test('clearing the current area always opens the EXTRACT / GO DEEPER choice, even if later-area enemies are still alive', () => {
-  const r=startDepth('clear-prompts',0);
-  assert.equal(r.level.depth,true);
-  assert.ok(areaEnemies(r,1).length>=1);
-  assert.ok(areaEnemies(r,2).some(e=>e.health>0),'area 2 still has living enemies behind the door');
-  assert.equal(stepDepthRaid(r,1000,r.level.start),null);
-  assert.equal(r.depth.phase,'combat');
-  killArea(r,1);
-  assert.equal(areaIsCleared(r,1),true);
-  assert.equal(stepDepthRaid(r,2000,r.level.start),'choice-opened');
-  assert.equal(r.depth.phase,'choice');
-  assert.equal(r.depth.choice.canGoDeeper,true);
-  assert.ok(r.pauseAt!=null,'clock and combat freeze during the question');
-  assert.ok(areaEnemies(r,2).some(e=>e.health>0));
-});
-
-test('an area with zero current-area enemies still prompts (no silent clear)', () => {
-  const r=startDepth('zero-enemies',0);
-  killArea(r,1);
-  assert.equal(stepDepthRaid(r,50,r.level.start),'choice-opened');
-  assert.equal(r.depth.phase,'choice');
-});
-
-test('area timers run 90/90/120s; hitting 0 in combat fails the raid and does not open extract', () => {
-  assert.deepEqual(DEPTH.zoneTimerMs,[90000,90000,120000]);
-  const r=startDepth('timeout-kills',0);
-  tickRound(r,89999);
-  assert.equal(stepDepthRaid(r,89999,{x:-999,z:-999}),null);
-  assert.equal(r.over,false);
-  assert.equal(exitIsOpen(r),false);
-  tickRound(r,90000);
-  assert.equal(stepDepthRaid(r,90000,{x:-999,z:-999}),'timeout');
-  assert.equal(r.over,true);
-  assert.equal(r.reason,'timeout');
-  assert.equal(exitIsOpen(r),false);
-});
-
-test('the global 8-minute clock never fails a depth raid on its own', () => {
-  const r=startDepth('global-clock',0);
-  tickRound(r,9*60*1000);
-  assert.equal(r.over,false);
-  assert.equal(r.reason,null);
-});
-
-test('the area clock does not tick while the choice is open', () => {
-  const r=startDepth('paused-choice',0);
-  killArea(r,1);
-  stepDepthRaid(r,10000,r.level.start);
-  const left=r.depth.zoneRemainingMs;
-  assert.equal(r.depth.phase,'choice');
-  assert.equal(stepDepthRaid(r,40000,r.level.start),null);
-  assert.equal(r.depth.zoneRemainingMs,left);
-  assert.equal(r.over,false);
-});
-
-test('EXTRACT opens the beam after a clear; walking onto the lit pad extracts immediately; Z1 extract pays no Z3 bonus', () => {
-  const r=startDepth('extract-choice',0);
-  r.bag.scrap_alloy=2;
-  killArea(r,1);
-  assert.equal(stepDepthRaid(r,1000,r.level.start),'choice-opened');
-  assert.equal(exitIsOpen(r),false);
-  const door=depthDoor(r.level,1);
-  assert.equal(door.locked,true);
-  assert.ok(chooseExtract(r,1100));
-  assert.equal(r.depth.extractOpen,true);
-  assert.equal(exitIsOpen(r),true);
-  assert.equal(door.locked,true,'EXTRACT does not unlock the depth door');
-  const beam=r.level.exit;
-  assert.equal(extractRadiusOf(r),DEPTH.extractRadius);
-  assert.equal(beam.r,DEPTH.extractRadius);
-  // 1.2 m is on the glowing pad / inside the fence, but was outside the old r=1 trigger.
-  const onPad={x:beam.x+1.2,z:beam.z};
-  assert.equal(inDepthExtract(r,onPad),true);
-  assert.equal(inDepthExtract(r,{x:beam.x+1.6,z:beam.z}),false);
-  assert.equal(stepDepthRaid(r,1200,onPad),'zone-extracted');
-  assert.equal(r.over,true);assert.equal(r.reason,'extract');assert.equal(r.levelsCleared,1);
-  assert.equal(buildRaidResult(r).depthBonus,undefined,'the Z3 clear bonus never pays out on a Z1 extract');
-});
-
-test('GO DEEPER unlocks the door in the same level, does not spawn a horde, and starts the next timer only on entry', () => {
-  const r=startDepth('go-deeper-walk',0);
-  assert.equal(goDeeper(r,0),null,'GO DEEPER is unavailable mid-combat');
-  const levelRef=r.level;
-  const beforeEnemies=r.level.enemies.length;
-  killArea(r,1);
-  stepDepthRaid(r,1000,r.level.start);
-  const res=goDeeper(r,1100);
-  assert.ok(res);
-  assert.equal(res.nextZone,2);
-  assert.equal(r.level,levelRef,'same stitched level, no generateLevel swap');
-  assert.equal(r.level.enemies.length,beforeEnemies,'no refuse horde');
-  assert.equal(depthDoor(r.level,1).locked,false);
-  assert.equal(r.depth.phase,'travel');
-  assert.equal(r.depth.zone,1);
-  assert.equal(r.depth.extractOpen,false);
-  assert.equal(exitIsOpen(r),false);
-  assert.equal(r.depth.zoneDurationMs,DEPTH.zoneTimerMs[0]);
-  assert.equal(stepDepthRaid(r,1200,r.level.start),null,'still in area 1, timer has not advanced');
-  assert.equal(r.depth.zone,1);
-  assert.equal(walkTo(r,1300,2),'area-entered');
-  assert.equal(r.depth.zone,2);
-  assert.equal(r.depth.phase,'combat');
-  assert.equal(r.depth.zoneDurationMs,DEPTH.zoneTimerMs[1]);
-  assert.equal(r.depth.zoneDeadline,1300+DEPTH.zoneTimerMs[1]);
-  assert.equal(exitIsOpen(r),false);
-});
-
-test('after GO DEEPER, extract stays closed until the next area is cleared and EXTRACT is chosen', () => {
-  const r=startDepth('locked-after-deeper',0);
-  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
-  assert.equal(exitIsOpen(r),false);
-  const beam=r.level.exit;
-  assert.equal(stepDepthRaid(r,1300,beam),null);
-  assert.equal(r.over,false);
-  killArea(r,2);
-  assert.equal(stepDepthRaid(r,1400,r.level.depthStarts[1]),'choice-opened');
-  chooseExtract(r,1500);
-  assert.equal(exitIsOpen(r),true);
-});
-
-test('GO DEEPER is unavailable on area 3 or after the raid is over', () => {
-  const r=startDepth('no-go-deeper',0);
-  takeDamage(r,1000,100);
-  assert.equal(r.over,true);
-  assert.equal(goDeeper(r,200),null);
-});
-
-test('Area 3 clear offers extract with the 25 Scrap bonus and banks the bag plus the zone ladder', () => {
-  const r=startDepth('z3-clear',0);
-  r.bag.scrap_alloy=2;
-  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
-  killArea(r,2);stepDepthRaid(r,1300,r.level.depthStarts[1]);goDeeper(r,1400);walkTo(r,1500,3);
-  assert.equal(r.depth.zone,3);
-  killArea(r,3);
-  assert.equal(stepDepthRaid(r,1600,r.level.depthStarts[2]),'choice-opened');
-  assert.equal(r.depth.choice.canGoDeeper,false);
-  assert.equal(goDeeper(r,1700),null);
-  chooseExtract(r,1800);
-  const beam=r.level.exit;
-  assert.equal(stepDepthRaid(r,1900,beam),'zone3-complete');
-  assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.cleared,true);
-  assert.equal(r.levelsCleared,3);
-  assert.equal(r.extracted.scrap_alloy,2);assert.equal(r.bag.scrap_alloy,0);
-  assert.equal(r.depth.z3ClearBonus,DEPTH.z3ClearBonusScrap);
-  assert.equal(extractScrapBonus(r.levelsCleared),5+10+15);
-  assert.equal(buildRaidResult(r).depthBonus,DEPTH.z3ClearBonusScrap);
-});
-
 test('death still loses the carried bag in depth mode', () => {
   const r=startDepth('depth-death',0);
   r.bag.scrap_alloy=3;
   takeDamage(r,1000,500);
   assert.equal(r.over,true);assert.equal(r.reason,'death');
   assert.equal(r.bag.scrap_alloy,0);assert.equal(r.lost.scrap_alloy,3);
-});
-
-test('FTUE raid 1 is unaffected: depth mode never attaches, and its short L1 extract still works', () => {
-  assert.equal(depthModeEnabled({area:'bunker',ftue:true,depthParam:'1'}),false);
-  const r=createRound('ftue-raid',0);
-  initDepthRound(r,depthModeEnabled({area:'bunker',ftue:true}),0);
-  assert.equal(r.depth,null);
-  r.ftue=true;
-  for(const node of r.level.nodes)activateNode(r,node.id,0);
-  assert.equal(exitIsOpen(r),true);
-  assert.equal(enterExit(r,r.level.exit,1),'complete');
-  assert.equal(r.cleared,true);assert.equal(r.reason,'extract');
-});
-
-test('the depth BIT lines are unique, never reuse an existing BIT line, and the intro has a stable seen-flag id', () => {
-  const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.goDeeper,DEPTH.bitLines.extract,DEPTH.bitLines.extractFinal,DEPTH.bitLines.finalArea,DEPTH.bitLines.push];
-  const known=new Set([POWER_PAD_BIT_LINE,SHELF_BIT_LINE]);
-  for(const pool of Object.values(globalThis.DATA.bitSummary.pools))for(const line of pool.lines)known.add(line);
-  for(const line of lines){assert.ok(line.length>0);assert.ok(!known.has(line),`reused an existing BIT line: ${line}`);}
-  assert.equal(new Set(lines).size,lines.length);
-  assert.equal(DEPTH.bitLines.introId,'depth_choice_intro');
-  assert.equal(DEPTH.bitLines.pushId,'depth_push_intro');
 });
 
 test('stitched depth layouts keep areas apart, lock two depth doors, and become walkable after each unlock', () => {
@@ -273,32 +106,6 @@ test('retag prefixes pad, junction, patrol, guard and enemy refs so a progressed
   assert.ok(shelves>0,'expected at least one shelf once completedRaids unlocks them');
 });
 
-test('progressed Depth Raid (5 completed raids) walks A1 through A3 and extracts at the area-3 hatch', () => {
-  const r=startDepth('progressed-final',0,{completedRaids:5});
-  assert.ok((r.level.junctions??[]).length>=1,'pads present on a progressed save');
-  assert.equal((r.level.extracts??[]).length,3);
-  for(let i=0;i<3;i++){
-    assert.equal(r.level.extracts[i].x,r.level.depthExits[i].x);
-    assert.equal(r.level.extracts[i].z,r.level.depthExits[i].z);
-    assert.equal(r.level.extracts[i].depthArea,i+1);
-  }
-  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
-  killArea(r,2);stepDepthRaid(r,1300,r.level.depthStarts[1]);goDeeper(r,1400);walkTo(r,1500,3);
-  assert.equal(r.depth.zone,3);
-  killArea(r,3);
-  assert.equal(stepDepthRaid(r,1600,r.level.depthStarts[2]),'choice-opened');
-  assert.equal(r.depth.choice.canGoDeeper,false);
-  chooseExtract(r,1800);
-  const beam=r.level.exit,a3=r.level.depthExits[2],a1=r.level.depthExits[0];
-  assert.ok(Math.hypot(beam.x-a3.x,beam.z-a3.z)<1e-6,'EXTRACT in area 3 uses the area-3 hatch, not the area-1 pad');
-  assert.ok(Math.hypot(beam.x-a1.x,beam.z-a1.z)>2,'the area-3 hatch is not the area-1 pad');
-  const room=r.level.rooms.find(rm=>Math.abs(beam.x-rm.x)<=rm.w/2&&Math.abs(beam.z-rm.z)<=rm.d/2);
-  assert.equal(room?.depthArea,3);
-  assert.equal(exitIsOpen(r),true);
-  assert.equal(stepDepthRaid(r,1900,beam),'zone3-complete');
-  assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.cleared,true);assert.equal(r.levelsCleared,3);
-});
-
 test('Depth Raid keeps area 1 at stock difficulty and ramps HP, damage and enemy count in areas 2 and 3', () => {
   const scale=DEPTH.areaScale;
   assert.deepEqual(scale[0],{enemyCountAdd:0,healthMul:1,damageMul:1});
@@ -336,64 +143,6 @@ test('Depth Raid keeps area 1 at stock difficulty and ramps HP, damage and enemy
   assert.ok(extras3>=seeds.length,`expected extras in area 3 across seeds, got ${extras3}`);
 });
 
-test('the open extract trigger covers the visible pad, fires on entry, and is not blocked by a gear crate in the beam', () => {
-  assert.equal(DEPTH.extractCountdownMs,0);
-  assert.equal(DEPTH.extractRadius,1.45);
-  const r=startDepth('gear-on-pad',0,{completedRaids:5});
-  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
-  killArea(r,2);
-  assert.equal(stepDepthRaid(r,1300,r.level.depthStarts[1]),'choice-opened');
-  // Before EXTRACT is chosen the beam must not extract, even if you stand on the hatch.
-  const hatch=r.level.depthExits[1];
-  assert.equal(inDepthExtract(r,hatch),false);
-  assert.equal(stepDepthRaid(r,1400,hatch),null);
-  chooseExtract(r,1500);
-  assert.equal(r.level.exit.r,DEPTH.extractRadius);
-  assert.ok(Math.hypot(r.level.exit.x-hatch.x,r.level.exit.z-hatch.z)<1e-6,'area 2 extract uses the area-2 hatch');
-  r.level.lootBoxes.push({id:'cloak-on-beam',x:hatch.x+.8,z:hatch.z,item:'dampener_cloak',collected:false,revealed:true,marked:false});
-  collectLoot(r,{x:hatch.x+.8,z:hatch.z},1600,null);
-  const onPad={x:hatch.x+1.2,z:hatch.z};
-  assert.equal(inDepthExtract(r,onPad),true,'the visible pad (1.2 m from centre) must count as in the beam');
-  assert.equal(stepDepthRaid(r,1700,onPad),'zone-extracted');
-  assert.equal(r.over,true);assert.equal(r.reason,'extract');assert.equal(r.levelsCleared,2);
-});
-
-test('pushing through the door without a clear is GO DEEPER and forfeits extract in that area', () => {
-  const r=startDepth('push-without-clear',0);
-  assert.equal(areaIsCleared(r,1),false);
-  assert.equal(canPushDeeper(r),true);
-  assert.equal(goDeeper(r,0),null,'the cleared-area GO DEEPER choice is still gated on the popup');
-  const door=depthDoor(r.level,1);
-  assert.equal(door.locked,true);
-  assert.ok(nearDepthDoor(r,{x:door.x,z:door.z},1.7));
-  const res=pushDeeper(r,500);
-  assert.ok(res?.pushed);
-  assert.equal(res.nextZone,2);
-  assert.equal(door.locked,false);
-  assert.equal(r.depth.phase,'travel');
-  assert.equal(r.depth.extractOpen,false);
-  assert.equal(r.depth.forfeitZones[0],1);
-  assert.equal(canPushDeeper(r),false);
-  assert.equal(walkTo(r,600,2),'area-entered');
-  assert.equal(r.depth.zone,2);
-  assert.equal(exitIsOpen(r),false);
-  // leftover area-1 loot cannot be extracted: even standing on the old hatch does nothing
-  const a1=r.level.depthExits[0];
-  assert.equal(stepDepthRaid(r,700,a1),null);
-  assert.equal(r.over,false);
-  assert.equal(r.depth.extractOpen,false);
-});
-
-test('extract still requires a clear: pushing is the risky path, clearing still opens the choice', () => {
-  const r=startDepth('clear-still-prompts',0);
-  assert.equal(canPushDeeper(r),true);
-  killArea(r,1);
-  assert.equal(canPushDeeper(r),false);
-  assert.equal(stepDepthRaid(r,1000,r.level.start),'choice-opened');
-  assert.equal(r.depth.choice.canGoDeeper,true);
-  assert.equal(pushDeeper(r,1100),null,'once the area is clear, the player uses the EXTRACT / GO DEEPER popup');
-});
-
 test('depth corridors keep at least 2.4 m of clear width', () => {
   assert.equal(DEPTH_CLEAR_WIDTH,2.4);
   assert.ok(LINK_WIDTH-2*RULES.wallThickness>=2.4-1e-9);
@@ -409,4 +158,164 @@ test('depth corridors keep at least 2.4 m of clear width', () => {
       assert.ok(width-2*RULES.wallThickness+1e-9>=2.4,`${seed} clear width ${width-2*RULES.wallThickness} < 2.4`);
     }
   }
+});
+
+// v2.28.78: choosing with feet must never pause combat or pay an early clear bonus.
+for(const cleared of [false,true])test(`area 1 extract cleared=${cleared}: hold, bag and reward contract`,()=>{
+ const r=startDepth('walk-extract');r.bag={cable:2};
+ if(cleared){killArea(r,1);assert.equal(stepDepthRaid(r,10,r.level.start),'area-cleared');}
+ assert.equal(r.depth.extractOpen,true);
+ const beam=r.level.exit;
+ assert.equal(stepDepthRaid(r,20,{x:beam.x+DEPTH.extractRadius+.01,z:beam.z}),null);
+ assert.equal(r.depth.extracting,null);
+ assert.equal(stepDepthRaid(r,30,beam),'extract-started');
+ assert.equal(stepDepthRaid(r,400,beam),null);assert.equal(r.over,false);
+ assert.equal(stepDepthRaid(r,410,r.level.start),'extract-canceled');
+ assert.equal(stepDepthRaid(r,500,beam),'extract-started');
+ assert.equal(stepDepthRaid(r,1300,beam),'zone-extracted');
+ assert.equal(r.extracted.cable,2);assert.equal(r.depth.earlyExtract,!cleared);
+ const result=buildRaidResult(r),view=resultView(r);
+ assert.equal(result.earlyExtract,!cleared);
+ assert.equal(view.bonus,cleared?extractScrapBonus(1):0);
+ if(!cleared)assert.match(view.description,/Early extraction.*no clear bonus/);
+ assert.equal(r.pauseAt,null);
+});
+
+test('last kill opens door and spawns one collectible clear cache without pause',()=>{
+ const r=startDepth('clear-cache');const enemies=areaEnemies(r,1);
+ enemies.slice(1).forEach(e=>e.health=0);stepDepthRaid(r,1,r.level.start);
+ assert.equal(r.level.lootBoxes.some(b=>b.clearCache),false);
+ enemies[0].health=0;assert.equal(stepDepthRaid(r,2,r.level.start),'area-cleared');
+ assert.equal(depthDoor(r.level,1).locked,false);assert.equal(depthDoor(r.level,1).openedBy,'clear');
+ const cache=r.level.lootBoxes.find(b=>b.clearCache);
+ assert.equal(cache.item,DEPTH.clearCache.items[0]);assert.equal(cache.depthArea,1);assert.equal(cache.revealed,true);
+ assert.equal(collectLoot(r,cache,3),true);assert.equal(cache.collected,true);
+ stepDepthRaid(r,4,r.level.start);assert.equal(r.level.lootBoxes.filter(b=>b.clearCache).length,1);
+ assert.equal(r.pauseAt,null);
+});
+
+test('hack uses pad hold, decays outside, alerts only current nearby enemies, and opens door',()=>{
+ const r=startDepth('hack');const n=r.level.depthTerminals[0],door=depthDoor(r.level,1);
+ const [near,far]=areaEnemies(r,1);near.x=n.x+2;near.z=n.z;far.x=n.x+DEPTH.hack.noiseRadius+1;far.z=n.z;
+ near.aggro=far.aggro=false;const other=areaEnemies(r,2)[0];other.x=n.x;other.z=n.z;other.aggro=false;
+ assert.equal(stepDepthRaid(r,100,n),'hack-start');assert.equal(n.progress,0);
+ assert.equal(near.aggro,true);assert.equal(far.aggro,false);assert.equal(other.aggro,false);
+ stepDepthRaid(r,2100,n);assert.equal(n.progress,.5);assert.equal(door.locked,true);
+ stepDepthRaid(r,3100,r.level.start);assert.equal(n.progress,.25);
+ stepDepthRaid(r,3200,n);assert.equal(n.progress,.25);
+ stepDepthRaid(r,6199,n);assert.equal(door.locked,true);
+ assert.equal(stepDepthRaid(r,6200,n),'hack-done');assert.equal(door.locked,false);assert.equal(door.openedBy,'hack');
+ assert.equal(r.nodeInteraction,null);assert.equal(r.pauseAt,null);
+});
+
+test('keycard crate uses normal pickup and proximity unlock without a clear',()=>{
+ const r=startDepth('keycard');const door=depthDoor(r.level,1),crate=r.level.lootBoxes.find(b=>b.key===door.key);
+ assert.ok(crate);collectLoot(r,crate,10);assert.ok(r.keys.includes(door.key));
+ assert.equal(stepDoors(r,door,20),true);assert.equal(door.locked,false);assert.equal(r.keys.length,0);
+ assert.equal(door.openedBy,'keycard');assert.equal(areaIsCleared(r),false);
+});
+
+test('walk through open doors activates only current beam; early later extract has no bonuses',()=>{
+ const r=startDepth('beam-transfer');const level=r.level,oldBeam={...level.exit};
+ killArea(r,1);stepDepthRaid(r,100,level.start);
+ assert.equal(walkTo(r,200,2),'area-entered');assert.equal(r.level,level);assert.equal(r.depth.extractOpen,true);
+ assert.equal(inDepthExtract(r,oldBeam),false);assert.equal(inDepthExtract(r,level.depthExits[1]),true);
+ assert.equal(r.depth.lastDoorPassed.how,'clear');assert.equal(r.pauseAt,null);
+ stepDepthRaid(r,300,level.exit);stepDepthRaid(r,1100,level.exit);
+ assert.equal(resultView(r).bonus,0);assert.equal(buildRaidResult(r).earlyExtract,true);
+});
+
+test('three cleared areas bank the ladder and final bonus',()=>{
+ const r=startDepth('full-clear');let now=0;
+ for(let zone=1;zone<=3;zone++){
+  killArea(r,zone);assert.equal(stepDepthRaid(r,now+=100,r.level.depthStarts[zone-1]),'area-cleared');
+  if(zone<3)assert.equal(walkTo(r,now+=100,zone+1),'area-entered');
+ }
+ stepDepthRaid(r,now+=100,r.level.exit);assert.equal(stepDepthRaid(r,now+800,r.level.exit),'zone3-complete');
+ assert.equal(resultView(r).bonus,extractScrapBonus(3)+DEPTH.z3ClearBonusScrap);
+ assert.equal(buildRaidResult(r).depthBonus,DEPTH.z3ClearBonusScrap);assert.equal(r.pauseAt,null);
+});
+
+test('terminal pads and keycards are reachable off the lane and never collide across seeds/areas',()=>{
+ for(const seed of ['alpha','bravo','layout','gear-on-pad','seed19']){
+  const L=generateDepthLevel(seed);assert.equal(L.depthTerminals.length,2);
+  for(let zone=1;zone<=3;zone++){
+   for(const d of L.doors)if(d.depth)d.locked=d.depthAreaFrom>=zone;
+   const walk=walkMap(L);const near=p=>walk(p);
+   if(zone<3){
+    const n=L.depthTerminals.find(n=>n.depthArea===zone),key=L.lootBoxes.find(b=>b.key===depthDoor(L,zone).key);
+    assert.equal(n.collider,false);
+    assert.equal(traceTargets({x:n.x,z:n.z+DEPTH.hack.radius},n,L.walls,[n])?.kind,'node',`${seed} terminal must be visible before activation`);
+    assert.ok(n.laneDistance>=DEPTH_CLEAR_WIDTH/2);assert.ok(near(n),`${seed} terminal ${zone}`);assert.ok(near(key),`${seed} key ${zone}`);
+    for(const b of [...L.walls,...L.boxes])assert.ok(Math.abs(n.x-b.x)>=b.w/2+DEPTH.hack.radius||Math.abs(n.z-b.z)>=b.d/2+DEPTH.hack.radius);
+   }
+   assert.ok(near(L.depthStarts[zone-1]));
+  }
+ }
+});
+
+
+test('area clock remains a loss while global clock cannot fail Depth by itself',()=>{
+ const r=startDepth('timeout-kills');r.bag={cable:2};
+ assert.deepEqual(DEPTH.zoneTimerMs,[90000,90000,120000]);
+ assert.equal(exitIsOpen(r),true);
+ tickRound(r,89999);assert.equal(stepDepthRaid(r,89999,r.level.start),null);assert.equal(r.over,false);
+ tickRound(r,90000);assert.equal(stepDepthRaid(r,90000,r.level.start),'timeout');
+ assert.equal(r.reason,'timeout');assert.equal(r.lost.cable,2);assert.equal(r.pauseAt,null);
+ const global=startDepth('global-clock');tickRound(global,9*60*1000);
+ assert.equal(global.over,false);assert.equal(global.reason,null);
+});
+
+test('FTUE retains Node activation and extraction with depth explicitly disabled',()=>{
+ const r=createRound('ftue-raid',0);
+ initDepthRound(r,depthModeEnabled({area:'bunker',ftue:true,depthParam:'1'}),0);
+ assert.equal(r.depth,null);r.ftue=true;
+ for(const node of r.level.nodes)activateNode(r,node.id,0);
+ assert.equal(exitIsOpen(r),true);assert.equal(enterExit(r,r.level.exit,1),'complete');
+ assert.equal(r.cleared,true);assert.equal(r.reason,'extract');
+});
+
+test('beam/hack BIT intros have new stable IDs and unique dry lines',()=>{
+ const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.hack,DEPTH.bitLines.hackStart,DEPTH.bitLines.goDeeper];
+ const known=new Set([POWER_PAD_BIT_LINE,SHELF_BIT_LINE]);
+ for(const pool of Object.values(globalThis.DATA.bitSummary.pools))for(const line of pool.lines)known.add(line);
+ for(const line of lines){assert.ok(line.length>0);assert.ok(!known.has(line));}
+ assert.equal(new Set(lines).size,lines.length);
+ assert.equal(DEPTH.bitLines.introId,'depth_walk_extract_intro');assert.equal(DEPTH.bitLines.hackId,'depth_loud_terminal_intro');
+});
+
+test('locked doors reject area crossing; key passage leaves old loot and enemies intact',()=>{
+ const r=startDepth('no-forfeit'),level=r.level,count=level.enemies.length;
+ assert.notEqual(walkTo(r,100,2),'area-entered');assert.equal(r.depth.zone,1);
+ const door=depthDoor(level,1),key=level.lootBoxes.find(b=>b.key===door.key);
+ const remaining=level.lootBoxes.find(b=>b.depthArea===1&&!b.key);
+ collectLoot(r,key,200);stepDoors(r,door,210);
+ assert.equal(walkTo(r,300,2),'area-entered');assert.equal(r.level,level);
+ assert.equal(level.enemies.length,count);assert.ok(areaEnemies(r,1).some(e=>e.health>0));
+ assert.equal(remaining.collected,false);assert.equal(r.depth.zoneDeadline,300+DEPTH.zoneTimerMs[1]);
+ assert.equal(r.pauseAt,null);
+});
+
+test('uncleared final area pays no final or ladder bonus after earlier clears',()=>{
+ const r=startDepth('final-early',0,{completedRaids:5});let now=0;
+ for(let zone=1;zone<3;zone++){
+  killArea(r,zone);stepDepthRaid(r,now+=100,r.level.depthStarts[zone-1]);walkTo(r,now+=100,zone+1);
+ }
+ assert.ok(r.level.junctions.length>0);
+ stepDepthRaid(r,now+=100,r.level.exit);assert.equal(stepDepthRaid(r,now+800,r.level.exit),'zone-extracted');
+ assert.equal(resultView(r).bonus,0);assert.equal(buildRaidResult(r).depthBonus,undefined);
+ assert.equal(r.reason,'extract');assert.equal(r.depth.earlyExtract,true);
+});
+
+
+test('walk-through terminal cannot activate from shots, block bullets or attract aim assist',()=>{
+ const r=startDepth('hack-no-shot'),n=r.level.depthTerminals[0],w=createWeapon();
+ const origin={x:n.x-2,z:n.z},direction={x:1,z:0};
+ assert.equal(activateNode(r,n.id,10),false);assert.equal(n.active,false);
+ assert.equal(assistAim(origin,direction,[n],[]).target,null);
+ // Isolate a real bullet sweep through the terminal from unrelated room targets.
+ r.level.enemies=[];r.level.barrels=[];r.level.junctions=[];r.level.shelves=[];
+ fireWeapon(w,origin,direction,100);stepWeapon(w,r,400,.3,[]);
+ assert.equal(n.active,false);assert.equal(r.nodesLit,0);
+ assert.equal(w.projectiles.length,1);assert.ok(w.projectiles[0].x>n.x);
 });

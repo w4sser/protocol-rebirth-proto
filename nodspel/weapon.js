@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.28.77';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.77';
-import {RULES} from './levels.js?v=2.28.77';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.77';
-import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction,shootShelf} from './round.js?v=2.28.77-ftue-opening-v1';
+import {audioEvent} from './audio.js?v=2.28.78';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.78';
+import {RULES} from './levels.js?v=2.28.78';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.78';
+import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction,shootShelf} from './round.js?v=2.28.78-ftue-opening-v1';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
@@ -36,6 +36,7 @@ export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon
   if(length<1e-9)return {target:null,direction:{x:0,z:-1},rejections:['no direction']};
   const raw={x:direction.x/length,z:direction.z/length};let target=null,nearest=Infinity;const rejections=[];
   for(const enemy of enemies){
+    if(enemy.depthTerminal)continue;
     if(enemy.kind==='enemy'?(enemy.health<=0||enemy.active===false):enemy.active)continue;
     const dx=enemy.x-position.x,dz=enemy.z-position.z,distance=Math.hypot(dx,dz);
     if(distance<.01||distance>rule.range){rejections.push({id:enemy.id,reason:'range'});continue;}if(distance>=nearest)continue;
@@ -57,7 +58,7 @@ export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon
 function weaponHit(start,end,obstacles,targets,rule=RULES.weapon){
   // Active nodes are not targets; their pedestal is ordinary cover shared with
   // enemy shots. Only enemies get the extra shot width.
-  const eligible=targets.filter(t=>t.kind==='enemy'?(t.health>0&&(t.active!==false||!t.swarm)):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r*(rule.enemyHitboxMargin??1)+rule.shotRadius:t.r}));
+  const eligible=targets.filter(t=>!t.depthTerminal).filter(t=>t.kind==='enemy'?(t.health>0&&(t.active!==false||!t.swarm)):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r*(rule.enemyHitboxMargin??1)+rule.shotRadius:t.r}));
   return traceTargets(start,end,obstacles,eligible);
 }
 function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){

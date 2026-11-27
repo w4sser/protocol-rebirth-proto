@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.77"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.78"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -3674,7 +3674,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.77-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.78-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3688,7 +3688,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.77-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.78-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -4151,7 +4151,7 @@ function ingestRaidResult(r){
   // v1.64: fixed Scrap bonus per cleared level, paid on extract only (death/timeout = 0, like all raid loot).
   // Depth Raid prototype (PR1, v2.28.57): r.depthBonus is the extra Z3 full-clear Scrap (data/raid-depth.js
   // z3ClearBonusScrap), on top of this same ladder -- never a replacement for it.
-  const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) + (Number(r.depthBonus) > 0 ? Math.floor(r.depthBonus) : 0) : 0;
+  const scrapBonus = extracted ? (r.earlyExtract ? DATA.raidDepth.unclearedExtract.scrapBonusMul : 1) * extractScrapBonus(r.levelsCleared) + (!r.earlyExtract && Number(r.depthBonus) > 0 ? Math.floor(r.depthBonus) : 0) : 0;
   if(scrapBonus){ S.cur.scrap = (S.cur.scrap||0) + scrapBonus; revealCurrency("scrap"); }
   S.raids++;
   const questBefore = raidQuestSnapshot();
@@ -4731,7 +4731,7 @@ function raidSummaryHtml(r, res, reaction, label, opts){
     ? '<button type="button" class="primary rtb-btn" onclick="A.goReadyToBuild(\'fabricator\')">' + IC("build") + ' READY TO BUILD</button>'
     : '';
 
-  const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
+  const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? (r.earlyExtract ? 'Early extraction: loot secured, no clear bonus' : 'All loot secured') : 'Gear lost in the field') + '</p>';
 
   const bitBlock = reaction
     ? '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div>'
