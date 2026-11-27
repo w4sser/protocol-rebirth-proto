@@ -62,7 +62,7 @@ export function deathTip(round){
 }
 
 // ---- placement ----
-const solidsOf=level=>[...level.walls,...level.boxes,...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
+const solidsOf=level=>[...level.walls,...level.boxes,...level.nodes.filter(n=>n.collider!==false).map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
 const nearRect=(o,p,m)=>Math.abs(p.x-o.x)<o.w/2+m&&Math.abs(p.z-o.z)<o.d/2+m;
 const onFloor=(level,p,m=.3)=>level.floors.some(f=>Math.abs(p.x-f.x)<=f.w/2-m&&Math.abs(p.z-f.z)<=f.d/2-m);
 // The town's enterable house is cut into a room's back (north / west) wall later; keep that band free of encounter

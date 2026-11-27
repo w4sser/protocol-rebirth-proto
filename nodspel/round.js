@@ -238,7 +238,7 @@ export function stepDoors(round,position,now){
     if(!door.locked)continue;const k=round.keys?.indexOf(door.key)??-1;if(k<0)continue;
     const dx=Math.max(0,Math.abs(position.x-door.x)-door.w/2),dz=Math.max(0,Math.abs(position.z-door.z)-door.d/2);
     if(Math.hypot(dx,dz)>RULES.encounters.door.reach)continue;
-    door.locked=false;door.openedAt=now;round.keys.splice(k,1);round.lastDoor={id:door.id,at:now};opened=true;
+    door.locked=false;door.openedAt=now;door.openedBy='keycard';round.keys.splice(k,1);round.lastDoor={id:door.id,at:now};opened=true;
   }
   return opened;
 }
@@ -246,7 +246,7 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
   if(round.pauseAt!=null)return false;
   if(round.over){round.nodeInteraction=null;return false;}
-  const node=round.level.nodes.filter(n=>!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
+  const node=round.level.nodes.filter(n=>!n.depthTerminal&&!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
   if(!node){round.nodeInteraction=null;return false;}
   if(nodeShielded(round,node,now)){round.nodeInteraction=null;return false;}
   let hold=round.nodeInteraction;

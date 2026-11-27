@@ -4151,7 +4151,7 @@ function ingestRaidResult(r){
   // v1.64: fixed Scrap bonus per cleared level, paid on extract only (death/timeout = 0, like all raid loot).
   // Depth Raid prototype (PR1, v2.28.57): r.depthBonus is the extra Z3 full-clear Scrap (data/raid-depth.js
   // z3ClearBonusScrap), on top of this same ladder -- never a replacement for it.
-  const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) + (Number(r.depthBonus) > 0 ? Math.floor(r.depthBonus) : 0) : 0;
+  const scrapBonus = extracted ? (r.earlyExtract ? DATA.raidDepth.unclearedExtract.scrapBonusMul : 1) * extractScrapBonus(r.levelsCleared) + (!r.earlyExtract && Number(r.depthBonus) > 0 ? Math.floor(r.depthBonus) : 0) : 0;
   if(scrapBonus){ S.cur.scrap = (S.cur.scrap||0) + scrapBonus; revealCurrency("scrap"); }
   S.raids++;
   const questBefore = raidQuestSnapshot();
@@ -4731,7 +4731,7 @@ function raidSummaryHtml(r, res, reaction, label, opts){
     ? '<button type="button" class="primary rtb-btn" onclick="A.goReadyToBuild(\'fabricator\')">' + IC("build") + ' READY TO BUILD</button>'
     : '';
 
-  const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
+  const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? (r.earlyExtract ? 'Early extraction: loot secured, no clear bonus' : 'All loot secured') : 'Gear lost in the field') + '</p>';
 
   const bitBlock = reaction
     ? '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div>'

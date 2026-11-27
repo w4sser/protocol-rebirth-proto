@@ -32,6 +32,7 @@ export function initDepthRound(round,enabled,now,opts={}){
   const level=generateDepthLevel(round.seed,{area:opts.area,hard:opts.hard??round.hard,completedRaids:round.completedRaids,ftue:!!round.ftue});
   round.level=level;
   round.depth=createDepthState(now);
+  round.pauseAt=null;
   activateAreaExit(round,1);
   wakeArea(level,1);
   applyAreaCombat(level,1);
@@ -68,7 +69,7 @@ export function stepDepthHack(round,now,position,dt){
   const inside=Math.hypot(position.x-terminal.x,position.z-terminal.z)<=DEPTH.hack.radius;
   const wasInside=!!terminal.hacking;
   terminal.hacking=inside;
-  terminal.progress=Math.max(0,Math.min(1,(terminal.progress??0)+(inside?dt/DEPTH.hack.holdMs:-dt/1000*DEPTH.hack.decayPerSec)));
+  terminal.progress=Math.max(0,Math.min(1,(terminal.progress??0)+(inside?(wasInside?dt:0)/DEPTH.hack.holdMs:-dt/1000*DEPTH.hack.decayPerSec)));
   round.nodeInteraction=terminal.progress>0||inside?{id:terminal.id,startedAt:now-terminal.progress*DEPTH.hack.holdMs,progress:terminal.progress}:null;
   if(terminal.progress>=1){
     terminal.active=true;door.locked=false;door.openedAt=now;door.openedBy='hack';
@@ -93,7 +94,7 @@ export function clearDepthArea(round,now){
   round.nodeInteraction=null;
   if(DEPTH.clearCache.enabled){
     const exit=round.level.exit;
-    const box={id:`depth-clear-cache-${d.zone}`,depthArea:d.zone,x:exit.x+DEPTH.clearCache.offset,z:exit.z,
+    const box={id:`depth-clear-cache-${d.zone}`,depthArea:d.zone,x:exit.cacheSpot?.x??exit.x+DEPTH.clearCache.offset,z:exit.cacheSpot?.z??exit.z,
       item:DEPTH.clearCache.items[d.zone-1],revealed:true,collected:false,clearCache:true};
     round.level.lootBoxes.push(box);d.lastClearCache=box;
   }
@@ -139,6 +140,8 @@ export function stepDepthRaid(round,now,position){
   d.zoneRemainingMs=Math.max(0,d.zoneDeadline-now);
   const cleared=clearDepthArea(round,now);
   const hack=stepDepthHack(round,now,position,dt);
+  if(cleared)return 'area-cleared';
+  if(hack)return hack;
   if(inDepthExtract(round,position)){
     if(!d.extracting){d.extracting={startedAt:now};return 'extract-started';}
     if(now-d.extracting.startedAt>=DEPTH.extractCountdownMs){
@@ -149,8 +152,6 @@ export function stepDepthRaid(round,now,position){
       return complete?'zone3-complete':'zone-extracted';
     }
   }else if(d.extracting){d.extracting=null;return 'extract-canceled';}
-  if(cleared)return 'area-cleared';
-  if(hack)return hack;
   if(!d.clearedZones.includes(d.zone)&&d.zoneRemainingMs<=0){timeoutRound(round,now);return 'timeout';}
   return null;
 }

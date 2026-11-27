@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRunLog,recordEvent,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,classifyUserAgent,buildDeviceInfo,RUN_LOG_KEY} from '../run-log.js';
 import {createRound,tickRound} from '../round.js';
-import {initDepthRound,stepDepthRaid,goDeeper,pushDeeper,chooseExtract} from '../depth-raid.js';
+import {initDepthRound,stepDepthRaid} from '../depth-raid.js';
 
 function fakeStorage(){
   const m=new Map();
@@ -152,104 +152,13 @@ test('clearRunLogs: removes the stored key', () => {
   assert.deepEqual(loadRunLogs(storage),[]);
 });
 
-// Depth-raid-level: drives the real depth-raid.js state machine (no mocks) and checks the run-log
-// recorders produce the expected event sequence for a push-through-zone-1, clear-and-go-deeper-zone-2,
-// clear-and-extract-zone-3 playthrough. Mirrors the call sites nodspel/game.mjs wires (onDepthStep/
-// onDepthExtract/onDepthGoDeeper/onDepthPushConfirm), without needing the DOM/Three.js game module.
-function startDepth(seed,now=0){
-  const r=createRound(seed,now,undefined,{});
-  initDepthRound(r,true,now);
-  return r;
-}
-function killArea(round,zone){for(const e of round.level.enemies)if(e.depthArea===zone)e.health=0;}
-function walkTo(round,now,area){
-  const dest=round.level.depthStarts.find(s=>s.depthArea===area);
-  assert.ok(dest,`start for area ${area}`);
-  return stepDepthRaid(round,now,dest);
-}
-// Mirrors onDepthStep(dres) in game.mjs: the two stepDepthRaid outcomes that need a run-log event.
-function applyDepthStep(log,round,dres,ms){
-  if(dres==='choice-opened'){
-    const clearMs=round.depth.zoneDurationMs-round.depth.zoneRemainingMs;
-    recordAreaCleared(log,round.depth.choice.zone,clearMs,ms);
-    recordPauseOpen(log,ms);
-  }
-  if(dres==='area-entered')recordAreaEntered(log,round.depth.zone,ms);
-}
-
-test('depth raid: clear zone 1, go deeper, clear zone 2, extract at zone 3 -- full event sequence', () => {
-  const round=startDepth('seed-a',0);
-  const log=createRunLog({v:'2.28.77',raidId:round.seed,seed:round.seed,mode:'depth',area:'bunker'});
-  recordAreaEntered(log,1,0); // game.mjs records zone 1 directly at raid start; stepDepthRaid never does
-
-  killArea(round,1);
-  let dres=stepDepthRaid(round,1000,round.level.depthStarts.find(s=>s.depthArea===1));
-  assert.equal(dres,'choice-opened');
-  applyDepthStep(log,round,dres,1000);
-
-  const goRes=goDeeper(round,1500);
-  assert.ok(goRes);
-  recordChoice(log,goRes.zoneLeft,'deeper',1500);
-  recordDoorPassed(log,goRes.zoneLeft,'clear',1500);
-
-  dres=walkTo(round,2000,2);
-  assert.equal(dres,'area-entered');
-  applyDepthStep(log,round,dres,2000);
-
-  killArea(round,2);
-  dres=stepDepthRaid(round,5000,round.level.depthStarts.find(s=>s.depthArea===2));
-  assert.equal(dres,'choice-opened');
-  applyDepthStep(log,round,dres,5000);
-
-  const extractRes=chooseExtract(round,5200);
-  assert.ok(extractRes);
-  recordChoice(log,extractRes.zone,'extract',5200);
-
-  assert.deepEqual(log.events,[
-    {t:0,type:'area_entered',zone:1},
-    {t:1000,type:'area_cleared',zone:1,ms:1000},
-    {t:1000,type:'pause_open'},
-    {t:1500,type:'choice',zone:1,kind:'deeper'},
-    {t:1500,type:'door_passed',zone:1,how:'clear'},
-    {t:2000,type:'area_entered',zone:2},
-    {t:5000,type:'area_cleared',zone:2,ms:3000},
-    {t:5000,type:'pause_open'},
-    {t:5200,type:'choice',zone:2,kind:'extract'},
-  ]);
-});
-
-test('depth raid: pushing through a door records door_passed with how:push, no choice event', () => {
-  const round=startDepth('seed-b',0);
-  const log=createRunLog({mode:'depth'});
-  recordAreaEntered(log,1,0);
-
-  // Push through zone 1's door without clearing it (canPushDeeper only allows this before the area clears).
-  const pushRes=pushDeeper(round,800);
-  assert.ok(pushRes);
-  recordDoorPassed(log,pushRes.zoneLeft,'push',800);
-
-  const dres=walkTo(round,1200,2);
-  assert.equal(dres,'area-entered');
-  applyDepthStep(log,round,dres,1200);
-
-  assert.deepEqual(log.events,[
-    {t:0,type:'area_entered',zone:1},
-    {t:800,type:'door_passed',zone:1,how:'push'},
-    {t:1200,type:'area_entered',zone:2},
-  ]);
-});
-
-test('depth raid: death mid-raid -- round.over/reason flip exactly as finishRound expects', () => {
-  const round=startDepth('seed-c',0);
-  tickRound(round,0);
-  round.health=1;
-  round.lastDamageEvent=undefined;
-  // Drive a real combat death through round.js takeDamage-equivalent path used elsewhere in tests:
-  // round-level death is already covered by round.test.mjs; here we only prove the depth zone is
-  // readable off round.depth for the run-log death event, as finishRound does.
-  round.over=true;round.reason='death';
-  const log=createRunLog({mode:'depth'});
-  const cause='Sentry projectile';
-  recordDeath(log,cause,round.depth.zone,0);
-  assert.deepEqual(log.events,[{t:0,type:'death',cause:'Sentry projectile',zone:1}]);
+test('walking and hacking event schema preserves zone and cleared state',()=>{
+ const log=createRunLog({mode:'depth'});
+ recordEvent(log,'hack_start',{zone:1},10);
+ recordEvent(log,'hack_done',{zone:1},4010);
+ recordChoice(log,1,'deeper',4100);recordDoorPassed(log,1,'hack',4100);
+ recordExtract(log,2,false,6000);
+ assert.deepEqual(log.events.map(e=>e.type),['hack_start','hack_done','choice','door_passed','extract']);
+ assert.equal(log.events.at(-1).cleared,false);
+ assert.equal(log.events[3].how,'hack');
 });

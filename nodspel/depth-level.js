@@ -455,6 +455,14 @@ export function generateDepthLevel(seed,opts={}){
   level.extracts=depthExits.map(e=>({x:e.x,z:e.z,r:e.r??1,depthArea:e.depthArea}));
   level.exit={x:depthExits[0].x,z:depthExits[0].z,r:depthExits[0].r,depthArea:1};
   level.depthAreaRules=rules;
+  for(const exit of level.depthExits){
+    const candidates=[];
+    for(let angle=0;angle<Math.PI*2;angle+=DEPTH.clearCache.angleStep){
+      const p={x:exit.x+Math.cos(angle)*DEPTH.clearCache.offset,z:exit.z+Math.sin(angle)*DEPTH.clearCache.offset};
+      if(depthSpotFree(level,p,DEPTH.clearCache.clearance))candidates.push(p);
+    }
+    exit.cacheSpot=candidates[0]??{x:exit.x,z:exit.z};
+  }
   placeDepthTerminals(level);
   level.hard=hard||undefined;
   return level;
@@ -952,7 +960,7 @@ export function placeDepthTerminals(level){
     level.doors.forEach((d,i)=>d.locked=locks[i]);
     const spots=[];
     for(const room of rooms){
-      const entry=roomEntryPoint(level,room),exit=roomExitPoint(room,entry);
+      const entry=roomEntry(level,room),exit=roomExitPoint(level,room,entry);
       for(let x=room.x-room.w/2+DEPTH.hack.radius;x<=room.x+room.w/2-DEPTH.hack.radius;x+=DEPTH.hack.placementStep){
         for(let z=room.z-room.d/2+DEPTH.hack.radius;z<=room.z+room.d/2-DEPTH.hack.radius;z+=DEPTH.hack.placementStep){
           const p={x,z};

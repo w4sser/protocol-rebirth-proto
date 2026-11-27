@@ -416,35 +416,22 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(by('fabricator-marker-once').check({appSrc:'',html:''}).length,3,'v2.28.55 fires on missing pieces');}
 
 {
- const rule=by('depth-raid-area-clear-choice');
- assert.equal(rule.check().length,0,'depth raid area-clear choice holds on real source');
- assert.equal(rule.check({roundSrc:'',depthRaidSrc:'',stakesSrc:'',gameSrc:''}).length,8,'all depth-raid area-clear guards fire');
- const round=fs.readFileSync(new URL('../nodspel/round.js',import.meta.url),'utf8');
- const depthRaid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
- const stakes=fs.readFileSync(new URL('../nodspel/stakes.js',import.meta.url),'utf8');
- const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
- assert.equal(rule.check({roundSrc:round.replace('if(round.depth)return !!round.depth.extractOpen;','')}).length,1,'exitIsOpen regressing off extractOpen fires');
- assert.equal(rule.check({roundSrc:round.replace('if(round.remainingMs===0&&!round.depth)','if(round.remainingMs===0)')}).length,1,'the global clock failing a depth raid fires');
- assert.equal(rule.check({roundSrc:round.replace('export function extractDepthZone(','function removedDepthZone(')}).length,1,'a missing extractDepthZone fires');
- assert.equal(rule.check({roundSrc:round.replace('export function timeoutRound(','function removedTimeout(')}).length,1,'a missing timeoutRound fires');
- assert.equal(rule.check({depthRaidSrc:depthRaid.replace('export function areaIsCleared(','function removedClear(')}).length,1,'removing areaIsCleared fires');
- assert.equal(rule.check({depthRaidSrc:depthRaid.replace("if(!d||round.over||d.phase!=='choice'||d.zone>=3||!d.choice?.canGoDeeper)return null;",'')}).length,1,'goDeeper missing its choice/zone-3 guard fires');
- assert.equal(rule.check({stakesSrc:stakes.replace('round.ftue || round.depth','round.ftue')}).length,1,'the hunter-wave clock staying on in depth mode fires');
- assert.equal(rule.check({gameSrc:game.replace('if(round.depth){\n      const dres=stepDepthRaid(round,clock,position);','if(true){\n      const dres=stepDepthRaid(round,clock,position);')}).length,1,'enterExit running unconditionally for a depth round fires');
+ const rule=by('depth-no-choice-popup');
+ assert.equal(rule.check().length,0);
+ assert.equal(rule.check({depthRaidSrc:'pausePick(round,now)',htmlSrc:''}).length,1);
+ assert.equal(rule.check({depthRaidSrc:'',htmlSrc:'<section id="depth-choice"></section>'}).length,1);
+ assert.equal(rule.check({depthRaidSrc:'',htmlSrc:'<section id="depth-push"></section>'}).length,1);
 }
-
 {
- const rule=by('depth-choice-touch');
- assert.equal(rule.check().length,0,'depth choice touch holds on real source');
- assert.equal(rule.check({gameSrc:'',cssSrc:'',htmlSrc:'id="go-deeper"'}).length,5,'all depth-choice touch guards fire');
- const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
- const css=fs.readFileSync(new URL('../nodspel/style.css',import.meta.url),'utf8');
- const html=fs.readFileSync(new URL('../nodspel/index.html',import.meta.url),'utf8');
- assert.equal(rule.check({gameSrc:game.replace("bindHUDTap($('#depth-extract'),onDepthExtract)","$('#depth-extract').addEventListener('click',onDepthExtract)")}).length,1,'click-only EXTRACT wiring fires');
- assert.equal(rule.check({gameSrc:game.replace("e.target.closest?.('#depth-choice,.bit-card')","e.target.closest?.('#nope')")}).length,1,'a paused-input gate that swallows the popup fires');
- assert.equal(rule.check({gameSrc:game.replace("#raid-settings-open,#depth-choice'","#raid-settings-open'")}).length,1,'stick routing that ignores #depth-choice fires');
- assert.equal(rule.check({cssSrc:css.replace('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}','')}).length,1,'a covering backdrop fires');
- assert.equal(rule.check({htmlSrc:html+'<button id="go-deeper" type="button">GO DEEPER</button>'}).length,1,'a leftover HUD chip fires');
+ const rule=by('depth-extract-always-open');
+ const raid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0);
+ assert.equal(rule.check({depthRaidSrc:raid.replace('d.extractOpen=true','d.extractOpen=false')}).length,1);
+ assert.equal(rule.check({depthRaidSrc:raid.replace('activateAreaExit(round,1)','')}).length,1);
+}
+{
+ const rule=by('depth-raid-world-flow');assert.equal(rule.check().length,0);
+ assert.equal(rule.check({roundSrc:'',depthRaidSrc:'',gameSrc:''}).length,3);
 }
 
 {
@@ -472,7 +459,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({worldSrc:world.replaceAll('depthExtractOpen','depthBeamIgnore')}).length,1,'world opening every depth beam at once fires');
  assert.equal(rule.check({gameSrc:game.replaceAll('renderDepthExtractGuide','renderNothing')}).length,1,'a missing extract guide fires');
  assert.equal(rule.check({htmlSrc:html.replace('id="depth-extract-guide"','id="no-guide"')}).length,1,'missing guide markup fires');
- assert.equal(rule.check({raidDepthSrc:data.replaceAll('extractFinal','extractGone')}).length,1,'dropping the final-area BIT line fires');
+ assert.equal(rule.check({raidDepthSrc:data.replaceAll('depth_walk_extract_intro','extractGone')}).length,1,'dropping the final-area BIT line fires');
 }
 
 {
@@ -484,7 +471,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
  const vfx=fs.readFileSync(new URL('../nodspel/vfx-extract-beam.js',import.meta.url),'utf8');
  const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
- assert.equal(rule.check({raidDepthSrc:data.replace('extractCountdownMs: 0','extractCountdownMs: 5000')}).length,1,'restoring the silent 5s countdown fires');
+ assert.equal(rule.check({raidDepthSrc:data.replace('extractCountdownMs: 800','extractCountdownMs: 5000')}).length,1,'restoring the silent 5s countdown fires');
  assert.equal(rule.check({depthRaidSrc:raid.replaceAll('inDepthExtract','inSomethingElse')}).length,1,'dropping inDepthExtract fires');
  assert.equal(rule.check({depthLevelSrc:depth.replaceAll('r:DEPTH.extractRadius','r:1')}).length,1,'exits that keep r=1 fire');
  assert.equal(rule.check({beamSrc:vfx.replaceAll('EXTRACT_PAD_RADIUS=1.45','EXTRACT_PAD_RADIUS=1')}).length,1,'a smaller visual pad fires');
@@ -506,19 +493,10 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
 }
 
 {
- const rule=by('depth-push-cover-nav');
- assert.equal(rule.check().length,0,'depth push/cover/nav holds on real source');
- assert.equal(rule.check({gameSrc:'',depthRaidSrc:'',depthLevelSrc:'',raidDepthSrc:'',htmlSrc:'',cssSrc:'',bunkerSrc:'',worldSrc:''}).length,5,'all depth-push-cover-nav guards fire');
- const raid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ const rule=by('depth-push-cover-nav');assert.equal(rule.check().length,0);
+ assert.equal(rule.check({depthRaidSrc:'',depthLevelSrc:'',raidDepthSrc:'',bunkerSrc:'',worldSrc:''}).length,3);
  const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
- const data=fs.readFileSync(new URL('../data/raid-depth.js',import.meta.url),'utf8');
- const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
- const bunker=fs.readFileSync(new URL('../nodspel/bunker.js',import.meta.url),'utf8');
- assert.equal(rule.check({depthRaidSrc:raid.replaceAll('pushDeeper','walkAway')}).length,1,'dropping pushDeeper fires');
- assert.equal(rule.check({depthLevelSrc:depth.replaceAll('DEPTH_CLEAR_WIDTH=2.4','DEPTH_CLEAR_WIDTH=1.4')}).length,1,'narrower corridors fire');
- assert.equal(rule.check({raidDepthSrc:data.replaceAll('depth_push_intro','depth_gone')}).length,1,'dropping the push BIT id fires');
- assert.equal(rule.check({gameSrc:game.replaceAll('GO DEEPER · skip remaining enemies','LOCKED · CLEAR THE AREA')}).length,1,'dropping the door confirm copy fires');
- assert.equal(rule.check({bunkerSrc:bunker.replaceAll('if(level.depth)','if(false)')}).length,1,'lighting only the first lamps fires');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('DEPTH_CLEAR_WIDTH=2.4','DEPTH_CLEAR_WIDTH=1.4')}).length,1);
 }
 
 {
@@ -543,7 +521,7 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({gameSrc:'',levelsSrc:''}).length,2,'all aim-stick-instant-fire guards fire');
  const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
  const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
- assert.equal(rule.check({gameSrc:game.replace("'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice'","'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice,#player-health,#player-shield,#ammo-hud,#weapon-name'")}).length,1,'treating floating HUD labels as covered controls fires');
+ assert.equal(rule.check({gameSrc:game.replace("'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open'","'.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#player-health,#player-shield,#ammo-hud,#weapon-name'")}).length,1,'treating floating HUD labels as covered controls fires');
  assert.equal(rule.check({levelsSrc:levels.replace('deadZonePx:8','deadZonePx:20')}).length,1,'raising the deadzone back to 20px fires');
 }
 

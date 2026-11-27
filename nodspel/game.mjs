@@ -36,8 +36,8 @@ import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.77-o
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.77';
 import {safeSpawn} from './spawn.js?v=2.28.77';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.77-ftue-opening-v1';
-import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,nextAreaPreview,scaleDepthRules,inDepthExtract,extractRadiusOf,canPushDeeper,pushDeeper,nearDepthDoor,DEPTH} from './depth-raid.js?v=2.28.77';
-import {createRunLog,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,buildDeviceInfo} from './run-log.js?v=2.28.77';
+import {depthModeEnabled,initDepthRound,stepDepthRaid,areaIsCleared,nextAreaPreview,scaleDepthRules,inDepthExtract,extractRadiusOf,DEPTH} from './depth-raid.js?v=2.28.77';
+import {createRunLog,recordEvent,recordFirst,recordAreaEntered,recordAreaCleared,recordDoorPassed,recordChoice,recordExtract,recordDeath,recordTimeout,recordLootCollected,recordPauseOpen,noteActivity,finishRunLog,saveRunLog,loadRunLogs,clearRunLogs,buildDeviceInfo} from './run-log.js?v=2.28.77';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.77';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.77-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.77';
@@ -590,12 +590,12 @@ function setupStick(selector,value,onShot){
   // Route touches from open playfield space; only real interactive controls (and dialogs) keep their
   // own events -- floating HUD labels like ammo/health/shield must never steal an aim-stick touch.
   document.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='mouse'||el.contains(e.target)||e.target.closest('button,a,input,select,[role=dialog],.pop-card,.pop-backdrop,.stick,#depth-choice'))return;
+    if(e.pointerType==='mouse'||el.contains(e.target)||e.target.closest('button,a,input,select,[role=dialog],.pop-card,.pop-backdrop,.stick'))return;
     const r=viewport.getBoundingClientRect(),split=RULES.aimControls.zoneFraction;
     const inZone=onShot?e.clientX>=r.left+r.width*(1-split):e.clientX<=r.left+r.width*split;
     const hud=$('.hud').getBoundingClientRect();
     if(!inZone||e.clientY<hud.bottom||e.clientY>r.bottom||e.clientX<r.left||e.clientX>r.right)return;
-    const covered=[...document.querySelectorAll('.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open,#depth-choice')].some(n=>{const b=n.getBoundingClientRect(),gap=n.id==='dash'||n.id==='bit-distract'?12:0;return !n.hidden&&e.clientX>=b.left-gap&&e.clientX<=b.right+gap&&e.clientY>=b.top-gap&&e.clientY<=b.bottom+gap;});
+    const covered=[...document.querySelectorAll('.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open')].some(n=>{const b=n.getBoundingClientRect(),gap=n.id==='dash'||n.id==='bit-distract'?12:0;return !n.hidden&&e.clientX>=b.left-gap&&e.clientX<=b.right+gap&&e.clientY>=b.top-gap&&e.clientY<=b.bottom+gap;});
     if(!covered)start(e);
   });
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
@@ -842,7 +842,7 @@ function renderRoomBox(level){
 // hidden until maybeIntroduceDepth()'s one-time BIT card reveals it (bit-introduces-systems-first).
 function renderDepthHud(){
   const timerBox=$('#round-timer-box'),box=$('#depth-hud');
-  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;hideDepthChoice();return;}
+  if(!round.depth){if(box)box.hidden=true;if(timerBox)timerBox.hidden=false;return;}
   if(timerBox)timerBox.hidden=true;
   if(!box)return;
   box.hidden=false;
@@ -857,7 +857,7 @@ function renderDepthHud(){
   if(timerEl.textContent!==text)timerEl.textContent=text;
   timer?.classList.toggle('warn',d.phase==='combat'&&seconds<=30&&seconds>10);
   timer?.classList.toggle('urgent',d.phase==='combat'&&seconds<=10);
-  box.classList.toggle('is-paused',d.phase==='choice');
+
 }
 // Pickup toasts: icon + name in rarity colour under the bag panel; stack of at most 3, each fades after TOAST_MS.
 let pickupToasts=[];
@@ -911,7 +911,7 @@ function updateHUD(){
   // so the 2/3 node counter cannot leak (Robert's v2.28.57 live shot).
   if(round.depth)$('#level-corner').hidden=true;else renderRoomBox(level);
   renderDepthHud();
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());if(round.depth)v.label.el.hidden=true;}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());if(round.depth)v.label.el.hidden=!v.node.depthTerminal||v.node.depthArea!==round.depth.zone;}
   const depthExit=round.depth?(round.level.depthExits?.[round.depth.zone-1]??round.level.exit):round.level.exit;
   if(world.exitLabel&&depthExit)world.exitLabel.point.set(depthExit.x,1.8,depthExit.z);
   // Depth Raid: keep the CURRENT area's hatch labelled (locked or open) so the last wing is findable.
@@ -1078,8 +1078,8 @@ function renderEncounterLabels(clock){
   for(const e of encounterLabels){const l=e.label;
     if(e.door){const d=e.door,icon=d.locked?'lock':'unlock';
       const depthLocked=d.depth&&d.locked,depthOpen=d.depth&&!d.locked;
-      const depthPush=d.depth&&d.locked&&canPushDeeper(round);
-      setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthPush?'GO DEEPER · skip remaining enemies':depthLocked?'LOCKED · CHOOSE AT THE PROMPT':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
+
+      setIconText(l.caption,icon,depthOpen?'DOOR · OPEN':depthLocked?'SEALED: CLEAR THE AREA OR HACK THE TERMINAL':!d.locked?'DOOR · OPEN':round.keys?.includes(d.key)?'LOCKED · WALK UP TO USE THE KEYCARD':'LOCKED · KEYCARD NEEDED');
       setIconText(l.shortEl,icon,d.locked?'DOOR':'');l.el.classList.toggle('done',!d.locked);l.defeated=!d.locked&&!!d.openedAt&&clock-d.openedAt>2500;}
     else{const warn=e.sp.state==='warning';
       setIconText(l.caption,warn?'warning':'threat',warn?'! SWARM INCOMING':'SPAWN POINT');setIconText(l.shortEl,'threat','');
@@ -1169,102 +1169,52 @@ function checkShelfIntro(){
 // reveals the HUD immediately -- there is nothing to wait for.
 const depthIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[DEPTH.bitLines.introId];}catch{return false;}})();
 function maybeIntroduceDepth(){
-  // Clock and pips are visible immediately; BIT introduces the CHOICE the first time it appears,
-  // not at raid start (the old raid-start intro hid the clock and leaked the 2/3 node counter).
+  // Introduce the always-open beam at raid start without pausing combat.
   if(!round.depth)return;
   depthHudRevealed=true;renderDepthHud();
-}
-function rarityLabel(tier){return String(tier||'').replace(/_/g,' ');}
-function showDepthChoice(){
-  const pop=$('#depth-choice');if(!pop||!round.depth?.choice)return;
-  const d=round.depth,zone=d.choice.zone,title=$('#depth-choice-title'),q=$('#depth-choice-q');
-  title.textContent=`AREA ${zone} CLEARED`;
-  const extractCopy=$('#depth-extract-copy'),deeperBtn=$('#depth-go-deeper'),deeperCopy=$('#depth-deeper-copy');
-  if(zone>=3){
-    q.textContent='The level is clear. Take everything home, plus a bonus.';
-    extractCopy.textContent=`Go home with your loot · +${DEPTH.z3ClearBonusScrap} Scrap bonus`;
-    deeperBtn.hidden=true;
-  }else{
-    q.textContent='Extract now, or risk it and go deeper?';
-    extractCopy.textContent='Go home with your loot';
-    const preview=nextAreaPreview(round,zone+1);
-    const types=preview.enemyTypes.length?preview.enemyTypes.join(', '):'harder hostiles';
-    const loot=preview.lootTiers.length?preview.lootTiers.map(rarityLabel).join(', ')+' loot':'better loot';
-    deeperCopy.textContent=`Area ${zone+1}: ${types} · ${loot}`;
-    deeperBtn.hidden=false;
-  }
-  pop.hidden=false;
   if(!depthIntroShownThisSession&&bitAlong&&!depthIntroSeenAtLaunch&&globalThis.PRBitCard){
-    depthIntroShownThisSession=true;
-    (round.bitSeen??=[]).push(DEPTH.bitLines.introId);
+    depthIntroShownThisSession=true;(round.bitSeen??=[]).push(DEPTH.bitLines.introId);
     globalThis.PRBitCard.show({id:DEPTH.bitLines.introId,text:DEPTH.bitLines.intro,mood:'skeptical'});
-  }else depthIntroShownThisSession=true;
-  renderDepthHud();
+  }
 }
-function hideDepthChoice(){const pop=$('#depth-choice');if(pop)pop.hidden=true;}
-function onDepthExtract(){
-  if(!round?.depth||round.depth.phase!=='choice'||round.over)return;
-  const res=chooseExtract(round,gameClock());if(!res)return;
-  recordChoice(runLog,res.zone,'extract',gameClock()-raidStartClock);
-  hideDepthChoice();
-  const line=res.zone>=3?DEPTH.bitLines.extractFinal:DEPTH.bitLines.extract;
-  const id=res.zone>=3?'depth_extract_final':DEPTH.bitLines.extractId;
-  if(res.zone>=3)globalThis.PRBitCard?.show({id,text:line,mood:'skeptical'});
-  else if(globalThis.PRBitCard)globalThis.PRBitCard.show({id,text:line,mood:'skeptical'});
-  updateHUD();
+let depthHackIntroduced=false;
+function introduceDepthHack(){
+  if(depthHackIntroduced||!bitAlong||!globalThis.PRBitCard||globalThis.PRBitCard.isOpen())return;
+  const terminal=round.level.depthTerminals?.find(n=>n.depthArea===round.depth.zone);
+  if(!terminal||Math.hypot(position.x-terminal.x,position.z-terminal.z)>DEPTH.hack.introRadius)return;
+  depthHackIntroduced=true;
+  if(!bitCardSeen(DEPTH.bitLines.hackId)){
+    (round.bitSeen??=[]).push(DEPTH.bitLines.hackId);
+    globalThis.PRBitCard.show({id:DEPTH.bitLines.hackId,text:DEPTH.bitLines.hack,mood:'skeptical'});
+  }
 }
-function onDepthGoDeeper(){
-  if(!round?.depth||round.depth.phase!=='choice'||round.depth.zone>=3||round.over)return;
-  const zoneLeft=round.depth.zone,res=goDeeper(round,gameClock());if(!res)return;
-  const ms=gameClock()-raidStartClock;recordChoice(runLog,zoneLeft,'deeper',ms);recordDoorPassed(runLog,zoneLeft,'clear',ms);
-  hideDepthChoice();
-  if(zoneLeft===1)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
-  updateHUD();
-}
+function bitCardSeen(id){try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[id];}catch{return false;}}
 function onDepthStep(dres){
   if(!dres)return;
-  if(dres==='choice-opened'){
-    const ms=gameClock()-raidStartClock,clearMs=round.depth.zoneDurationMs-round.depth.zoneRemainingMs;
-    recordAreaCleared(runLog,round.depth.choice.zone,clearMs,ms);recordPauseOpen(runLog,ms);
-    showDepthChoice();
+  const ms=gameClock()-raidStartClock,d=round.depth;
+  if(dres==='area-cleared'){
+    recordAreaCleared(runLog,d.zone,d.zoneDurationMs-d.zoneRemainingMs,ms);
+    if(d.lastClearCache)labelLoot(world.addLoot(d.lastClearCache));
+    notice(d.zone<3?'DOOR OPEN · CLEAR CACHE AT BEAM':'AREA CLEAR · CACHE AT BEAM');
+    setCollisions();updateHUD();
+  }
+  if(dres==='hack-start'){
+    recordEvent(runLog,'hack_start',{zone:d.zone},ms);
+    if(!d.hackSpoken){d.hackSpoken=true;globalThis.PRBitCard?.show({id:'depth_hack_noise',text:DEPTH.bitLines.hackStart,mood:'skeptical'});}
+  }
+  if(dres==='hack-done'){
+    recordEvent(runLog,'hack_done',{zone:d.zone},ms);
+    notice('DOOR OPEN');setCollisions();updateHUD();
   }
   if(dres==='area-entered'){
-    recordAreaEntered(runLog,round.depth.zone,gameClock()-raidStartClock);
-    if(round.depth?.zone>=3&&DEPTH.bitLines.finalArea)
-      globalThis.PRBitCard?.show({id:DEPTH.bitLines.finalAreaId,text:DEPTH.bitLines.finalArea,mood:'skeptical'});
-    renderDepthHud();
+    const passed=d.lastDoorPassed;
+    recordChoice(runLog,passed.zone,'deeper',ms);recordDoorPassed(runLog,passed.zone,passed.how,ms);
+    recordAreaEntered(runLog,d.zone,ms);
+    if(d.zone===2)globalThis.PRBitCard?.show({id:'depth_go_deeper_1',text:DEPTH.bitLines.goDeeper,mood:'skeptical'});
+    updateHUD();
   }
-  if(dres==='extract-started'||dres==='extract-canceled')renderDepthHud();
+  if(dres==='zone-extracted'||dres==='zone3-complete')recordChoice(runLog,d.zone,'extract',ms);
 }
-bindHUDTap($('#depth-extract'),onDepthExtract);
-bindHUDTap($('#depth-go-deeper'),onDepthGoDeeper);
-const depthPushSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.[DEPTH.bitLines.pushId];}catch{return false;}})();
-let depthPushShownThisSession=false,depthForcePushPrompt=false;
-function depthPushAlreadySeen(){return !depthForcePushPrompt&&(depthPushShownThisSession||depthPushSeenAtLaunch);}
-function showDepthPushPrompt(show){
-  const el=$('#depth-push');if(!el)return;
-  el.hidden=!show;
-}
-function onDepthPushConfirm(){
-  if(!round?.depth||round.over||!canPushDeeper(round))return;
-  const res=pushDeeper(round,gameClock());if(!res)return;
-  recordDoorPassed(runLog,res.zoneLeft,'push',gameClock()-raidStartClock);
-  showDepthPushPrompt(false);
-  if(!depthPushShownThisSession){
-    depthPushShownThisSession=true;
-    (round.bitSeen??=[]).push(DEPTH.bitLines.pushId);
-    globalThis.PRBitCard?.show({id:DEPTH.bitLines.pushId,text:DEPTH.bitLines.push,mood:'skeptical'});
-  }
-  updateHUD();
-}
-function updateDepthPushPrompt(){
-  if(!round?.depth||round.over||round.pauseAt!=null||round.depth.phase==='choice'){showDepthPushPrompt(false);return;}
-  const door=nearDepthDoor(round,position,RULES.encounters.door.reach);
-  const show=!!door&&canPushDeeper(round);
-  showDepthPushPrompt(show);
-  if(show&&depthPushAlreadySeen()&&nearDepthDoor(round,position,0.95))onDepthPushConfirm();
-}
-bindHUDTap($('#depth-push-confirm'),onDepthPushConfirm);
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
 function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=ref.progress??0,done=door?ref.open:ref.searched,busy=!done&&p>0;
@@ -1456,7 +1406,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;hideDepthChoice();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);initDepthRound(round,DEPTH_MODE,Date.now());depthHudRevealed=true;
   raidStartClock=Date.now();runShotsFired=0;runShotsHit=0;runLootValue=0;
   runLog=createRunLog({v:CORE_VERSION,raidId:round.seed,seed:round.seed,mode:round.depth?'depth':'node',ftue:!!launch.ftue,area:AREA_SEL,
     device:buildDeviceInfo({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,coarsePointer:(navigator.maxTouchPoints??0)>0,userAgent:navigator.userAgent})});
@@ -1503,7 +1453,7 @@ function finishRound(outcome=round.reason){
       recordDeath(runLog,cause,zone,ms);
     }
     if(round.reason==='timeout')recordTimeout(runLog,ms);
-    if(['extract','complete'].includes(round.reason))recordExtract(runLog,zone,true,ms);
+    if(['extract','complete'].includes(round.reason))recordExtract(runLog,zone,round.depth?round.depth.extractCleared:true,ms);
     const runOutcome=round.reason==='death'?'died':round.reason==='timeout'?'timeout':round.reason==='abandon'?'abandoned':'extracted';
     finishRunLog(runLog,{outcome:runOutcome,durationMs:ms,zonesReached:round.depth?.zone??round.levelsCleared,enemiesKilled:round.enemiesDefeated,
       shotsFired:runShotsFired,shotsHit:runShotsHit,damageTaken:round.telemetry.damageTaken,lootValue:runLootValue});
@@ -1689,6 +1639,10 @@ function renderStakesHUD(clock){
   // heals (applied while rendering is paused), whose timestamp almost never equals the next rendered frame.
   if(bitAlong&&round.healBudgetLow&&!round.healBudgetLow.shown){round.healBudgetLow.shown=true;notice('BIT: healing budget is running low this raid.');}
   if(bitAlong&&round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
+  if(round.depth&&world.exitLabel){
+    const p=round.depth.extracting?Math.min(1,(clock-round.depth.extracting.startedAt)/DEPTH.extractCountdownMs):0;
+    if(p>0)world.exitLabel.caption.textContent=`EXTRACTING ${Math.round(p*100)}%`;
+  }
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();renderDepthExtractGuide();
 }
 // v2.22.4 hot-path DOM helpers: write (and build the string) only when the number changed.
@@ -1703,7 +1657,7 @@ function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=st
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,#depth-choice,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
+const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,#depth-hud,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -1870,14 +1824,14 @@ const LABEL_SHOW_HOLD_MS=1200;
 const audioSettings=createAudioSettings({document,audio,
   canOpen:()=>!!round&&!round.over&&round.pauseAt==null&&!resultPending&&!tutorialOpen&&$('#inventory').hidden,
   onPause:()=>{clearInput();cancelToolDrag();hideSwap();pausePick(round,Date.now());},
-  onResume:()=>{if(round.depth?.phase==='choice')pausePick(round,Date.now());else resumePick(round,Date.now());clearInput();}
+  onResume:()=>{resumePick(round,Date.now());clearInput();}
 });
 createQualityUI({document,container:$('#raid-settings .audio-menu-body'),quality:QUALITY,onChange:setGraphicsQuality});
 createVibrationUI({document,container:$('#raid-settings .audio-menu-body'),haptics});
 $('#resume').addEventListener('click',()=>audioSettings.close());
 window.__NR={...window.__NR,openSettings:audioSettings.open,closeSettings:audioSettings.close};
 for(const type of ['pointerdown','pointerup','pointercancel','click','keydown','keyup'])document.addEventListener(type,e=>{
-  const modal=inputPaused(round),owned=audioSettings.contains(e.target)||!!e.target.closest?.('#depth-choice,.bit-card');
+  const modal=inputPaused(round),owned=audioSettings.contains(e.target)||!!e.target.closest?.('.bit-card');
   const blocked=type.startsWith('pointer')?fireInputGate.handle(e,modal):modal;
   if(modal)clearInput();
   if(blocked&&!owned){e.preventDefault();e.stopImmediatePropagation();}
@@ -1984,8 +1938,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     round.shooter=position;const applied=detonateDrum(round,drum.id,gameClock(),solids);round.shooter=null;
     setCollisions();return {applied,health:round.health,id:drum.id};
   },
-  // Depth Raid (v2.28.58) screenshot/debug hooks: clear the current area to prompt the choice,
-  // then pick EXTRACT or GO DEEPER through the real state machine (nodspel/depth-raid.js).
+  // Depth Raid screenshot/debug hooks drive the walking state machine.
   depthState(){return round.depth?{...round.depth}:null;},
   depthDismissIntro(){globalThis.PRBitCard?.dismiss();depthHudRevealed=true;renderDepthHud();},
   depthClearArea(){
@@ -1996,14 +1949,8 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     onDepthStep(dres);
     updateHUD();return {event:dres,...round.depth};
   },
-  depthChooseExtract(){onDepthExtract();return round.depth;},
-  depthGoDeeper(){onDepthGoDeeper();return round.depth;},
-  depthPushDeeper(){onDepthPushConfirm();return {event:round.depth?.goDeeperUsed,...round.depth};},
-  depthForcePushPrompt(on=true){depthForcePushPrompt=!!on;updateDepthPushPrompt();return {forced:depthForcePushPrompt,prompt:!($('#depth-push')?.hidden)};},
   depthEnterNext(){
-    if(!round.depth||round.depth.phase!=='travel')return null;
-    const start=round.level.depthStarts?.[round.depth.zone]; // next area is zone+1 after goDeeper? phase travel keeps current zone
-    const dest=round.level.depthStarts?.[round.depth.zone]; // after goDeeper, zone is still the cleared one
+    if(!round.depth||round.level.doors.find(d=>d.depth&&d.depthAreaFrom===round.depth.zone)?.locked)return null;
     const next=round.level.depthStarts?.find(s=>s.depthArea===round.depth.zone+1);
     if(!next)return null;
     teleportPlayer(next.x,next.z);
@@ -2290,7 +2237,7 @@ function frameInner(now){
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();
-    if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
+    if(!round.depth&&stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     {const hs=stepHouse(round.level,position,clock,round.stats.searchMult);if(hs.loot.length)round.telemetry.searches=(round.telemetry.searches||0)+hs.loot.length;if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const combatBefore=combatSnapshot(round);
     const ftueHitBefore=round.ftueHitSerial;
@@ -2342,12 +2289,12 @@ function frameInner(now){
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
-    // Depth Raid (v2.28.58): area-clear opens the choice popup; extract uses the walk-in beam
-    // only after EXTRACT is chosen. enterExit / the mid-raid checkpoint never run here.
+    // Depth Raid: clear opens the door; walking holds extraction or enters the next wing.
+    // enterExit / the mid-raid checkpoint never run in this mode.
     if(round.depth){
       const dres=stepDepthRaid(round,clock,position);
       onDepthStep(dres);
-      updateDepthPushPrompt();
+      introduceDepthHack();
       if(round.over)finishRound();
     }else{
       const result=enterExit(round,position,clock);
@@ -2401,7 +2348,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
     v.label.meter.hidden=!hold;setAttr(v.label.meter,'aria-valuenow',Math.round((hold?.progress??0)*100));{const pct=(hold?.progress??0)*100;if(v.label.fillPct!==pct){v.label.fillPct=pct;v.label.fill.style.width=pct+'%';}}
-    setText(v.label.caption,nodeCaption(v.node,clock));
+    setText(v.label.caption,v.node.depthTerminal?(v.node.active?'TERMINAL · DOOR OPEN':'HACK · HOLD POSITION'):nodeCaption(v.node,clock));
   }
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
