@@ -17,10 +17,23 @@ SR = 22050
 SEED = 20261028
 LOOP_SECONDS = 24
 CROSSFADE_SECONDS = 2
+# v2.28.80: cues replaced by Lumina SFX renders (see assets/audio/LICENSES.md) ship from a
+# committed master instead of synthesis, so a future regen cannot silently overwrite them.
+MASTERS = ROOT / 'tools/audio/lumina-masters'
 
 
 def rng_for(name):
     return np.random.default_rng(SEED + int.from_bytes(hashlib.sha256(name.encode()).digest()[:4], 'little'))
+
+
+def load_master(name):
+    """PCM for a Lumina-rendered cue, straight from its committed tools/audio/lumina-masters/*.wav."""
+    path = MASTERS / f'{name}.wav'
+    with wave.open(str(path), 'rb') as w:
+        assert w.getframerate() == SR, f'{path} must be {SR} Hz'
+        assert w.getnchannels() == 1, f'{path} must be mono'
+        data = np.frombuffer(w.readframes(w.getnframes()), dtype='<i2').astype(np.float64) / 32768
+    return data
 
 
 def tone(duration, start, end, noise, rng):
@@ -133,6 +146,8 @@ def click(name, rng):
 
 
 def cue(name):
+    if (MASTERS / f'{name}.wav').exists():
+        return load_master(name)
     rng = rng_for(name)
     if name.startswith('shoot'):
         return gunshot(name, rng)
@@ -189,10 +204,11 @@ def main():
         encode(loop('pulse'),OUT/'music'/'pulse',tmp)
     for path in sorted((OUT/'bit').glob('*.ogg')):
         subprocess.run(['ffmpeg','-v','error','-y','-i',str(path),'-ac','1','-ar','22050','-c:a','aac','-b:a','32k','-movflags','+faststart',str(path.with_suffix('.m4a'))],check=True)
+    credits=json.loads((MASTERS/'credits.json').read_text()) if (MASTERS/'credits.json').exists() else {}
     lines=['# Shipping audio sources and licenses','',
-           'All synthesis is local and free. No downloaded samples or sound packs are used.',
-           'Original procedural SFX and music are dedicated to the public domain under CC0-1.0 by the project owner.',
-           'Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds.',
+           'Most synthesis is local and free; a handful of combat/UI cues below are Lumina SFX renders (free offline OSS, commercial-game-use license, no credit required -- see `tools/audio/lumina-masters/credits.json` for the exact recipe/recording per file). We ship only the rendered cues; the Lumina catalog/sources/recipes are not vendored or redistributed.',
+           'Everything else (original procedural SFX and music) is dedicated to the public domain under CC0-1.0 by the project owner.',
+           'Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds; Lumina-replaced cues ship from the committed master in `tools/audio/lumina-masters/` instead, so a regen cannot silently overwrite them.',
            'The existing F1 BIT recordings are preserved; AAC copies use ffmpeg locally.',
            'BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 18 BIT voice files (nine recordings in Ogg and AAC formats) are our own generated outputs. Copyright © 2026 Robert Wasser. All rights reserved; not licensed for reuse. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.',
            'Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.',
@@ -201,7 +217,18 @@ def main():
     paths=sorted(p for p in OUT.rglob('*') if p.suffix in ('.ogg','.m4a'))
     for path in paths:
         bit=path.parent.name=='bit'
-        lines.append(f'| `{path.relative_to(OUT)}` | '+('Local F1 Kokoro am_fenrir TTS; original project dialogue' if bit else 'Original seeded numpy procedural synthesis')+' | '+('All rights reserved © Robert Wasser' if bit else 'CC0-1.0')+' |')
+        lumina=credits.get(path.stem) if path.parent.name=='sfx' else None
+        if lumina:
+            recs=lumina['recordings']
+            if recs:
+                source=f"Lumina SFX render, recipe `{lumina['recipe']}`; "+'; '.join(f"\"{r['title']}\" by {r['author']}" for r in recs)
+                license_text='; '.join(sorted({r['license'] for r in recs}))
+            else:
+                source=f"Lumina SFX render, recipe `{lumina['recipe']}` (studio synthesis, no underlying recording)"
+                license_text='Lumina SFX sound license (commercial game use, no credit required)'
+            lines.append(f'| `{path.relative_to(OUT)}` | {source} | {license_text} |')
+        else:
+            lines.append(f'| `{path.relative_to(OUT)}` | '+('Local F1 Kokoro am_fenrir TTS; original project dialogue' if bit else 'Original seeded numpy procedural synthesis')+' | '+('All rights reserved © Robert Wasser' if bit else 'CC0-1.0')+' |')
     total=sum(p.stat().st_size for p in paths)
     lines.extend(['',f'Total shipping audio: {total:,} bytes, {len(paths)} files (both formats included).'])
     (OUT/'LICENSES.md').write_text('\n'.join(lines)+'\n')

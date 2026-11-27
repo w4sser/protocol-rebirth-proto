@@ -1,14 +1,12 @@
 # Shipping audio sources and licenses
 
-All synthesis is local and free. No downloaded samples or sound packs are used.
-Original procedural SFX and music are dedicated to the public domain under CC0-1.0 by the project owner.
-Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds.
+Most synthesis is local and free; a handful of combat/UI cues below are Lumina SFX renders (free offline OSS, commercial-game-use license, no credit required -- see `tools/audio/lumina-masters/credits.json` for the exact recipe/recording per file). We ship only the rendered cues; the Lumina catalog/sources/recipes are not vendored or redistributed.
+Everything else (original procedural SFX and music) is dedicated to the public domain under CC0-1.0 by the project owner.
+Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds; Lumina-replaced cues ship from the committed master in `tools/audio/lumina-masters/` instead, so a regen cannot silently overwrite them.
 The existing F1 BIT recordings are preserved; AAC copies use ffmpeg locally.
 BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 18 BIT voice files (nine recordings in Ogg and AAC formats) are our own generated outputs. Copyright © 2026 Robert Wasser. All rights reserved; not licensed for reuse. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.
 Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.
 CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper audition clips ship.
-
-Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bursts: a very short (<5ms) broadband crack driven hard into saturation, a low-end body thump (60-120 Hz) and a ~250-400ms room tail for powder weapons (louder as of v2.28.76, with a limiter in place of the old compressor so the extra gain never clips), or a valve click and compressed-air hiss for the air/pneumatic profile. Mortar/grenade blasts and fuel-drum detonations use a deep muffled boom (low-passed noise, sub thump, rumble tail) from the same runtime synth (`explosionBuffer`) and shipping `sfx/explosion.ogg` / `.m4a`. Shipping `sfx/shoot-*.ogg` and `.m4a` files use the same noise-burst family from `tools/audio/gen-sfx.py` (CC0-1.0) so a file fallback is never a sine-tone laser. UI button presses (`sfx/ui-tap`, `ui-back`, `ui-confirm`) are dry mechanical noise-burst clicks, not sine-tone chirps. Reload, empty and impact cues are unchanged.
 
 | File | Source | License/provenance |
 |---|---|---|
@@ -60,16 +58,16 @@ Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bu
 | `sfx/empty-shotgun.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/empty-smg.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/empty-smg.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/explosion.m4a` | Lumina SFX render, recipe `grenade-explosion`; "Firecracker Explosion" by unfa; "Concrete Breaks Several Denoised" by loganzsound | CC0-1.0 |
+| `sfx/explosion.ogg` | Lumina SFX render, recipe `grenade-explosion`; "Firecracker Explosion" by unfa; "Concrete Breaks Several Denoised" by loganzsound | CC0-1.0 |
 | `sfx/extract-countdown.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/extract-countdown.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/extract-success.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/extract-success.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/explosion.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/explosion.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hit-generator.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hit-generator.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/hit-grunt.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/hit-grunt.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/hit-grunt.m4a` | Lumina SFX render, recipe `dull-torso-hit-followed-by-cloth`; "Feet Landing On Ground" by elynch0901; "Foley_Clothes_Jacket_Whoosh_Sequence_Stereo.wav" by Nox_Sound; "Rustling foliage.WAV" by DDT197 | CC0-1.0 |
+| `sfx/hit-grunt.ogg` | Lumina SFX render, recipe `dull-torso-hit-followed-by-cloth`; "Feet Landing On Ground" by elynch0901; "Foley_Clothes_Jacket_Whoosh_Sequence_Stereo.wav" by Nox_Sound; "Rustling foliage.WAV" by DDT197 | CC0-1.0 |
 | `sfx/hit-rusher.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hit-rusher.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hit-tank.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
@@ -80,14 +78,16 @@ Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bu
 | `sfx/hit-turret.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hunter-wave.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/hunter-wave.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/impact-enemy.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/impact-enemy.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/impact-wall.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/impact-wall.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/impact-enemy.m4a` | Lumina SFX render, recipe `flesh-impact`; "Cabbage being chopped 2.wav" by MessyAcousticApocalypse666; "digging into mud.wav" by Stefan21100190 | CC0-1.0 |
+| `sfx/impact-enemy.ogg` | Lumina SFX render, recipe `flesh-impact`; "Cabbage being chopped 2.wav" by MessyAcousticApocalypse666; "digging into mud.wav" by Stefan21100190 | CC0-1.0 |
+| `sfx/impact-wall.m4a` | Lumina SFX render, recipe `metal-ricochet` (studio synthesis, no underlying recording) | Lumina SFX sound license (commercial game use, no credit required) |
+| `sfx/impact-wall.ogg` | Lumina SFX render, recipe `metal-ricochet` (studio synthesis, no underlying recording) | Lumina SFX sound license (commercial game use, no credit required) |
 | `sfx/kill.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/kill.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/medkit.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/medkit.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/mortar-launch.m4a` | Lumina SFX render, recipe `antique-powder-report`; "Cannon Fires, Take 3, Quarter Speed, Debris" by CHallSmith | CC0-1.0 |
+| `sfx/mortar-launch.ogg` | Lumina SFX render, recipe `antique-powder-report`; "Cannon Fires, Take 3, Quarter Speed, Debris" by CHallSmith | CC0-1.0 |
 | `sfx/perk-open.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/perk-open.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/perk-select.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
@@ -112,19 +112,19 @@ Gameplay gunfire is synthesized at runtime in `ui/audio.js` as filtered-noise bu
 | `sfx/reload-smg.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/shoot-air.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/shoot-air.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-carbine.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-carbine.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-rifle.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-rifle.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-shotgun.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-shotgun.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-smg.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/shoot-smg.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-back.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-back.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-confirm.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-confirm.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-tap.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
-| `sfx/ui-tap.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
+| `sfx/shoot-carbine.m4a` | Lumina SFX render, recipe `patrol-autocarbine-close-dry-report`; "Two close range shots.wav" by moosegravy; "Explosion in a can" by SamsterBirdies; "Bouncing Shell Casings (Various Sizes)" by GryffDavid | CC0-1.0 |
+| `sfx/shoot-carbine.ogg` | Lumina SFX render, recipe `patrol-autocarbine-close-dry-report`; "Two close range shots.wav" by moosegravy; "Explosion in a can" by SamsterBirdies; "Bouncing Shell Casings (Various Sizes)" by GryffDavid | CC0-1.0 |
+| `sfx/shoot-rifle.m4a` | Lumina SFX render, recipe `marksman-rifle-close-dry-report`; "Rifle Gun Shot AK47. close recording in a shooting range." by felix.blume; "Distant Gunfire" by iainmccurdy; "Tank Tread" by 77Pacer | CC0-1.0 |
+| `sfx/shoot-rifle.ogg` | Lumina SFX render, recipe `marksman-rifle-close-dry-report`; "Rifle Gun Shot AK47. close recording in a shooting range." by felix.blume; "Distant Gunfire" by iainmccurdy; "Tank Tread" by 77Pacer | CC0-1.0 |
+| `sfx/shoot-shotgun.m4a` | Lumina SFX render, recipe `pump-scattergun-close-dry-report`; "Firecracker Explosion" by unfa; "Rifle Gun Shot AK47. close recording in a shooting range." by felix.blume; "Tank Tread" by 77Pacer | CC0-1.0 |
+| `sfx/shoot-shotgun.ogg` | Lumina SFX render, recipe `pump-scattergun-close-dry-report`; "Firecracker Explosion" by unfa; "Rifle Gun Shot AK47. close recording in a shooting range." by felix.blume; "Tank Tread" by 77Pacer | CC0-1.0 |
+| `sfx/shoot-smg.m4a` | Lumina SFX render, recipe `security-submachine-gun-close-dry-report`; "Two close range shots.wav" by moosegravy; "Pump Action Shotgun Reload" by AugustSandberg; "Bouncing Shell Casings (Various Sizes)" by GryffDavid | CC0-1.0 |
+| `sfx/shoot-smg.ogg` | Lumina SFX render, recipe `security-submachine-gun-close-dry-report`; "Two close range shots.wav" by moosegravy; "Pump Action Shotgun Reload" by AugustSandberg; "Bouncing Shell Casings (Various Sizes)" by GryffDavid | CC0-1.0 |
+| `sfx/ui-back.m4a` | Lumina SFX render, recipe `settings-toggle-off-cork`; "Light Switch ON / OFF" by FillSoko | CC0-1.0 |
+| `sfx/ui-back.ogg` | Lumina SFX render, recipe `settings-toggle-off-cork`; "Light Switch ON / OFF" by FillSoko | CC0-1.0 |
+| `sfx/ui-confirm.m4a` | Lumina SFX render, recipe `settings-toggle-engage-brass`; "Light Switch On Off.flac" by qubodup | CC0-1.0 |
+| `sfx/ui-confirm.ogg` | Lumina SFX render, recipe `settings-toggle-engage-brass`; "Light Switch On Off.flac" by qubodup | CC0-1.0 |
+| `sfx/ui-tap.m4a` | Lumina SFX render, recipe `physical-light-switch`; "Light Switch On Off.flac" by qubodup | CC0-1.0 |
+| `sfx/ui-tap.ogg` | Lumina SFX render, recipe `physical-light-switch`; "Light Switch On Off.flac" by qubodup | CC0-1.0 |
 
-Total shipping audio: 724,250 bytes, 114 files (both formats included).
+Total shipping audio: 734,095 bytes, 116 files (both formats included).
