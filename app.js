@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.82"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.83"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -3674,7 +3674,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.82-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.83-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3688,7 +3688,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.82-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.83-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -3732,8 +3732,7 @@ function lobbyHtml(gear, miss, locked){
       '<button type="button" class="mission-btn pr-mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' +
         '<i aria-hidden="true">' + IC("mission") + '</i><span><small>MISSION · TAP TO PLAN</small><b>' + (depthRaidSelected() ? 'DEPTH RAID' : 'NODE RAID') + '</b></span></button>' +
       progressionGoalHtml(true) +
-      '<div class="pr-risk-card">' + gearRiskHtml(gear) + '</div>' +
-      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy"><b>DEPLOY</b></button>' +
+      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Raid"><b>RAID</b></button>' +
     '</div></div></div>';
 }
 function loadoutSlotsHtml(locked){
@@ -3757,16 +3756,6 @@ function operatorRowHtml(gear){
     chip(IC("stat-bag"), "Bag slots", raidBagCapacity(gear)) + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
     '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
-}
-function gearRiskHtml(gear){
-  const kit = nodeRaidKit();
-  if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill(PROG.kitItem));
-  const tool = nodeRaidTool();
-  if(tool) gear = (gear || []).concat([tool.id]);
-  // Tiles carry the amber dot; this line is the legend (full list stays available to screen readers).
-  return gear && gear.length
-    ? '<div class="riskbar" role="status"><span class="rdot" aria-hidden="true"></span> lost if you die<span class="sr-only"> · At risk: ' + gear.map(g => esc(ITEMS[g].name)).join(", ") + '</span></div>'
-    : '<div class="riskbar safe" role="status">' + IC("check") + ' No gear at risk</div>';
 }
 function prepTargetHtml(miss){
   if(!miss) return '';
@@ -6431,6 +6420,10 @@ function setupSplash(flightPending, returningFromRaid, ftueDirect){
     const force = /[?&]splash=1\b/.test((window.location && window.location.search) || ""), at = +sessionStorage.getItem("pr_splash_seen");
     shown = shown || (!force && at > 1e12 && Date.now() - at < 5 * 60 * 1000); sessionStorage.setItem("pr_splash_seen", String(Date.now()));
   }catch(e){}
+  // index.html's inline head script pre-hides #splash (via the pr-skip-splash class) off the mere
+  // presence of a pending raid result, before app.js even starts loading -- this is the authoritative
+  // call (it also knows about the 5-minute reload window), so hand off from that class now.
+  try{ document.documentElement.classList.remove("pr-skip-splash"); }catch(e){}
   if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return null; }
   const body = document.body;
   body.classList.add("splash-active");

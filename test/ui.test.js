@@ -215,8 +215,8 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 A.go("prep");
 assert(!text().includes("Insurance") && !text().includes('need 1× Optical Sensor'), "insurance removed from prep; completed BIT target is not stale");
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
-assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
-assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
+assert(doc.querySelector("#app .operator-stats .ostats"), "compact operator row");
+assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one raid button");
 /* v2.0.0 */
 assert(!doc.querySelector('#tabs .nav-prep') && !doc.querySelector('#tabs .nav-gap'), "deploy screen has no redundant RAID tab or gap");
 A.pickSlot("armor");
@@ -224,9 +224,9 @@ assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker")
 A.chooseSlot("armor", "");
 assert(!doc.getElementById("overlay"), "choosing closes the picker");
 assert(doc.querySelector('.lslot[data-slot="armor"]').textContent.match(/Empty|None/), "armor slot emptied");
-assert(/Medkit/.test(doc.querySelector(".riskbar").textContent), "medkit in a consumable slot is at risk");
+assert(doc.querySelector('.lslot[data-slot="c1"] .rdot'), "medkit in a consumable slot is at risk (amber dot)");
 A.prepLoadout("c1", ""); A.prepLoadout("c2", "");
-assert(doc.querySelector(".riskbar.safe"), "no gear at risk once armor and medkits are removed");
+assert(!doc.querySelector(".lslot .rdot"), "no gear at risk once armor and medkits are removed");
 assert(text().includes("RAID PLANNING UNLOCKED") && text().includes("FIELD CRAFTING"), "Fabricator reward is visible on prep");
 A.prepSet("routeId","control");
 assert(doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "unlocked raid planning shows its map");
@@ -296,7 +296,7 @@ assert.equal(((afterCraft.stash.medkit || 0) + ((afterCraft.armory || {}).medkit
   press(doc.querySelector('#overlay .qraid'));
   assert.equal(doc.getElementById('app').className, 's-prep', 'quest RAID opens deploy/loadout');
   assert(!doc.querySelector('#overlay') && !doc.querySelector('#tabs .nav-prep'), 'quest log closes and redundant RAID stays absent');
-  assert.equal(doc.querySelectorAll('.node-raid-launch').length, 1, 'one DEPLOY CTA remains after quest RAID');
+  assert.equal(doc.querySelectorAll('.node-raid-launch').length, 1, 'one RAID CTA remains after quest RAID');
   assert.equal(launches, 0, 'RAID entry points never launch directly');
   assert.equal(JSON.stringify(st.armory), gearBefore, 'opening deploy does not consume gear');
   delete window.PR_NAVIGATE;

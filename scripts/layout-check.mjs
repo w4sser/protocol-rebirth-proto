@@ -704,6 +704,82 @@ async function baseAfterRaidRun([w,h]){
   await page.close();
 }
 
+// Robert (phone, landscape, v2.28.81): the lighthouse splash flashed for one frame between rounds
+// because #splash is visible-by-default in CSS and only setupSplash() (which can run late, after
+// several blocking <script src> loads) ever hides it. index.html's inline head script now pre-hides
+// it via CSS off the same pending-raid-result signal, before any of those loads -- sample from
+// document start (evaluateOnNewDocument, which runs before ANY page script) so a regression that
+// drops that pre-paint hide is caught even though the window it would show in is a few milliseconds.
+async function splashReturnFromRaidRun([w,h]){
+  const tag=`splash-return ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html',{waitUntil:'load'});
+  const pending=JSON.stringify({schema:'protocol-rebirth/raid-result',version:1,raidId:'layout-splash-'+w+'x'+h,seed:'s',area:'bunker',outcome:'extract',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:1,extracted:[],lost:[],endedAt:1});
+  await page.evaluateOnNewDocument(pending=>{
+    localStorage.setItem('pr_raid_result_v1',pending);
+    window.__splashFlashed=false;
+    const check=()=>{
+      const el=document.getElementById('splash');
+      if(el){
+        const cs=getComputedStyle(el);
+        if(cs.display!=='none'&&cs.visibility!=='hidden'&&+cs.opacity>0){
+          const r=el.getBoundingClientRect();
+          if(r.width>0&&r.height>0)window.__splashFlashed=true;
+        }
+      }
+      requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+    // document itself (unlike document.documentElement) always exists this early -- observing it
+    // with subtree:true still catches <html>/<body>/#splash being inserted or restyled.
+    new MutationObserver(check).observe(document,{childList:true,subtree:true,attributes:true});
+  },pending);
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>window.A,{timeout:20000}).catch(()=>fail(tag,'app never booted'));
+  await settle(1500);
+  const flashed=await page.evaluate(()=>window.__splashFlashed);
+  if(flashed)fail(tag,'the lighthouse splash was visible for at least one frame when returning from a raid');
+  const consumed=await page.evaluate(()=>localStorage.getItem('pr_raid_result_v1')===null);
+  if(!consumed)fail(tag,'pending raid result was never consumed (test fixture is invalid)');
+  await page.close();
+}
+
+// Robert: the "lost if you die" risk card (pr-risk-card) is gone from Raid Preparation entirely --
+// both the at-risk and "No gear at risk" variants. The amber dot already on each loadout tile stays
+// as the only at-risk indicator. Checks the right column (destination/mission/goal/launch) still
+// lays out well with the card gone, at all three phone-landscape sizes.
+async function prepNoRiskCardRun([w,h]){
+  const tag=`prep-no-risk-card ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html?preview=deploy',{waitUntil:'load'});
+  await loaderGone(page);
+  await page.waitForSelector('.lobby.pr-cinematic',{timeout:15000}).catch(()=>fail(tag,'Raid Preparation never rendered'));
+  await settle(300);
+  const m=await page.evaluate(()=>{
+    const right=document.querySelector('.lobby-side.right'),btn=document.querySelector('.node-raid-launch');
+    const r=right?right.getBoundingClientRect():null,b=btn?btn.getBoundingClientRect():null;
+    const hit=b&&document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
+    return {
+      hasRiskCard:!!document.querySelector('.pr-risk-card,.riskbar'),
+      hasAmberDot:!!document.querySelector('.lslot .rdot'),
+      btnText:btn&&btn.textContent.trim(),
+      btnAria:btn&&btn.getAttribute('aria-label'),
+      rightFits:!!r&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1&&r.left>=-1&&r.top>=-1,
+      btnOk:!!b&&b.width>=44&&b.height>=44,
+      btnReachable:!!hit&&(btn.contains(hit)||hit.contains(btn)),
+    };
+  });
+  if(m.hasRiskCard)fail(tag,'pr-risk-card/.riskbar is still rendered on Raid Preparation');
+  if(!m.hasAmberDot)fail(tag,'the per-tile amber "at risk" dot is missing (demo loadout should have equipped gear)');
+  if(m.btnText!=='RAID')fail(tag,`launch button reads ${JSON.stringify(m.btnText)}, expected RAID`);
+  if(m.btnAria!=='Raid')fail(tag,`launch button aria-label is ${JSON.stringify(m.btnAria)}, expected "Raid"`);
+  if(!m.rightFits)fail(tag,'the right column (destination/mission/goal/launch) no longer fits the viewport once the risk card was removed');
+  if(!m.btnOk)fail(tag,'launch button touch target below 44px');
+  if(!m.btnReachable)fail(tag,'launch button is covered and cannot be tapped');
+  await shot(page,`prep-no-risk-card-${w}x${h}`);
+  await page.close();
+}
+
 // Exercise the actual deploy URL, raid result writer, navigation and base boot
 // ingestion. Screenshots must show the v2.1.0 summary, not the standalone card.
 // Extraction still hands off to the base immediately (v2.28.13/v1.77.0 behaviour): the shared
@@ -889,8 +965,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.82');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.82');
+    const {createRound}=await import('./round.js?v=2.28.83');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.83');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -1135,6 +1211,8 @@ try{
     for(const vp of [...VIEWPORTS,[720,600],[800,600],[1024,768]])await baseChipRun(vp);
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
+    for(const vp of VIEWPORTS)await splashReturnFromRaidRun(vp);
+    for(const vp of VIEWPORTS)await prepNoRiskCardRun(vp);
   }
   if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);for(const vp of VIEWPORTS)await ftueHintsRun(vp);}
   if(layoutGroup==='pause-map')for(const vp of VIEWPORTS)await pauseMapRun(vp);
