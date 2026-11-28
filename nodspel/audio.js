@@ -33,7 +33,7 @@ export function audioEvent(name,detail={}){
     case 'hunter-wave':void audio.play(name);bitVoice('hunters-inbound');break;
     case 'extract-revealed':bitVoice('extraction-marked');break;
     case 'countdown':{const second=Math.ceil(detail.remainingMs/1000);if(second>0&&second<=config.extractCountdownSeconds&&second!==lastCountdown){lastCountdown=second;void audio.play('extract-countdown');}break;}
-    case 'result':audio.stop();void audio.play(detail.success?'extract-success':'death');if(!detail.success)bitVoice('signal-lost');break;
+    case 'result':audio.stop(config.resultFadeSeconds);void audio.play(detail.success?'extract-success':'death');if(!detail.success)bitVoice('signal-lost');break;
     default:void audio.play(name);
   }
 }

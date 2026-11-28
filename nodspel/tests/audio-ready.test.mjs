@@ -11,6 +11,7 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 class Param{value=0;cancelScheduledValues(){}setValueAtTime(){}linearRampToValueAtTime(){}setTargetAtTime(){}}
 class WebKitContext{
   state='suspended';sampleRate=44100;currentTime=0;destination={};pending=[];sources=[];gesture=false;resumedInGesture=false;
+  createDynamicsCompressor(){return {threshold:new Param(),knee:new Param(),ratio:new Param(),attack:new Param(),release:new Param(),connect(){}};}
   createGain(){return {gain:new Param(),connect(){},disconnect(){}};}
   createBuffer(c,n,rate){return {duration:n/rate,getChannelData:()=>new Float32Array(n)};}
   createBufferSource(){const s={playbackRate:{value:1},connect(){},disconnect(){},start(){s.started=true;},stop(){}};this.sources.push(s);return s;}
@@ -64,4 +65,52 @@ test('first raid joystick touchstart/pointerdown synchronously unlocks and retri
     ctx.pending.splice(0).forEach(p=>p.resolve({duration:1}));await tick();
     assert.ok(audio.decodedFiles.has('sfx/impact-wall'));
   }
+});
+
+test('first tutorial gesture recovers permanently stalled pre-gesture AAC decodes without refetching',async()=>{
+  const {audio,ctx,urls}=fixture();
+  const ready=prepareCombatAudio(audio);
+  await tick();
+  const initial=ctx.pending.splice(0),requests=urls.length;
+  assert.equal(initial.length,new Set(Object.values(config.sfx).map(c=>c.file)).size,'every raid SFX, including Start confirmation, begins decoding during loading');
+  assert.equal(ctx.state,'suspended');
+  // These initial promises never settle: the old retryDecodes skipped their cached requests.
+  const listeners={};
+  audio.installUnlock({addEventListener:(type,fn)=>{listeners[type]=fn;},document:{addEventListener(){}}});
+  ctx.gesture=true;listeners.pointerdown();ctx.gesture=false;
+  assert.equal(ctx.resumedInGesture,true);
+  assert.equal(ctx.pending.length,initial.length,'the FIRST gesture retries every pending decode');
+  ctx.pending.splice(0).forEach(p=>p.resolve({duration:1}));
+  assert.equal(await ready,true,'the original readiness promise joins those retries');
+  assert.equal(urls.length,requests,'retries use stored bytes');
+  for(const cue of Object.values(config.sfx))assert.ok(audio.decodedBuffers.has(cue.file),cue.file);
+  for(const name of ['shoot-carbine','pickup-common','impact-wall','ui-confirm'])assert.equal(await audio.play(name),true,name+' plays in room one');
+  // A stale rejection from the pre-gesture attempt must not evict the successful retry.
+  initial.forEach(p=>p.reject(Error('late suspended decode failure')));await tick();
+  assert.equal(audio.failedFiles.size,0);
+  assert.ok(audio.decodedBuffers.has('sfx/pickup-common'));
+});
+
+test('first-room SFX are decoded before the tutorial Start gesture on ordinary suspended contexts',async()=>{
+  const {audio,ctx}=fixture();const ready=prepareCombatAudio(audio);
+  await tick();ctx.pending.splice(0).forEach(p=>p.resolve({duration:1}));await ready;
+  assert.equal(ctx.state,'suspended');
+  const count=audio.decodedBuffers.size;
+  ctx.gesture=true;audio.unlockSync();ctx.gesture=false;
+  assert.equal(ctx.pending.length,0,'decoded samples are never decoded again on Start');
+  assert.equal(count,new Set(Object.values(config.sfx).map(c=>c.file)).size);
+  assert.equal(await audio.play('pickup-common'),true);
+});
+
+test('stalled decodes retry on the delayed WebKit running event without a second gesture',async()=>{
+  const {audio,ctx}=fixture();const ready=prepareCombatAudio(audio);await tick();
+  const stalled=ctx.pending.splice(0);assert.ok(stalled.length>0);
+  ctx.resume=()=>{ctx.resumedInGesture=ctx.gesture;return Promise.resolve();};
+  ctx.gesture=true;audio.unlockSync();ctx.gesture=false;
+  assert.equal(ctx.resumedInGesture,true);assert.equal(ctx.pending.length,0);
+  ctx.state='running';ctx.onstatechange();
+  assert.equal(ctx.pending.length,stalled.length);
+  ctx.pending.splice(0).forEach(p=>p.resolve({duration:1}));await ready;
+  assert.equal(audio.decodeRetries.size,0,'completed retries release retained byte closures');
+  assert.equal(await audio.play('pickup-common'),true);
 });

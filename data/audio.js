@@ -19,7 +19,7 @@
   root.DATA.audio={
     storageKey:'pr-audio-v1',
     defaults:{master:0.8,music:0.12,sfx:0.95,voice:0.9,muted:false,musicMuted:false,sfxMuted:false,voiceMuted:false},
-    raidReadyWaitMs:5000,raidSfxWaitMs:150,
+    raidReadyWaitMs:5000,raidSfxWaitMs:150,resultFadeSeconds:0.025,
     unlockWaitMs:1500,decodeWaitMs:2500,voiceDecodeWaitMs:6000, // iOS state-lag/decode-stall caps (PRB-158); see docs/design-audio-oct28.md
     duckDb:-6,duckAttack:0.04,duckRelease:0.25,
     pitchVariation:0.035,gainVariation:0.08,globalVoiceCooldownMs:12000,

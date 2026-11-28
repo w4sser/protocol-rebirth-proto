@@ -7,7 +7,7 @@
       this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.decodedBuffers=new Map();this.shotCache=new Map();this.explosionCache=null;this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
       this.pendingVoices=new Set();this.consumedVoices=new Set();this.requestedVoices=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
-      this.unlockPromise=null;this.stateWaiters=new Set();this.pendingDrain=null;this.suspendedByHidden=false;
+      this.unlockPromise=null;this.stateWaiters=new Set();this.decodeRetries=new Map();this.pendingDrain=null;this.suspendedByHidden=false;
       // Debug-overlay bookkeeping (PRB-159): cheap bookkeeping maintained unconditionally inside
       // load()/drop() below (just a few Map/array writes) so the hidden overlay has real numbers
       // the instant it opens; reading it costs nothing while the overlay stays closed.
@@ -73,7 +73,7 @@
       const becameRunning=running&&!this.unlocked;
       this.unlocked=running;if(running)this.wasUnlocked=true;
       for(const waiter of [...this.stateWaiters])waiter(running);
-      if(becameRunning)void this.drainPending();
+      if(becameRunning){for(const retry of [...this.decodeRetries.values()])retry();void this.drainPending();}
     }
     // Keep prior permission separate: WebKit clears unlocked during interruptions. iOS can also
     // leave context.state 'suspended'/'interrupted' for a while after resume() resolves -- once
@@ -253,17 +253,30 @@
           buffer=await response.arrayBuffer();
           this.buffers.set(key,buffer);
         }
-        const decode=this.context.decodeAudioData(buffer.slice(0));
+        // Keep the original load promise: readiness and first-cue callers must join the retry.
+        // Older WebKit can leave a pre-gesture AAC decode pending forever.
+        let retry;
+        const decode=new Promise((resolve,reject)=>{
+          let generation=0;
+          retry=()=>{
+            const attempt=++generation;
+            let request;try{request=this.context.decodeAudioData(buffer.slice(0));}catch(error){request=Promise.reject(error);}
+            Promise.resolve(request).then(resolve,error=>{if(attempt===generation)reject(error);});
+          };
+          if(this.context.state!=='running')this.decodeRetries.set(key,retry);
+          retry();
+        });
+        const cleanup=()=>{if(this.decodeRetries.get(key)===retry)this.decodeRetries.delete(key);};
         // PRB-159: some WebKit versions never settle decodeAudioData on Ogg Vorbis at all rather
         // than rejecting it -- an unresolved promise never reaches the catch below, so the
         // format never falls back to m4a and every later file keeps re-trying the same hang.
         // Cap only the ogg attempt (m4a is the known-good format once chosen) so a stall still
         // reaches the fallback instead of hanging forever.
-        if(extension!=='ogg')return decode;
+        if(extension!=='ogg')return decode.finally(cleanup);
         return Promise.race([decode,new Promise((_,reject)=>{
           const timer=(this.env.setTimeout||root.setTimeout||setTimeout)(()=>reject(new Error('ogg-decode-stalled')),this.config.decodeWaitMs??2500);
           if(timer&&typeof timer.unref==='function')timer.unref();
-        })]);
+        })]).finally(cleanup);
       };
       const format=this.format;
       try{return await tryExtension(format);}
@@ -303,9 +316,9 @@
       });
       return Promise.race([request,timeout]).finally(()=>clearTimeout(timer));
     }
-    // (Re)decode any file whose fetch already succeeded (bytes kept in `buffers`) but whose
-    // decode failed or never finished before the gesture -- never re-fetches, just retries the
-    // decode from the stored bytes.
+    // Retry failed decodes from stored bytes without fetching again. Pending pre-gesture
+    // decodes instead retry through decodeRetries when markUnlocked observes running,
+    // preserving the original load promise for readiness and first-cue callers.
     retryDecodes(){
       const files=new Set();
       for(const key of this.buffers.keys()){
@@ -518,7 +531,20 @@
       param.linearRampToValueAtTime(0,now+seconds);source.stop(now+seconds);
       return new Promise(resolve=>setTimeout(resolve,seconds*1000));
     }
-    stop(){this.epoch++;this.desiredMusic=false;this.retireFadingMusic();for(const slot of this.loops.keys())this.stopLoop(slot);this.voiceToken++;this.voiceBusy=false;this.duck(false);for(const source of [...this.active]){try{source.stop();}catch(_){}}}
+    stop(fade=0){
+      if(fade>0&&this.context){
+        this.epoch++;this.desiredMusic=false;
+        for(const slot of this.loops.keys())this.loopTokens.set(slot,(this.loopTokens.get(slot)||0)+1);
+        this.loops.clear();this.fadingMusic=null;this.voiceToken++;this.voiceBusy=false;this.duck(false);
+        const now=this.context.currentTime;
+        for(const source of [...this.active]){try{
+          const gain=source.prLevel.gain,value=gain.value;
+          if(gain.cancelAndHoldAtTime)gain.cancelAndHoldAtTime(now);else{gain.cancelScheduledValues(now);gain.setValueAtTime(value,now);}
+          gain.linearRampToValueAtTime(0,now+fade);source.stop(now+fade);
+        }catch(_){try{source.stop();}catch(_){}}}
+        return;
+      }
+      this.epoch++;this.desiredMusic=false;this.retireFadingMusic();for(const slot of this.loops.keys())this.stopLoop(slot);this.voiceToken++;this.voiceBusy=false;this.duck(false);for(const source of [...this.active]){try{source.stop();}catch(_){}}}
     settingsUI(container){
       if(!container)return;
       const group=document.createElement('fieldset');group.className='audio-settings';const legend=document.createElement('legend');legend.textContent='Audio';group.append(legend);

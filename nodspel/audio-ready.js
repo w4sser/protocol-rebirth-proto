@@ -2,7 +2,7 @@
 // Failed fetch/decode attempts retry even after the start cap. Pending loads stay cached.
 export function prepareCombatAudio(audio,{retryMs=250,schedule=setTimeout}={}){
   if(!audio.init())return Promise.resolve(false);
-  const files=[...new Set(Object.entries(audio.config.sfx).filter(([name])=>!name.startsWith('ui-')).map(([,cue])=>cue.file))];
+  const files=[...new Set(Object.values(audio.config.sfx).map(cue=>cue.file))];
   const load=async file=>{
     while(!audio.decodedFiles.has(file)){
       try{await audio.load(file);}catch(_){await new Promise(resolve=>schedule(resolve,retryMs));}
