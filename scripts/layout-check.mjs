@@ -179,7 +179,12 @@ const shot=async(page,name)=>{
 };
 const settle=ms=>new Promise(r=>setTimeout(r,ms));
 async function newPage(w,h){
-  const page=await browser.newPage();
+  // Isolated context so one raid scenario cannot leak localStorage (FTUE hint
+  // completion) or a dangling Chromium touch into the next.
+  const context=await browser.createBrowserContext();
+  const page=await context.newPage();
+  const close=page.close.bind(page);
+  page.close=async()=>{try{await close.call(page,{runBeforeUnload:false});}finally{await context.close().catch(()=>{});}};
   await page.setViewport({width:w,height:h,isMobile:true,hasTouch:true,deviceScaleFactor:1});
   page.on('pageerror',e=>{console.log('  pageerror',String(e).slice(0,160));fail('pageerror',String(e).slice(0,160));});
   return page;
@@ -1121,12 +1126,20 @@ async function raidDepthBitTopRightRun([w,h]){
 async function ftueHintsRun([w,h]){
   const tag=`raid ftue-hints ${w}x${h}`;console.log(tag);
   const page=await newPage(w,h);
+  // Shared Chromium profile: earlier raid-bunker scenarios (including the v2.28.84
+  // touch-drag shots under the BIT card) can persist pr_ftue_hints_v1=done. A replay
+  // waits 12 s of idle before the hint appears, longer than this check's 8 s wait.
+  await page.evaluateOnNewDocument(()=>{try{localStorage.removeItem('pr_ftue_hints_v1');}catch{}});
   await page.goto(`${BASE}/nodspel/?seed=ftue-hints&ftue=1&debug=1&q=high`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
   // The FTUE start card can move/hide while the loader fades; a DOM click is immune to the 'not clickable' race a pointer click hits.
   await loaderGone(page);await page.evaluate(()=>document.querySelector('#tutorial-start')?.click());
   await page.waitForFunction('window.__NR?.round?.()',{timeout:30000});
-  await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
+  await page.evaluate(()=>{
+    window.__NR.setRoomClearsEnabled(false);
+    const r=window.__NR.round();r.health=100000;
+    for(const e of r.level.enemies??[]){e.sleeping=true;e.aggro=false;}
+  });
   await page.waitForFunction("document.getElementById('ftue-hint-move')?.classList.contains('show')",{timeout:8000,polling:'raf'}).catch(()=>{});
   const rectOf=sel=>page.$eval(sel,el=>{if(el.hidden||!el.getClientRects().length)return null;const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};}).catch(()=>null);
   const ov=(a,b)=>!!a&&!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
@@ -1178,9 +1191,20 @@ async function ftueHintsRun([w,h]){
   // Firing (tapping the aim stick fires an auto-aim shot) must end the hints and the raid must stay unpaused.
   await unfreeze();
   const aimBox=await page.$eval('#aim-stick',el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
-  await page.touchscreen.tap(aimBox.x,aimBox.y);
-  await settle(500);
+  const shotsBefore=await page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
+  // Dispatch on the stick itself. A CDP touchscreen tap can no-op here if an earlier
+  // scenario in the same Chromium left a contact down (Input.dispatchTouchEvent is
+  // browser-global even when pages use isolated contexts).
+  await page.evaluate(({x,y})=>{
+    const el=document.getElementById('aim-stick');
+    for(const type of ['pointerdown','pointerup']){
+      el.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,composed:true,pointerId:7,pointerType:'touch',isPrimary:true,clientX:x,clientY:y,button:0,buttons:type==='pointerdown'?1:0}));
+    }
+  },aimBox);
+  await page.waitForFunction((before)=> (window.__NR.round().nextCombatShotId??0)>before && !document.getElementById('ftue-hint-aim').classList.contains('show'), {timeout:3000}, shotsBefore).catch(()=>{});
+  const shotsAfter=await page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
   const aimHidden=await page.$eval('#ftue-hint-aim',e=>!e.classList.contains('show'));
+  if(shotsAfter<=shotsBefore)fail(tag,`aim-stick tap did not fire a shot (nextCombatShotId ${shotsBefore} -> ${shotsAfter})`);
   if(!aimHidden)fail(tag,'#ftue-hint-aim is still showing after a shot was fired');
   const pausedAfterShot=await page.evaluate(()=>window.__NR.round().pauseAt);
   if(pausedAfterShot!=null)fail(tag,'round is paused after the hint-ending shot');

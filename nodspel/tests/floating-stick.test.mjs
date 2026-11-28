@@ -379,3 +379,15 @@ test('document pointerup fallback finishes recovered capture exactly once',()=>{
   s.fireEvent('pointerup',{clientX:160,clientY:100});
   assert.equal(s.shots(),1);
 });
+
+test('setPointerCapture throwing on pointerdown still leaves a live gesture that fires on release',()=>{
+  const s=buildStick();
+  s.el.setPointerCapture=()=>{throw new DOMException('No active pointer with the given id is found.','NotFoundError');};
+  s.setWall(0);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100,pointerType:'touch'});
+  assert.equal(s.shots(),0);
+  s.setWall(80);
+  s.fireEvent('pointerup',{clientX:140,clientY:110,pointerType:'touch'});
+  assert.equal(s.shots(),1,'a synthetic or already-released pointer must still fire on release');
+  s.el.setPointerCapture=()=>{};
+});
