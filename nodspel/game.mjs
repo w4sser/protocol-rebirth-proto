@@ -64,6 +64,8 @@ import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.79';
 import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.79';
 import {powerPadBitLine} from './pad-intro.js?v=2.28.79';
 import {fuelDrumBitLine} from './drum-intro.js?v=2.28.79';
+import {ftueHintsEligible,hintsPreviouslyDone,markHintsDone,createFtueHintState,tickFtueHints,noteFtueHintShot,noteFtueHintHit,ftueHintKeepShooting,ftueHintDone} from './ftue-hints.js?v=2.28.79';
+import {FTUE_HINT_MOVE_BIT_LINE,FTUE_HINT_AIM_BIT_LINE} from './hint-bit-lines.js?v=2.28.79';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.79';
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.79';
 import {applyEnvironmentLight,applyEnvironmentMap} from './environment-look.js?v=2.28.79';
@@ -135,6 +137,43 @@ if(earlyStart)completeTutorial(tutorialStorage);
 let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
 let gameReady=false,queuedStart=null,ftueShotMarked=false,ftueKillMarked=false,ftueMoveMarked=false;
+// Non-blocking FTUE move/shoot hints (PR 3, docs/ftue-design.md): active for the scripted FTUE raid
+// and, separately, a fresh profile's first ordinary raid -- never again once a profile has completed
+// one raid. hintState is created once (lazily, once the player's spawn position is known) and, like
+// ftueMoveMarked above, is never reset across an in-place FTUE retry -- only a fresh page load starts over.
+const ftueHintsActive=ftueHintsEligible(launch);
+let hintState=null,keepShootingNoticed=false,hintMoveIntroShown=false,hintAimIntroShown=false;
+function raidMs(){return gameClock()-raidStartClock;}
+// BIT is intentionally silent during the scripted FTUE raid (met in the bunker only after extraction,
+// see data/raid-ftue.js) -- only the plain on-screen captions run there. A fresh profile's first
+// ordinary raid already met BIT, so it gets one dry line per step through the shared card API.
+function maybeShowHintBitIntro(step){
+  if(launch.ftue)return;
+  if(step==='move'&&!hintMoveIntroShown){hintMoveIntroShown=true;window.PRBitCard?.show({id:'hint_move_intro',text:FTUE_HINT_MOVE_BIT_LINE,mood:'smile'});}
+  else if(step==='aim'&&!hintAimIntroShown){hintAimIntroShown=true;window.PRBitCard?.show({id:'hint_aim_intro',text:FTUE_HINT_AIM_BIT_LINE,mood:'smile'});}
+}
+function handleFtueHintEvent(ev){
+  const ms=raidMs();
+  if(ev.type==='shown'){recordEvent(runLog,'hint_shown',{step:ev.step},ms);maybeShowHintBitIntro(ev.step);}
+  else if(ev.type==='reshow')recordEvent(runLog,'hint_reshow',{step:ev.step},ms);
+  else if(ev.type==='done')recordEvent(runLog,'hint_done',{step:ev.step,ms:ev.ms},ms);
+  if(hintState&&ftueHintDone(hintState))markHintsDone(localStorage);
+}
+// Optional lighter nudge (task item 1): a plain non-blocking notice() toast, independent of the
+// ghost-thumb overlay above (which has already faded for good by the time a player has fired 3 shots).
+function maybeFtueKeepShootingNotice(){
+  if(hintState&&!keepShootingNoticed&&ftueHintKeepShooting(hintState)){keepShootingNoticed=true;notice('KEEP SHOOTING',2400);}
+}
+function renderFtueHints(){
+  const moveEl=$('#ftue-hint-move'),aimEl=$('#ftue-hint-aim'),deskEl=$('#ftue-hint-desktop');
+  const moveOn=!!hintState&&hintState.step==='move'&&hintState.visible,aimOn=!!hintState&&hintState.step==='aim'&&hintState.visible;
+  moveEl?.classList.toggle('show',moveOn);aimEl?.classList.toggle('show',aimOn);
+  if(deskEl){
+    deskEl.classList.toggle('show',moveOn||aimOn);
+    if(moveOn)deskEl.textContent='WASD / arrows to move';
+    else if(aimOn)deskEl.textContent='Hold mouse or Space to aim, release to fire';
+  }
+}
 // Block gameplay during calibration, including keyboard input and joystick holds. The shared
 // window capture listener runs first, so these same touches still unlock WebKit synchronously.
 for(const type of ['pointerdown','touchstart','keydown'])window.addEventListener(type,event=>{
@@ -1298,6 +1337,9 @@ function loadLevelInner(){
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   playerMoving=false;position=safeSpawn(round.level);aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
   player.position.set(position.x,0,position.z);
+  // Lazy, one-time-ever (per page load) so an in-place FTUE retry keeps whatever progress the state
+  // machine already made -- same convention as ftueMoveMarked/ftueShotMarked above.
+  if(ftueHintsActive&&!hintState)hintState=createFtueHintState({startX:position.x,startZ:position.z,replay:hintsPreviouslyDone(localStorage),startMs:raidMs()});
   // Debug-only: unlock the exit and stand the player next to it so a screenshot shows the lit active
   // extraction point (TASK 1). Gated on both params plus a small level; never runs in normal play.
   if(DEBUG&&new URLSearchParams(location.search).get('exitdemo')==='1'&&!round.level.big){
@@ -1518,6 +1560,11 @@ function fire(tap=false){
   const clock=gameClock();round.shooter=position;const direction=tap?{x:Math.sin(player.rotation.y),z:Math.cos(player.rotation.y)}:aim;const shot=fireAimedWeapon(weapon,round,position,direction,clock,playerSolids,playerMoving,tap);round.shooter=null;
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   noteShotFired(clock-raidStartClock);noteActivity(runLog,clock-raidStartClock);
+  if(hintState){
+    for(const ev of noteFtueHintShot(hintState,clock-raidStartClock))handleFtueHintEvent(ev);
+    maybeFtueKeepShootingNotice();
+    renderFtueHints();
+  }
   // Lock the actual projectile heading, not the last walking heading.
   // This is visual-only and never changes the shot that was already fired.
   op01Facing?.record(shot.dx,shot.dz);
@@ -2209,6 +2256,11 @@ function frameInner(now){
       if(launch.ftue&&!ftueMoveMarked){ftueMoveMarked=true;fadeStickLabel(ftueMoveLabel);}}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
     if(round.telemetry.distanceM>.5)recordFirst(runLog,'first_move',clock-raidStartClock);
+    if(hintState){
+      const hintActivity=magnitude>.12||!!sticks[1].state.gesture;
+      for(const ev of tickFtueHints(hintState,{x:position.x,z:position.z,active:hintActivity,clockMs:raidMs()}))handleFtueHintEvent(ev);
+      renderFtueHints();
+    }
     playerMoving=playerDisplaced(positionBefore,position);
     const beforeDash=copyXZ(hotPosDash,position);
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
@@ -2283,6 +2335,7 @@ function frameInner(now){
       const shake=isKill?RULES.feedback.cameraShake.kill:RULES.feedback.cameraShake.hit;addShake(shake.distance,shake.ms,now);
       if(isKill){hapticPulse(RULES.feedback.hapticKillMs);spawnKillMarker(feel.x,feel.z);world.burst(feel.x,feel.z,RULES.enemyTypes[feel.type]?.color??PALETTE.warm,true);}
       noteHitFeel(feel.kind,clock-raidStartClock);
+      if(hintState)noteFtueHintHit(hintState);
     }
     if(round.hitFeels?.length)round.hitFeels=[]; // hot-ok: only on frames with hits; consumers may hold the old array
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
