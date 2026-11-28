@@ -889,8 +889,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.79');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.79');
+    const {createRound}=await import('./round.js?v=2.28.81');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.81');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -1006,6 +1006,66 @@ async function raidDepthBitTopRightRun([w,h]){
   await page.close();
 }
 
+// PR 3 (non-blocking FTUE move/shoot hints, docs/ftue-design.md): the ghost-thumb hint over each
+// stick must never intersect the sticks' own touch zones or other buttons, must stay pointer-events:
+// none, and the raid must never pause while a hint is showing -- the whole point is that it is a
+// nudge, not a blocking tutorial gate.
+async function ftueHintsRun([w,h]){
+  const tag=`raid ftue-hints ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=ftue-hints&ftue=1&debug=1&q=high`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');
+  await page.waitForFunction('window.__NR',{timeout:30000});
+  await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
+  await page.waitForFunction("document.getElementById('ftue-hint-move')?.classList.contains('show')",{timeout:8000,polling:'raf'}).catch(()=>{});
+  const rectOf=sel=>page.$eval(sel,el=>{if(el.hidden||!el.getClientRects().length)return null;const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};}).catch(()=>null);
+  const ov=(a,b)=>!!a&&!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
+  const otherRects=async()=>({move:await rectOf('#move-stick'),aim:await rectOf('#aim-stick'),dash:await rectOf('#dash'),tool:await rectOf('#tool-btn'),distract:await rectOf('#bit-distract'),bag:await rectOf('.bag-panel'),ammo:await rectOf('#ammo-hud'),health:await rectOf('#player-health')});
+  const checkHint=async(sel,ctx,ownStickKey)=>{
+    const visible=await page.$eval(sel,e=>e.classList.contains('show')).catch(()=>false);
+    if(!visible)return fail(ctx,`${sel} is not visible when it should be`);
+    const pe=await page.$eval(sel,e=>getComputedStyle(e).pointerEvents);
+    if(pe!=='none')fail(ctx,`${sel} has pointer-events:${pe}, must be none`);
+    const r=await rectOf(sel);
+    if(!r)return fail(ctx,`${sel} has no client rect while visible`);
+    if(r.l<INSETS.left-1||r.r>w-INSETS.right+1||r.t<INSETS.top-1||r.b>h-INSETS.bottom+1)
+      fail(ctx,`${sel} rect ${JSON.stringify(r)} is outside the safe area (${w}x${h})`);
+    const others=await otherRects();
+    for(const [k,rr] of Object.entries(others)){if(k===ownStickKey)continue;if(ov(r,rr))fail(ctx,`${sel} overlaps ${k}`);}
+    const cap=await rectOf(sel+' .ftue-hint-caption');
+    if(cap){
+      if(cap.l<INSETS.left-1||cap.r>w-INSETS.right+1||cap.t<INSETS.top-1||cap.b>h-INSETS.bottom+1)fail(ctx,`${sel} caption ${JSON.stringify(cap)} is outside the safe area (${w}x${h})`);
+      for(const [k,rr] of Object.entries(others))if(ov(cap,rr)&&k!==ownStickKey)fail(ctx,`${sel} caption overlaps ${k}`);
+      const own=others[ownStickKey];if(own&&ov(cap,own))fail(ctx,`${sel} caption sits on its own stick ring (must be above it)`);
+      const ammo=await rectOf('#ammo-hud');if(ammo&&ov(cap,ammo))fail(ctx,`${sel} caption overlaps the ammo bars`);
+      const lab=await rectOf(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label');
+      if(lab&&await page.$eval(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label',e=>getComputedStyle(e).visibility!=='hidden'))fail(ctx,`${sel} shows while the permanent stick label is still visible (two texts)`);
+    }
+    const paused=await page.evaluate(()=>window.__NR.round().pauseAt);
+    if(paused!=null)fail(ctx,`round is paused (pauseAt=${paused}) while ${sel} is showing -- hints must never block the raid`);
+  };
+  await checkHint('#ftue-hint-move',`${tag} move`,'move');
+  await shot(page,`ftue-hints-move-${w}x${h}`);
+  // Cross the 3 m displacement threshold and let one real frame pick it up (teleport is a plain
+  // position set, the same path real movement takes through the per-frame hint tick).
+  await page.evaluate(()=>{const s=window.__NR.state();window.__NR.teleport(s.level.start.x,s.level.start.z+4);});
+  await settle(500);
+  const moveHidden=await page.$eval('#ftue-hint-move',e=>!e.classList.contains('show'));
+  if(!moveHidden)fail(tag,'#ftue-hint-move is still showing after the move step completed');
+  await checkHint('#ftue-hint-aim',`${tag} aim`,'aim');
+  await shot(page,`ftue-hints-aim-${w}x${h}`);
+  // Firing (tapping the aim stick fires an auto-aim shot) must end the hints and the raid must stay unpaused.
+  const aimBox=await page.$eval('#aim-stick',el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
+  await page.touchscreen.tap(aimBox.x,aimBox.y);
+  await settle(500);
+  const aimHidden=await page.$eval('#ftue-hint-aim',e=>!e.classList.contains('show'));
+  if(!aimHidden)fail(tag,'#ftue-hint-aim is still showing after a shot was fired');
+  const pausedAfterShot=await page.evaluate(()=>window.__NR.round().pauseAt);
+  if(pausedAfterShot!=null)fail(tag,'round is paused after the hint-ending shot');
+  await page.close();
+}
+
 const layoutGroup=process.env.LAYOUT_GROUP||'all';
 if(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
 const group=name=>layoutGroup==='all'||layoutGroup===name;
@@ -1063,7 +1123,7 @@ try{
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
   }
-  if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);}
+  if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);for(const vp of VIEWPORTS)await ftueHintsRun(vp);}
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
 // Debug-unlock sandbox smoke (both modes x every world, normal save untouched) rides on the

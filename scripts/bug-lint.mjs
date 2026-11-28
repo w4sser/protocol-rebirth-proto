@@ -731,6 +731,21 @@ export const RULES=[
        if(!settingsBlock.includes(`id="${id}"`))out.push(`nodspel/index.html: #${id} must live inside #raid-settings (the pause panel)`);
      }
      return out;}},
+  {id:'ftue-hints-non-blocking',pr:'PR 3 (non-blocking FTUE move/shoot hints)',why:'the FTUE move/shoot hints exist specifically because they must never pause the raid clock or block input -- a regression that wires pausePick/resumePick into the hint path, or drops pointer-events:none from its CSS, would turn a non-blocking nudge back into a blocking tutorial gate.',
+   check(c={}){const hints=c.hintsSrc??read('nodspel/ftue-hints.js'),css=c.styleSrc??read('nodspel/style.css');const out=[];
+     if(/pausePick\(|resumePick\(|\.pauseAt\s*=/.test(hints))out.push('nodspel/ftue-hints.js must stay pure and never pause/resume the raid clock');
+     const hint=css.match(/\.ftue-hint\{([^}]*)\}/);
+     if(!hint)out.push('nodspel/style.css: .ftue-hint rule is missing');
+     else if(!/pointer-events\s*:\s*none/.test(hint[1]))out.push('nodspel/style.css: .ftue-hint must set pointer-events:none so it never intercepts the stick it overlays');
+     const desktop=css.match(/\.ftue-hint-desktop\{([^}]*)\}/);
+     if(!desktop)out.push('nodspel/style.css: .ftue-hint-desktop rule is missing');
+     else if(!/pointer-events\s*:\s*none/.test(desktop[1]))out.push('nodspel/style.css: .ftue-hint-desktop must set pointer-events:none');
+     return out;}},
+  {id:'ftue-hints-ftue-only',pr:'PR 3 (non-blocking FTUE move/shoot hints)',why:'hints must only ever run during the scripted FTUE raid or a fresh profile\'s first ordinary raid -- a regression that drops the ftueHintsEligible() gate (or creates hintState unconditionally) would start nagging players again in every later raid.',
+   check(c={}){const game=c.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!/const ftueHintsActive=ftueHintsEligible\(launch\);/.test(game))out.push('nodspel/game.mjs must gate hints on const ftueHintsActive=ftueHintsEligible(launch)');
+     if(!/if\(ftueHintsActive&&!hintState\)hintState=createFtueHintState\(/.test(game))out.push('nodspel/game.mjs must only ever create hintState when ftueHintsActive is true');
+     return out;}},
 ];
 
 

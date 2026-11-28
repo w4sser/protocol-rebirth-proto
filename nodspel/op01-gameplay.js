@@ -10,7 +10,7 @@
  * and the hand-mounted weapon stays aligned while LODs switch.
  */
 import * as THREE from './vendor/three.module.js';
-import {pbrEnvironment} from './environment-look.js?v=2.28.79';
+import {pbrEnvironment} from './environment-look.js?v=2.28.81';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 
 export const OP01_GAME_PATHS=Object.freeze([
