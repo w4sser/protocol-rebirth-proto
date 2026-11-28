@@ -76,6 +76,9 @@ are unaffected -- they come from separate counters, not from counting events).
 | `timeout` | - | the area clock (Depth) or raid clock (Node) runs out |
 | `loot_collected` | `item`, `rarity`, `value` | an item is added to the bag (not gear/weapon offers, which are a separate choice, not an automatic pickup) |
 | `pause_open` | - | the settings/pause menu opens (an actual pause of the raid clock) |
+| `hint_shown` | `step` | the non-blocking FTUE move/shoot hint (`move` or `aim`) first fades in over its stick (docs/ftue-design.md "PR 3") |
+| `hint_done` | `step`, `ms` | that hint's step completed (`move`: >= 3 m real displacement; `aim`: first shot fired); `ms` is how long that step took, not the raid-wide timestamp (that's `t`) |
+| `hint_reshow` | `step` | the hint faded back in after 8 s of idle, up to 3 times per raid |
 
 ### Totals, and the questions they answer
 

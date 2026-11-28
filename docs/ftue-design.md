@@ -103,3 +103,34 @@ Quest introduction and Power Trace begin on the next base return after the Vault
 Reload recovery also covers the interval between the first extraction and waking BIT: the ingested loot funds the same direct Core build even though the in-memory result summary is gone. Incomplete Core, Fabricator and Vault scenes and base briefings resume without a second payment.
 
 Saves created before the one-path flag retain the previous flow when their original `raid_1` beat is complete, the Fabricator exists, or quest progress/introduction is recorded. Only fresh profiles and older saves still inside that original introduction adopt the new path.
+
+## PR 3: non-blocking move/shoot help (v2.28.81)
+
+Players unfamiliar with twin-stick controls used to get a static "Ready to raid?" card and nothing
+else once the raid actually started. A small pure state machine (`nodspel/ftue-hints.js`, steps
+`move` -> `aim` -> `done`) now drives a ghost-thumb glyph + short caption that fades in over the
+relevant stick instead: "DRAG TO MOVE" over the move stick until the player has moved >= 3 m from
+the start (real displacement, not stick wiggle), then "TAP TO FIRE. DRAG TO AIM" over the aim zone
+until the first shot is fired. If there is no relevant input for 8 s (game clock, pause excluded)
+the current step's hint fades back in, up to 3 times per raid, then it stops nagging. Everything is
+`pointer-events:none`, inside the safe area, and never overlaps another control at 844x390, 667x375
+or 932x430 -- the raid never pauses and input is never blocked (bug-lint `ftue-hints-non-blocking`).
+Desktop (pointer not coarse) gets a plain keyboard-hint line instead of the ghost+stick overlay,
+since the touch sticks themselves are hidden there. An optional lighter nudge, "KEEP SHOOTING", is a
+plain `notice()` toast shown once if 3 shots land with zero hits.
+
+Hints only ever run during the scripted FTUE raid or a fresh profile's first ordinary raid
+(`ftueHintsEligible()`; never once a profile has completed a raid -- bug-lint `ftue-hints-ftue-only`).
+Completion persists in the plain localStorage key `pr_ftue_hints_v1` (no `SAVE_VERSION` bump, same
+convention as `nodspel.tutorial.seen`/`pr_ftue_v1`): a replayed FTUE after the first success only
+shows a hint again after 12 s of real idle, instead of immediately.
+
+BIT stays silent during the scripted FTUE raid -- it is only met in the bunker after extraction (see
+the comment in `data/raid-ftue.js`), so the FTUE raid uses the plain captions above only, nothing
+through the BIT card. A fresh profile's first *ordinary* raid has already met BIT, so that cohort
+alone gets one dry line per step through the existing top-right BIT card
+(`nodspel/hint-bit-lines.js`): "Left thumb walks. Right thumb shoots. It is less complicated than it
+sounds." on the move hint, "Tap to auto-aim. Drag if you have opinions." on the aim hint.
+
+The run log (`docs/run-log.md`) gains three events: `hint_shown {step}`, `hint_done {step, ms}` and
+`hint_reshow {step}`.
