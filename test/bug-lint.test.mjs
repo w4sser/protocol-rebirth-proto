@@ -537,8 +537,8 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({gameSrc:''}).length,1,'a missing setupStick fires (one combined guard since nothing can be extracted)');
  const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
  assert.equal(rule.check({gameSrc:game.replace(
-   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);\n  }",
-   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);\n    if(onShot&&!inputPaused(round))onShot(true);\n  }"
+   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;try{el.setPointerCapture(e.pointerId);}catch{}el.classList.add('active');update(e);\n  }",
+   "    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;try{el.setPointerCapture(e.pointerId);}catch{}el.classList.add('active');update(e);\n    if(onShot&&!inputPaused(round))onShot(true);\n  }"
  )}).length,1,'restoring the v2.28.66 instant pointerdown fire fires');
  assert.equal(rule.check({gameSrc:game.replace(
    "if(direction==='tap')onShot(true);\n      else if(direction){aim=screenToWorld(direction.x,direction.y);onShot(false);}",
