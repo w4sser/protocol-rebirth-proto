@@ -711,6 +711,26 @@ export const RULES=[
    check(ctx={}){const src=ctx.runLogSrc??read('nodspel/run-log.js');const out=[];
      if(/\bfetch\s*\(|\bXMLHttpRequest\b|\bsendBeacon\s*\(|\bWebSocket\b/.test(src))out.push('nodspel/run-log.js must not contain fetch(/XMLHttpRequest/sendBeacon(/WebSocket -- run log storage is localStorage-only, no network');
      return out;}},
+  {id:'bit-card-raid-top-right',pr:'PR 2 (HUD diet + BIT top-right, v2.28.79)',why:'the raid BIT card used to sit centered at left:50% near the top, over the play area; owner feedback moved raid dialogue to the top-right, clear of #raid-settings-open (the pause button, top:12px, 44px tall) and the sticks/buttons -- a regression back to a centered or too-low rule would re-obscure the player.',
+   check(ctx={}){const css=ctx.cardCssSrc??read('ui/bit-card.css');const out=[];
+     const m=css.match(/\.bit-card\.ctx-raid\{([^}]*)\}/);
+     if(!m){out.push('ui/bit-card.css: .bit-card.ctx-raid rule is missing');return out;}
+     const body=m[1];
+     if(/left\s*:\s*50%/.test(body))out.push('.bit-card.ctx-raid must not use left:50% -- it must sit top-right, not centered');
+     if(!/right\s*:\s*calc\(12px \+ var\(--sr\)\)/.test(body))out.push('.bit-card.ctx-raid must anchor to the right safe edge (right:calc(12px + var(--sr)))');
+     if(!/top\s*:\s*calc\(64px \+ var\(--st\)\)/.test(body))out.push('.bit-card.ctx-raid must sit at top:calc(64px + var(--st)) -- high enough to clear #raid-settings-open but still top-right, not a lower/centered offset');
+     return out;}},
+  {id:'raid-hud-no-seed-chip',pr:'PR 2 (HUD diet, v2.28.79)',why:'the seed debug label, room-progress pips and quest reminder chip moved out of the permanent raid HUD into the pause panel (#raid-settings) so the raid screen has far fewer permanent elements -- a regression that re-adds #seed-label/#room-pips/#quest-chip outside the pause panel would put floating chips back over the play area.',
+   check(ctx={}){const html=ctx.htmlSrc??read('nodspel/index.html');const out=[];
+     const settingsStart=html.indexOf('id="raid-settings"');
+     if(settingsStart<0){out.push('nodspel/index.html: #raid-settings panel is missing');return out;}
+     const after=html.slice(settingsStart),endRel=after.indexOf('</section>'),end=endRel<0?after.length:endRel;
+     const settingsBlock=after.slice(0,end),rest=html.slice(0,settingsStart)+after.slice(end);
+     for(const id of ['seed-label','room-pips','quest-chip']){
+       if(rest.includes(`id="${id}"`))out.push(`nodspel/index.html: #${id} must only appear inside #raid-settings (the pause panel), not in the permanent raid HUD`);
+       if(!settingsBlock.includes(`id="${id}"`))out.push(`nodspel/index.html: #${id} must live inside #raid-settings (the pause panel)`);
+     }
+     return out;}},
 ];
 
 

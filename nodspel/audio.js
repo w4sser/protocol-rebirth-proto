@@ -1,7 +1,7 @@
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.78';
-import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.78';
-import '../data/audio.js?v=2.28.78';
-import '../ui/audio.js?v=2.28.78';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.79';
+import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.79';
+import '../data/audio.js?v=2.28.79';
+import '../ui/audio.js?v=2.28.79';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
