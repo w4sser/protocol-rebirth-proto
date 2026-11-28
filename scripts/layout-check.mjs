@@ -996,10 +996,10 @@ async function raidDepthBitTopRightRun([w,h]){
     if(!(m.rect.l>=m.vw*.5&&m.rect.t<=m.vh*.5))
       fail(tag,`BIT card is not in the top-right quadrant (${JSON.stringify(m.rect)} in ${m.vw}x${m.vh})`);
     for(const [name,r] of [['move stick',m.move],['aim stick',m.aim],['DASH button',m.dash],['tool button',m.tool],['BIT distract button',m.distract],['health bar',m.health],['shield bar',m.shield],['ammo HUD',m.ammo],['pause button',m.pause]])
-      if(ov(m.rect,r))fail(tag,`BIT card overlaps the ${name}`);
+      if(ov(m.rect,r))fail(tag,`BIT card overlaps the ${name} (card ${JSON.stringify(m.rect)}, ${name} ${JSON.stringify(r)})`);
     // the central 40% width x 60% height region around the player is off-limits
     const cw=m.vw*.4,ch=m.vh*.6,central={l:m.sp.x-cw/2,t:m.sp.y-ch/2,r:m.sp.x+cw/2,b:m.sp.y+ch/2};
-    if(ov(m.rect,central))fail(tag,'BIT card overlaps the central play area around the player');
+    if(ov(m.rect,central))fail(tag,`BIT card overlaps the central play area around the player (card ${JSON.stringify(m.rect)}, player ${JSON.stringify(m.sp)})`);
     for(const e of m.enemies){const er={l:e.x-20,t:e.y-20,r:e.x+20,b:e.y+20};if(ov(m.rect,er))fail(tag,'BIT card overlaps an enemy on screen');}
   }
   await shot(page,`raid-depth-bit-top-right-${w}x${h}`);
@@ -1015,40 +1015,52 @@ async function ftueHintsRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=ftue-hints&ftue=1&debug=1&q=high`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await loaderGone(page);await page.click('#tutorial-start');
-  await page.waitForFunction('window.__NR',{timeout:30000});
+  // The FTUE start card can move/hide while the loader fades; a DOM click is immune to the 'not clickable' race a pointer click hits.
+  await loaderGone(page);await page.evaluate(()=>document.querySelector('#tutorial-start')?.click());
+  await page.waitForFunction('window.__NR?.round?.()',{timeout:30000});
   await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
   await page.waitForFunction("document.getElementById('ftue-hint-move')?.classList.contains('show')",{timeout:8000,polling:'raf'}).catch(()=>{});
   const rectOf=sel=>page.$eval(sel,el=>{if(el.hidden||!el.getClientRects().length)return null;const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};}).catch(()=>null);
   const ov=(a,b)=>!!a&&!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
-  const otherRects=async()=>({move:await rectOf('#move-stick'),aim:await rectOf('#aim-stick'),dash:await rectOf('#dash'),tool:await rectOf('#tool-btn'),distract:await rectOf('#bit-distract'),bag:await rectOf('.bag-panel'),ammo:await rectOf('#ammo-hud'),health:await rectOf('#player-health')});
+  // One atomic in-page snapshot: the hint lives only a couple of game-clock seconds, so every rect/state is read in the same
+  // task, and the wall clock (the game clock derives from it) is frozen at that moment so the screenshot below still sees the hint.
+  const snapshot=(sel,ownStickKey)=>page.evaluate((sel,ownStickKey)=>{
+    const el=document.querySelector(sel);
+    if(!el||!el.classList.contains('show'))return {visible:false};
+    if(!window.__realNow){window.__realNow=Date.now;const t=Date.now();Date.now=()=>t;}
+    const rect=e=>{if(!e||e.hidden||!e.getClientRects().length)return null;const r=e.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};};
+    const q=s=>document.querySelector(s);
+    const others={move:rect(q('#move-stick')),aim:rect(q('#aim-stick')),dash:rect(q('#dash')),tool:rect(q('#tool-btn')),distract:rect(q('#bit-distract')),bag:rect(q('.bag-panel')),ammo:rect(q('#ammo-hud')),health:rect(q('#player-health'))};
+    const labSel=sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label';
+    const lab=q(labSel);
+    return {visible:true,pe:getComputedStyle(el).pointerEvents,rect:rect(el),cap:rect(el.querySelector('.ftue-hint-caption')),others,
+      labelShown:!!lab&&!lab.hidden&&lab.getClientRects().length>0&&getComputedStyle(lab).visibility!=='hidden',paused:window.__NR.round().pauseAt};
+  },sel,ownStickKey);
+  const unfreeze=()=>page.evaluate(()=>{if(window.__realNow){Date.now=window.__realNow;delete window.__realNow;}});
   const checkHint=async(sel,ctx,ownStickKey)=>{
-    const visible=await page.$eval(sel,e=>e.classList.contains('show')).catch(()=>false);
-    if(!visible)return fail(ctx,`${sel} is not visible when it should be`);
-    const pe=await page.$eval(sel,e=>getComputedStyle(e).pointerEvents);
-    if(pe!=='none')fail(ctx,`${sel} has pointer-events:${pe}, must be none`);
-    const r=await rectOf(sel);
+    const s=await snapshot(sel,ownStickKey);
+    if(!s.visible)return fail(ctx,`${sel} is not visible when it should be`);
+    if(s.pe!=='none')fail(ctx,`${sel} has pointer-events:${s.pe}, must be none`);
+    const r=s.rect;
     if(!r)return fail(ctx,`${sel} has no client rect while visible`);
-    if(r.l<INSETS.left-1||r.r>w-INSETS.right+1||r.t<INSETS.top-1||r.b>h-INSETS.bottom+1)
-      fail(ctx,`${sel} rect ${JSON.stringify(r)} is outside the safe area (${w}x${h})`);
-    const others=await otherRects();
-    for(const [k,rr] of Object.entries(others)){if(k===ownStickKey)continue;if(ov(r,rr))fail(ctx,`${sel} overlaps ${k}`);}
-    const cap=await rectOf(sel+' .ftue-hint-caption');
+    const outside=b=>b.l<INSETS.left-1||b.r>w-INSETS.right+1||b.t<INSETS.top-1||b.b>h-INSETS.bottom+1;
+    if(outside(r))fail(ctx,`${sel} rect ${JSON.stringify(r)} is outside the safe area (${w}x${h})`);
+    for(const [k,rr] of Object.entries(s.others)){if(k===ownStickKey)continue;if(ov(r,rr))fail(ctx,`${sel} overlaps ${k}`);}
+    const cap=s.cap;
     if(cap){
-      if(cap.l<INSETS.left-1||cap.r>w-INSETS.right+1||cap.t<INSETS.top-1||cap.b>h-INSETS.bottom+1)fail(ctx,`${sel} caption ${JSON.stringify(cap)} is outside the safe area (${w}x${h})`);
-      for(const [k,rr] of Object.entries(others))if(ov(cap,rr)&&k!==ownStickKey)fail(ctx,`${sel} caption overlaps ${k}`);
-      const own=others[ownStickKey];if(own&&ov(cap,own))fail(ctx,`${sel} caption sits on its own stick ring (must be above it)`);
-      const ammo=await rectOf('#ammo-hud');if(ammo&&ov(cap,ammo))fail(ctx,`${sel} caption overlaps the ammo bars`);
-      const lab=await rectOf(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label');
-      if(lab&&await page.$eval(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label',e=>getComputedStyle(e).visibility!=='hidden'))fail(ctx,`${sel} shows while the permanent stick label is still visible (two texts)`);
+      if(outside(cap))fail(ctx,`${sel} caption ${JSON.stringify(cap)} is outside the safe area (${w}x${h})`);
+      for(const [k,rr] of Object.entries(s.others))if(ov(cap,rr)&&k!==ownStickKey)fail(ctx,`${sel} caption overlaps ${k}`);
+      const own=s.others[ownStickKey];if(own&&ov(cap,own))fail(ctx,`${sel} caption sits on its own stick ring (must be above it)`);
+      if(s.others.ammo&&ov(cap,s.others.ammo))fail(ctx,`${sel} caption overlaps the ammo bars`);
     }
-    const paused=await page.evaluate(()=>window.__NR.round().pauseAt);
-    if(paused!=null)fail(ctx,`round is paused (pauseAt=${paused}) while ${sel} is showing -- hints must never block the raid`);
+    if(s.labelShown)fail(ctx,`${sel} shows while the permanent stick label is still visible (two texts)`);
+    if(s.paused!=null)fail(ctx,`round is paused (pauseAt=${s.paused}) while ${sel} is showing -- hints must never block the raid`);
   };
   await checkHint('#ftue-hint-move',`${tag} move`,'move');
   await shot(page,`ftue-hints-move-${w}x${h}`);
   // Cross the 3 m displacement threshold and let one real frame pick it up (teleport is a plain
   // position set, the same path real movement takes through the per-frame hint tick).
+  await unfreeze();
   await page.evaluate(()=>{const s=window.__NR.state();window.__NR.teleport(s.level.start.x,s.level.start.z+4);});
   await settle(500);
   const moveHidden=await page.$eval('#ftue-hint-move',e=>!e.classList.contains('show'));
@@ -1056,6 +1068,7 @@ async function ftueHintsRun([w,h]){
   await checkHint('#ftue-hint-aim',`${tag} aim`,'aim');
   await shot(page,`ftue-hints-aim-${w}x${h}`);
   // Firing (tapping the aim stick fires an auto-aim shot) must end the hints and the raid must stay unpaused.
+  await unfreeze();
   const aimBox=await page.$eval('#aim-stick',el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
   await page.touchscreen.tap(aimBox.x,aimBox.y);
   await settle(500);
@@ -1067,7 +1080,7 @@ async function ftueHintsRun([w,h]){
 }
 
 const layoutGroup=process.env.LAYOUT_GROUP||'all';
-if(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
+if(!['all','popups','base','raid-bunker','raid-town','ftue-hints','bit-top-right','pause-map'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
 const group=name=>layoutGroup==='all'||layoutGroup===name;
 try{
   if(group('popups')){
@@ -1124,6 +1137,9 @@ try{
     for(const vp of VIEWPORTS)await baseRun(vp);
   }
   if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);for(const vp of VIEWPORTS)await ftueHintsRun(vp);}
+  if(layoutGroup==='pause-map')for(const vp of VIEWPORTS)await pauseMapRun(vp);
+  if(layoutGroup==='bit-top-right')for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);
+  if(layoutGroup==='ftue-hints')for(const vp of VIEWPORTS)await ftueHintsRun(vp);
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
 // Debug-unlock sandbox smoke (both modes x every world, normal save untouched) rides on the

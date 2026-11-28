@@ -7,10 +7,11 @@
    (top:12px, 44px tall) and the centered depth/round timer chip, never over the aim/move
    sticks, DASH/BIT/tool buttons or the central play area. */
 .bit-card.ctx-raid{left:auto;right:calc(12px + var(--sr));top:calc(64px + var(--st));bottom:auto;transform:none;
-  max-width:min(240px,34vw);flex-direction:column;align-items:flex-end;gap:4px;}
+  max-width:min(240px,calc(31vw - 12px - var(--sr)));flex-direction:column;align-items:flex-end;gap:4px;}
 .bit-card.ctx-raid .bit-card-img{width:40px;height:40px;}
 .bit-card.ctx-raid .bit-card-copy{align-items:flex-end;width:100%;}
 .bit-card.ctx-raid .bit-card-bubble{font-size:10px;line-height:1.25;width:100%;}
+body.raid-paused .bit-card.ctx-raid{visibility:hidden;pointer-events:none;}
 .bit-card.ctx-raid .bit-card-info-row{max-width:100%;}
 .bit-card-img{--tilt:0deg;width:60px;height:60px;flex:0 0 auto;object-fit:contain;
   transform:rotate(var(--tilt)) translateY(0);animation:bitCardHover 3.4s ease-in-out infinite;}

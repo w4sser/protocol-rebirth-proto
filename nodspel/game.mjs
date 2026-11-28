@@ -142,6 +142,7 @@ let gameReady=false,queuedStart=null,ftueShotMarked=false,ftueKillMarked=false,f
 // one raid. hintState is created once (lazily, once the player's spawn position is known) and, like
 // ftueMoveMarked above, is never reset across an in-place FTUE retry -- only a fresh page load starts over.
 const ftueHintsActive=ftueHintsEligible(launch);
+const hintTickIn={x:0,z:0,active:false,clockMs:0};
 let hintState=null,keepShootingNoticed=false,hintMoveIntroShown=false,hintAimIntroShown=false;
 function raidMs(){return gameClock()-raidStartClock;}
 // BIT is intentionally silent during the scripted FTUE raid (met in the bunker only after extraction,
@@ -2260,7 +2261,8 @@ function frameInner(now){
     if(round.telemetry.distanceM>.5)recordFirst(runLog,'first_move',clock-raidStartClock);
     if(hintState){
       const hintActivity=magnitude>.12||!!sticks[1].state.gesture;
-      for(const ev of tickFtueHints(hintState,{x:position.x,z:position.z,active:hintActivity,clockMs:raidMs()}))handleFtueHintEvent(ev);
+      hintTickIn.x=position.x;hintTickIn.z=position.z;hintTickIn.active=hintActivity;hintTickIn.clockMs=raidMs();
+      for(const ev of tickFtueHints(hintState,hintTickIn))handleFtueHintEvent(ev);
       renderFtueHints();
     }
     playerMoving=playerDisplaced(positionBefore,position);
