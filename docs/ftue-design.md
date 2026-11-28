@@ -110,7 +110,7 @@ Players unfamiliar with twin-stick controls used to get a static "Ready to raid?
 else once the raid actually started. A small pure state machine (`nodspel/ftue-hints.js`, steps
 `move` -> `aim` -> `done`) now drives a ghost-thumb glyph + short caption that fades in over the
 relevant stick instead: "DRAG TO MOVE" over the move stick until the player has moved >= 3 m from
-the start (real displacement, not stick wiggle), then "TAP TO FIRE. DRAG TO AIM" over the aim zone
+the start (real displacement, not stick wiggle), then "TAP OR DRAG TO FIRE" (a tap fires one auto-aim shot on release, a drag aims and fires on release; the caption sits above the ring, clear of the ammo bars, and the permanent stick label is hidden while a hint shows) over the aim zone
 until the first shot is fired. If there is no relevant input for 8 s (game clock, pause excluded)
 the current step's hint fades back in, up to 3 times per raid, then it stops nagging. Everything is
 `pointer-events:none`, inside the safe area, and never overlaps another control at 844x390, 667x375

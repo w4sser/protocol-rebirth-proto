@@ -1033,6 +1033,15 @@ async function ftueHintsRun([w,h]){
       fail(ctx,`${sel} rect ${JSON.stringify(r)} is outside the safe area (${w}x${h})`);
     const others=await otherRects();
     for(const [k,rr] of Object.entries(others)){if(k===ownStickKey)continue;if(ov(r,rr))fail(ctx,`${sel} overlaps ${k}`);}
+    const cap=await rectOf(sel+' .ftue-hint-caption');
+    if(cap){
+      if(cap.l<INSETS.left-1||cap.r>w-INSETS.right+1||cap.t<INSETS.top-1||cap.b>h-INSETS.bottom+1)fail(ctx,`${sel} caption ${JSON.stringify(cap)} is outside the safe area (${w}x${h})`);
+      for(const [k,rr] of Object.entries(others))if(ov(cap,rr)&&k!==ownStickKey)fail(ctx,`${sel} caption overlaps ${k}`);
+      const own=others[ownStickKey];if(own&&ov(cap,own))fail(ctx,`${sel} caption sits on its own stick ring (must be above it)`);
+      const ammo=await rectOf('#ammo-hud');if(ammo&&ov(cap,ammo))fail(ctx,`${sel} caption overlaps the ammo bars`);
+      const lab=await rectOf(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label');
+      if(lab&&await page.$eval(sel.includes('aim')?'.aim-wrap .stick-label':'.stick-wrap:not(.aim-wrap) .stick-label',e=>getComputedStyle(e).visibility!=='hidden'))fail(ctx,`${sel} shows while the permanent stick label is still visible (two texts)`);
+    }
     const paused=await page.evaluate(()=>window.__NR.round().pauseAt);
     if(paused!=null)fail(ctx,`round is paused (pauseAt=${paused}) while ${sel} is showing -- hints must never block the raid`);
   };

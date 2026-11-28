@@ -168,6 +168,8 @@ function renderFtueHints(){
   const moveEl=$('#ftue-hint-move'),aimEl=$('#ftue-hint-aim'),deskEl=$('#ftue-hint-desktop');
   const moveOn=!!hintState&&hintState.step==='move'&&hintState.visible,aimOn=!!hintState&&hintState.step==='aim'&&hintState.visible;
   moveEl?.classList.toggle('show',moveOn);aimEl?.classList.toggle('show',aimOn);
+  // One text at a time: the permanent MOVE / AIM label under the stick hides while its hint caption is up.
+  moveEl?.closest('.stick-wrap')?.classList.toggle('hint-on',moveOn);aimEl?.closest('.stick-wrap')?.classList.toggle('hint-on',aimOn);
   if(deskEl){
     deskEl.classList.toggle('show',moveOn||aimOn);
     if(moveOn)deskEl.textContent='WASD / arrows to move';
