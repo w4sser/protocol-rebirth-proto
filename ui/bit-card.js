@@ -101,6 +101,8 @@
     var raid = isRaidPage();
     el.querySelector(".bit-card-img").src = bust(job.mood);
     el.className = "bit-card mood-" + job.mood + (raid ? " ctx-raid" : "");
+    el.tabIndex = raid ? -1 : 0;
+    el.setAttribute("aria-label", raid ? "BIT" : "BIT, tap to continue");
     el.querySelector(".bit-card-bubble").textContent = job.text;
     // PRB-162 playtest (Robert, 2026-11-16): the cost/next-step info used to be flattened into
     // the bubble's prose, duplicating whatever the beat's own line already said. It now renders

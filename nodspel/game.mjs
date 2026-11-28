@@ -609,7 +609,7 @@ if(bitDistractAvailable){
 function setupStick(selector,value,onShot){
   const el=$(selector),base=el.querySelector('.stick-base'),thumb=el.querySelector('.thumb');
   const state={pointer:null,gesture:null,origin:null,touchdown:null,downAt:0,dragged:false};
-  sticks.push({el,state,value,thumb,base});el.style.setProperty('--stick-radius',`${RULES.aimControls.stickRadiusPx}px`);
+  sticks.push({el,state,value,thumb,base,onShot,cancel:()=>release({pointerId:state.pointer,type:'pointercancel'})});el.style.setProperty('--stick-radius',`${RULES.aimControls.stickRadiusPx}px`);
   const RADIUS=RULES.aimControls.stickRadiusPx;
   function update(e){
     const offset=stickOffset(state.touchdown,e.clientX,e.clientY);
@@ -640,7 +640,7 @@ function setupStick(selector,value,onShot){
     const covered=[...document.querySelectorAll('.bag-panel,#dash,#bit-distract,#tool-btn,#use-kit,#raid-settings-open')].some(n=>{const b=n.getBoundingClientRect(),gap=n.id==='dash'||n.id==='bit-distract'?12:0;return !n.hidden&&e.clientX>=b.left-gap&&e.clientX<=b.right+gap&&e.clientY>=b.top-gap&&e.clientY<=b.bottom+gap;});
     if(!covered)start(e);
   });
-  el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
+  el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();if(!inputPaused(round))update(e);}});
   function release(e){
     if(e.pointerId!==state.pointer)return;
     const cancelled=e.type!=='pointerup';
@@ -809,7 +809,18 @@ renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType
 window.addEventListener('keydown',e=>{if(inputPaused(round))return;if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='KeyC'&&!e.repeat){e.preventDefault();requestBitDistract();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
 window.addEventListener('keyup',e=>{if(inputPaused(round))return;if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
-function clearInput(){pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;for(const {el,state,value,thumb,base} of sticks){const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');}}
+// A real pause stops movement but retains an already-held aim finger until release.
+// Reset, blur, inventory and visibility changes still cancel everything.
+function clearInput(preserveAim=false){
+  pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;
+  for(const {el,state,value,thumb,base,onShot} of sticks){
+    value.x=value.y=0;
+    if(preserveAim===true&&onShot&&state.pointer!==null)continue;
+    const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;
+    if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);
+    thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');
+  }
+}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,gameClock());if(round.over)finishRound();}});
 
@@ -1871,8 +1882,8 @@ function renderLabels(){
 const LABEL_SHOW_HOLD_MS=1200;
 const audioSettings=createAudioSettings({document,audio,
   canOpen:()=>!!round&&!round.over&&round.pauseAt==null&&!resultPending&&!tutorialOpen&&$('#inventory').hidden,
-  onPause:()=>{clearInput();cancelToolDrag();hideSwap();pausePick(round,Date.now());},
-  onResume:()=>{resumePick(round,Date.now());clearInput();}
+  onPause:()=>{clearInput(true);cancelToolDrag();hideSwap();pausePick(round,Date.now());},
+  onResume:()=>{resumePick(round,Date.now());clearInput(true);}
 });
 createQualityUI({document,container:$('#raid-settings .audio-menu-body'),quality:QUALITY,onChange:setGraphicsQuality});
 createVibrationUI({document,container:$('#raid-settings .audio-menu-body'),haptics});
@@ -1881,7 +1892,10 @@ window.__NR={...window.__NR,openSettings:audioSettings.open,closeSettings:audioS
 for(const type of ['pointerdown','pointerup','pointercancel','click','keydown','keyup'])document.addEventListener(type,e=>{
   const modal=inputPaused(round),owned=audioSettings.contains(e.target)||!!e.target.closest?.('.bit-card');
   const blocked=type.startsWith('pointer')?fireInputGate.handle(e,modal):modal;
-  if(modal)clearInput();
+  if(modal)clearInput(true);
+  // A release during the pause cancels only its own gesture; never replay it on resume.
+  if(blocked&&(type==='pointerup'||type==='pointercancel'))
+    for(const stick of sticks)if(stick.state.pointer===e.pointerId)stick.cancel();
   if(blocked&&!owned){e.preventDefault();e.stopImmediatePropagation();}
 },true);
 const labelState=new Map();

@@ -1050,7 +1050,10 @@ async function raidDepthBitTopRightRun([w,h]){
   });
   for(const [k,v] of Object.entries(removed))if(v)fail(tag,`#${k} is visible in the permanent raid HUD -- it must only show inside the pause panel`);
   // (b) force a BIT line and check the card's rect
-  await page.evaluate(()=>{window.PRBitCard?.show?.({id:'layout-check-bit-top-right',text:'Area ahead. Stay sharp.'});});
+  await page.evaluate(()=>{
+    while(window.PRBitCard.isOpen())window.PRBitCard.dismiss();
+    window.PRBitCard.show({id:'layout-check-bit-top-right',text:'Area ahead. Stay sharp.',duration:60000});
+  });
   await settle(200);
   const m=await page.evaluate(()=>{
     const el=document.querySelector('.bit-card.ctx-raid');
@@ -1077,6 +1080,35 @@ async function raidDepthBitTopRightRun([w,h]){
     const cw=m.vw*.4,ch=m.vh*.6,central={l:m.sp.x-cw/2,t:m.sp.y-ch/2,r:m.sp.x+cw/2,b:m.sp.y+ch/2};
     if(ov(m.rect,central))fail(tag,`BIT card overlaps the central play area around the player (card ${JSON.stringify(m.rect)}, player ${JSON.stringify(m.sp)})`);
     for(const e of m.enemies){const er={l:e.x-20,t:e.y-20,r:e.x+20,b:e.y+20};if(ov(m.rect,er))fail(tag,'BIT card overlaps an enemy on screen');}
+  }
+  // A real touch must shoot even when its origin is underneath the narrator button.
+  // The real weapon increments this ID only after creating a shot. Unlike ammo it
+  // remains observable after auto-reload, without adding production debug instrumentation.
+  const shots=()=>page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
+  const drag=async(point,pause=false)=>{
+    const before=await shots();
+    await page.touchscreen.touchStart(point.x,point.y);
+    await page.touchscreen.touchMove(point.x-15,point.y+5);
+    if(pause)await page.evaluate(()=>{window.__NR.openSettings();window.__NR.closeSettings();});
+    await page.touchscreen.touchMove(point.x-40,point.y+10);
+    await page.touchscreen.touchEnd();
+    const after=await shots();
+    if(after!==before+1)fail(tag,`touch drag ${pause?'across pause/resume':'under BIT card'} fired ${after-before} shots, expected one`);
+  };
+  if(m){
+    const point={x:(m.rect.l+m.rect.r)/2,y:(m.rect.t+m.rect.b)/2};
+    const hit=await page.evaluate(({x,y})=>{
+      const card=document.querySelector('.bit-card.ctx-raid'),r=document.getElementById('viewport').getBoundingClientRect();
+      const hud=document.querySelector('.hud').getBoundingClientRect();
+      return {pointerEvents:getComputedStyle(card).pointerEvents,cardHit:card.contains(document.elementFromPoint(x,y)),
+        aimZone:x>=r.left+r.width*.55&&y>=hud.bottom&&y<=r.bottom,
+        aimZoneRect:{l:r.left+r.width*.55,t:hud.bottom,r:r.right,b:r.bottom}};
+    },point);
+    console.log(`${tag}: BIT ${JSON.stringify(m.rect)}, touch ${JSON.stringify(point)}, ${JSON.stringify(hit)}`);
+    if(!hit.aimZone||hit.cardHit||hit.pointerEvents!=='none')fail(tag,`BIT touch must hit the aim zone beneath the card: ${JSON.stringify(hit)}`);
+    await drag(point);
+    await settle(800); // allow the normal magazine refill; do not alter weapon balance
+    await drag({x:(m.aim.l+m.aim.r)/2,y:(m.aim.t+m.aim.b)/2},true);
   }
   await shot(page,`raid-depth-bit-top-right-${w}x${h}`);
   await page.close();

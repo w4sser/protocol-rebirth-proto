@@ -10,8 +10,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.83';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture,createFireInputGate} from '../controls.js?v=2.28.83';
 import {RULES} from '../levels.js?v=2.28.83';
+import {inputPaused,pausePick,resumePick,hitstop,advanceHitstop} from '../perks.js?v=2.28.83';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -26,7 +27,7 @@ function extractFn(name){
 }
 const setupStickSrc=extractFn('setupStick');
 
-function buildStick(mode='aim'){
+function buildStick(mode='aim',withPause=false){
   const dom=new JSDOM('<canvas id=world></canvas><button id=dash>DASH</button><div id="aim-stick"><div class="stick-base"><div class="thumb"></div></div></div>');
   const el=dom.window.document.getElementById('aim-stick');el.id=`${mode}-stick`;
   el.getBoundingClientRect=()=>({left:50,top:50,right:150,bottom:150,width:100,height:100});
@@ -34,14 +35,23 @@ function buildStick(mode='aim'){
   let wall=0,shots=0,lastAim=null,lastTap=null;
   const value={x:0,y:0},context=vm.createContext({
     $:sel=>sel==='#inventory'?{hidden:true}:sel==='.hud'?{getBoundingClientRect:()=>({bottom:40})}:el,RULES,
-    beginAim,dragAim,releaseAim,stickOffset,finishGesture,inputPaused:()=>false,document:dom.window.document,viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:844})},
+    beginAim,dragAim,releaseAim,stickOffset,finishGesture,inputPaused,document:dom.window.document,viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:844})},
     screenToWorld:(x,y)=>({x,z:y}),
-    round:{over:false,pauseAt:null},tutorialOpen:false,sticks:[],value,aim:null,
+    round:{over:false,pauseAt:null,pausedMs:0},tutorialOpen:false,sticks:[],value,aim:null,
+    pendingShot:null,pendingTool:null,pendingKit:false,keys:new Set(),mouseDown:false,
+    createFireInputGate,fireInputGate:createFireInputGate(),pausePick,resumePick,Date,
+    createAudioSettings:options=>({...options,contains:()=>false}),audio:{},cancelToolDrag(){},hideSwap(){},
     fire:tap=>{shots++;lastAim={...context.aim};lastTap=tap;},
     performance:{now:()=>wall},
     setTimeout:fn=>fn(),
   });
   vm.runInContext(setupStickSrc+`\nsetupStick('#${mode}-stick',value${mode==='aim'?',fire':''});`,context);
+  if(withPause){
+    const settings=source.slice(source.indexOf('const audioSettings=createAudioSettings('),source.indexOf('createQualityUI('));
+    const gateStart=source.indexOf("for(const type of ['pointerdown','pointerup','pointercancel','click','keydown','keyup'])");
+    const gate=source.slice(gateStart,source.indexOf('},true);',gateStart)+9);
+    vm.runInContext(extractFn('clearInput')+'\n'+settings+'\n'+gate,context);
+  }
   const fireEvent=(type,props)=>{const e=new dom.window.Event(type,{bubbles:true});Object.assign(e,{pointerId:1,clientX:0,clientY:0},props);el.dispatchEvent(e);return e;};
   return {el,context,value,dom,shots:()=>shots,lastAim:()=>lastAim,lastTap:()=>lastTap,setWall:w=>wall=w,fireEvent,
     base:el.querySelector('.stick-base'),thumb:el.querySelector('.thumb')};
@@ -273,4 +283,99 @@ test('a genuine lostpointercapture (pointer actually gone, setPointerCapture thr
   s.setWall(5050);
   s.fireEvent('pointerup',{clientX:100,clientY:100});
   assert.equal(s.shots(),1,'the next touch must still be able to fire normally');
+});
+
+// Exercise the shipped settings callbacks AND the document capture gate, which previously
+// erased an aim gesture on both sides of a pause even though its finger never lifted.
+test('held aim survives settings pause/resume and modal input; release fires once',()=>{
+  const s=buildStick('aim',true);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:160,clientY:100});
+  vm.runInContext('audioSettings.onPause()',s.context);
+  s.fireEvent('keydown',{key:'x'});
+  s.fireEvent('pointermove',{clientX:170,clientY:100});
+  assert.equal(s.shots(),0);
+  assert.equal(s.value.x,0,'movement stops during pause');
+  vm.runInContext('audioSettings.onResume()',s.context);
+  s.fireEvent('pointerup',{clientX:170,clientY:100});
+  assert.equal(s.shots(),1);
+  s.fireEvent('pointerup',{clientX:170,clientY:100});
+  assert.equal(s.shots(),1);
+});
+for(const ending of ['pointerup','pointercancel'])test(`${ending} during real pause cancels held aim without firing later`,()=>{
+  const s=buildStick('aim',true);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:160,clientY:100});
+  vm.runInContext('audioSettings.onPause()',s.context);
+  s.fireEvent(ending,{clientX:160,clientY:100});
+  assert.equal(s.context.sticks[0].state.pointer,null);
+  vm.runInContext('audioSettings.onResume()',s.context);
+  assert.equal(s.shots(),0);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),0);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1,'next gesture works');
+});
+test('finger starting during pause stays suppressed after resume without cancelling an older aim finger',()=>{
+  const s=buildStick('aim',true);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  vm.runInContext('audioSettings.onPause()',s.context);
+  s.fireEvent('pointerdown',{pointerId:2,clientX:100,clientY:100});
+  vm.runInContext('audioSettings.onResume()',s.context);
+  s.fireEvent('pointerup',{pointerId:2,clientX:160,clientY:100});
+  assert.equal(s.shots(),0);
+  assert.equal(s.context.sticks[0].state.pointer,1);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1);
+});
+for(const action of ['clearInput()','clearInput({type:"blur"})'])test(`${action} still cancels a held aim gesture (reset/blur/visibility)`,()=>{
+  const s=buildStick('aim',true);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  vm.runInContext(action,s.context);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),0);
+});
+test('hitstop is not a modal: release reaches fire for buffering',()=>{
+  const s=buildStick('aim',true);
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  hitstop(s.context.round,40,100);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1,'release reaches fire during hitstop');
+  advanceHitstop(s.context.round,140);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1,'no duplicate release');
+});
+
+test('raid BIT narration is touch-transparent; aim underneath still fires on release',()=>{
+  const s=buildStick(),doc=s.dom.window.document;
+  const style=doc.createElement('style');
+  style.textContent=readFileSync(new URL('../../ui/bit-card.css',import.meta.url),'utf8');
+  doc.head.appendChild(style);
+  const card=doc.createElement('button');card.className='bit-card ctx-raid';
+  doc.body.appendChild(card);
+  assert.equal(s.dom.window.getComputedStyle(card).pointerEvents,'none','BIT must not be a hit-test target');
+  // jsdom has no hit testing; dispatch to the playfield underneath the transparent card.
+  const canvas=doc.getElementById('world');
+  const e=new s.dom.window.Event('pointerdown',{bubbles:true,cancelable:true});
+  Object.assign(e,{pointerId:7,pointerType:'touch',clientX:700,clientY:100});
+  canvas.dispatchEvent(e);
+  s.fireEvent('pointermove',{pointerId:7,clientX:740,clientY:100});
+  s.fireEvent('pointerup',{pointerId:7,clientX:740,clientY:100});
+  assert.equal(s.shots(),1);
+  card.classList.remove('ctx-raid');
+  assert.equal(s.dom.window.getComputedStyle(card).pointerEvents,'auto','base narration remains tappable');
+});
+
+test('document pointerup fallback finishes recovered capture exactly once',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('lostpointercapture',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:160,clientY:100});
+  const e=new s.dom.window.Event('pointerup',{bubbles:true});
+  Object.assign(e,{pointerId:1,clientX:160,clientY:100});
+  s.dom.window.document.getElementById('world').dispatchEvent(e);
+  assert.equal(s.shots(),1);
+  s.fireEvent('pointerup',{clientX:160,clientY:100});
+  assert.equal(s.shots(),1);
 });
