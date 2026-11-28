@@ -1018,7 +1018,7 @@ async function ftueHintsRun([w,h]){
   await loaderGone(page);await page.click('#tutorial-start');
   await page.waitForFunction('window.__NR',{timeout:30000});
   await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
-  await settle(900);
+  await page.waitForFunction("document.getElementById('ftue-hint-move')?.classList.contains('show')",{timeout:8000,polling:'raf'}).catch(()=>{});
   const rectOf=sel=>page.$eval(sel,el=>{if(el.hidden||!el.getClientRects().length)return null;const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};}).catch(()=>null);
   const ov=(a,b)=>!!a&&!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
   const otherRects=async()=>({move:await rectOf('#move-stick'),aim:await rectOf('#aim-stick'),dash:await rectOf('#dash'),tool:await rectOf('#tool-btn'),distract:await rectOf('#bit-distract'),bag:await rectOf('.bag-panel'),ammo:await rectOf('#ammo-hud'),health:await rectOf('#player-health')});

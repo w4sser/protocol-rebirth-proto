@@ -453,7 +453,7 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
 .ftue-hint{position:absolute;top:0;left:0;width:100%;height:116px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;pointer-events:none;opacity:0;transition:opacity .35s ease;z-index:5}
 .ftue-hint.show{opacity:1}
 .ftue-hint .ftue-hint-icon{width:32px;height:32px;color:var(--ad-cyan);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--ad-cyan) 55%,transparent))}
-.ftue-hint .ftue-hint-caption{font:700 10px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:1px;color:var(--ad-bone);background:color-mix(in srgb,var(--ad-night) 80%,transparent);padding:3px 7px;border-radius:5px;white-space:nowrap;text-align:center;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.ftue-hint .ftue-hint-caption{font:700 10px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:1px;color:var(--ad-bone);background:color-mix(in srgb,var(--ad-night) 80%,transparent);padding:3px 7px;border-radius:5px;white-space:normal;line-height:1.25;text-align:center;max-width:150px}
 #ftue-hint-move .ftue-hint-icon{animation:ftue-hint-drag 1.6s ease-in-out infinite}
 #ftue-hint-aim .ftue-hint-icon{animation:ftue-hint-tap 1.4s ease-in-out infinite}
 @keyframes ftue-hint-drag{0%,100%{transform:translate(-9px,5px)}50%{transform:translate(9px,-5px)}}

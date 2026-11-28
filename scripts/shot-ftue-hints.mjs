@@ -39,6 +39,16 @@ await mkdir(outDir, { recursive: true });
 
 async function bootFtueRaid(page, w, h) {
   await page.setViewport({ width: w, height: h, isMobile: true, hasTouch: true, isLandscape: true, deviceScaleFactor: 1 });
+  // Freeze the wall clock (the game clock derives from it) the moment the move hint first shows: it only lives
+  // a couple of clock seconds, and a slow headless screenshot would otherwise catch it mid-fade.
+  await page.evaluateOnNewDocument(() => {
+    window.__realNow = Date.now;
+    document.addEventListener("DOMContentLoaded", () => {
+      const el = document.getElementById("ftue-hint-move");
+      const obs = new MutationObserver(() => { if (el.classList.contains("show")) { const t = Date.now(); Date.now = () => t; obs.disconnect(); } });
+      obs.observe(el, { attributes: true, attributeFilter: ["class"] });
+    });
+  });
   const qs = new URLSearchParams({ seed: "ftue-hints-shot", ftue: "1", q: "high", debug: "1" });
   await page.goto(`${BASE}/nodspel/?${qs}`, { waitUntil: "load", timeout: 60000 });
   await page.waitForSelector("#tutorial-start", { visible: true, timeout: 25000 });
@@ -50,6 +60,7 @@ async function bootFtueRaid(page, w, h) {
   await page.touchscreen.tap(box.x, box.y);
   await page.waitForFunction(() => document.getElementById("tutorial")?.hidden, { timeout: 8000 });
   await page.waitForFunction(() => !!window.__NR?.round?.(), { timeout: 30000 });
+
   await page.evaluate(() => { window.__NR.setRoomClearsEnabled(false); window.__NR.round().health = 100000; });
 }
 
@@ -68,8 +79,11 @@ try {
       await page.screenshot({ path: `${outDir}/${name}-${w}x${h}.png` });
       console.log("shot", name, `${w}x${h}`);
     };
-    await new Promise(r => setTimeout(r, 900));
-    await shot("01-opening-move-hint");
+    // the move hint shows for a few game-clock seconds right after the tutorial tap: catch it as soon as it is visible
+    await page.waitForFunction(() => { const e = document.getElementById("ftue-hint-move"); return e?.classList.contains("show") && Number(getComputedStyle(e).opacity) > 0.95; }, { timeout: 8000, polling: "raf" });
+    await page.screenshot({ path: `${outDir}/01-opening-move-hint-${w}x${h}.png` });
+    console.log("shot 01-opening-move-hint", `${w}x${h}`);
+    await page.evaluate(() => { Date.now = window.__realNow; });
     // Cross the 3 m move threshold -- teleport is a plain position set, the same path real movement
     // takes through the per-frame hint tick.
     await page.evaluate(() => { const s = window.__NR.state(); window.__NR.teleport(s.level.start.x, s.level.start.z + 4); });
