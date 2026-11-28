@@ -2,7 +2,7 @@
 // No collision, camera, controls or gameplay changes. With ?ground=0 this file is never imported.
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.28.84';
+import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.28.85';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
@@ -222,6 +222,33 @@ function strips(length) {
   }
   return s;
 }
+// Depth corridor joints, chamfers and bend pads overlap for capsule/navigation coverage.
+// Tile their union once: independent per-floor meshes otherwise fight at the same Y.
+// First floor owns each overlap, as in bunker.js planFloorTiles. Keep collision data intact.
+function subtractRect(r, c) {
+  const x0 = Math.max(r[0], c[0]), x1 = Math.min(r[1], c[1]);
+  const z0 = Math.max(r[2], c[2]), z1 = Math.min(r[3], c[3]);
+  if (x1 - x0 <= 1e-6 || z1 - z0 <= 1e-6) return [r];
+  const pieces = [];
+  if (x0 - r[0] > 1e-6) pieces.push([r[0], x0, r[2], r[3]]);
+  if (r[1] - x1 > 1e-6) pieces.push([x1, r[1], r[2], r[3]]);
+  if (z0 - r[2] > 1e-6) pieces.push([x0, x1, r[2], z0]);
+  if (r[3] - z1 > 1e-6) pieces.push([x0, x1, z1, r[3]]);
+  return pieces;
+}
+export function clipFloors(floors) {
+  const accepted = [], out = [];
+  for (const floor of floors) {
+    let pieces = [[floor.x - floor.w / 2, floor.x + floor.w / 2, floor.z - floor.d / 2, floor.z + floor.d / 2]];
+    for (const a of accepted) { pieces = pieces.flatMap(p => subtractRect(p, a)); if (!pieces.length) break; }
+    for (const [x0, x1, z0, z1] of pieces) {
+      if (x1 - x0 <= 1e-6 || z1 - z0 <= 1e-6) continue;
+      out.push({...floor, x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0});
+    }
+    accepted.push([floor.x - floor.w / 2, floor.x + floor.w / 2, floor.z - floor.d / 2, floor.z + floor.d / 2]);
+  }
+  return out;
+}
 function grid(floor, place) {
   const xs = strips(floor.w), zs = strips(floor.d);
   let x = floor.x - floor.w/2;
@@ -300,10 +327,10 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
   const ready = loadAssets(biome, mode).then(assets => {
     if (!group.parent) return;
     const seed = floorSeed(level);
-    for (let f=0; f<level.floors.length; f++) {
-      const floor = level.floors[f];
-      // Real wood planks and the approach funnel must stay visible on bridges.
-      if(biome==='nature' && floor.dir)continue;
+    // Real wood planks and the approach funnel must stay visible on bridges.
+    const tilable = clipFloors(level.floors.filter(floor => !(biome==='nature' && floor.dir)));
+    for (let f=0; f<tilable.length; f++) {
+      const floor = tilable[f];
       grid(floor, (x,z,sx,sz,size) => {
         const variant = 'abcd'[hash(seed,Math.floor(x*8),Math.floor(z*8))%4];
         const filename = 'terrain_tile_' + size + 'm_' +
@@ -319,6 +346,7 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
         stats[size === 8 ? 'tiles8m' : 'tiles4m']++;
       });
     }
+    // Decor hashes use original floor indices/bounds; clipping must not move decals or trails.
     placeDecor(level.floors, group, assets, biome, mode, seed, stats);
     // Mobile depth buffers can still choose the almost-coplanar flat grass over
     // the textured preview. Once all ground tiles are ready, never draw the

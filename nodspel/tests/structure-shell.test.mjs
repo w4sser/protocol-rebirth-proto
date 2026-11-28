@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {shellFaces,shellMesh,wallSolids} from '../structure-shell.js';
 import {generateLevel} from '../levels.js';
+import {generateDepthLevel} from '../depth-level.js';
 const area=f=>(f.rect[1]-f.rect[0])*(f.rect[3]-f.rect[2]);
 const inside=(p,b)=>Math.abs(p[0]-b.x)<b.w/2-1e-8&&Math.abs(p[1]-b.y)<b.h/2-1e-8&&Math.abs(p[2]-b.z)<b.d/2-1e-8;
 function check(boxes){
@@ -28,6 +29,13 @@ test('normal and BIG MAP L1-L3 wall surfaces have no interior or coplanar overla
   for(const big of [false,true])for(const seed of ['seams','art','a'])for(const n of [1,2,3]){
     const level=generateLevel(n,seed,'bunker',false,big);
     check(wallSolids(level.walls));
+    check(level.floors.map(f=>({x:f.x,z:f.z,y:(f.y??0)-.4005,w:f.w+1.2,d:f.d+1.2,h:.699})));
+  }
+});
+test('depth corridor walls, jamb decor and foundation have no coplanar duplicate faces',()=>{
+  for(const seed of ['zfight-scan-1','834f4b0a-meta','art']){
+    const level=generateDepthLevel(seed);
+    check(wallSolids([...level.walls,...(level.wallDecor??[])]));
     check(level.floors.map(f=>({x:f.x,z:f.z,y:(f.y??0)-.4005,w:f.w+1.2,d:f.d+1.2,h:.699})));
   }
 });
