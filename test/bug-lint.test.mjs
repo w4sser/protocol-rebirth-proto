@@ -735,7 +735,7 @@ for(const bad of ['fetch(url)','new XMLHttpRequest()','navigator.sendBeacon(url,
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  const inlineScript='<script>\ntry{\n  if(window.localStorage && window.localStorage.getItem("pr_raid_result_v1"))\n    document.documentElement.classList.add("pr-skip-splash");\n}catch(e){}\n</script>\n';
- const secondExternal='<script src="ui/viewport.js?v=2.28.81"></script>';
+ const secondExternal=html.match(/<script src="ui\/viewport\.js\?v=[^"]+"><\/script>/)[0];
  const reordered=html.replace(inlineScript,'').replace(secondExternal,secondExternal+inlineScript);
  assert.notEqual(reordered,html,'fixture setup: the reorder replace must actually match the real markup');
  assert.equal(rule.check({htmlSrc:reordered}).length,1,'moving the pr-skip-splash script after the second blocking <script src> fires');
