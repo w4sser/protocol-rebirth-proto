@@ -2,8 +2,8 @@
 // no sim/browser -- exercises nodspel/dda.js's pure state machine directly.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState,loadState,saveState,recordRaid,checkLapse,lootMultiplier,DDA_KEY} from '../dda.js?v=2.28.86';
-import {NEUTRAL_KNOBS,KNOB_BOUNDS} from '../difficulty.js?v=2.28.86';
+import {freshState,loadState,saveState,recordRaid,checkLapse,lootMultiplier,DDA_KEY} from '../dda.js?v=2.28.87';
+import {NEUTRAL_KNOBS,KNOB_BOUNDS} from '../difficulty.js?v=2.28.87';
 
 function memStorage(initial=null){
   let raw=initial;

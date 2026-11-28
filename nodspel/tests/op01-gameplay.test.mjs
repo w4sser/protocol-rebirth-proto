@@ -445,3 +445,53 @@ test('OP01 visual turn uses real elapsed time while keeping a maximum frame step
   assert(gap(slowDevice)<gap(standard),'real visual delta turns farther under slow frame rates');
   assert(gap(slowDevice)>.1,'visual heading still transitions instead of snapping');
 });
+
+test('OP01 run cycle follows measured travel through speed changes, slides and retreat',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  const reference=globalThis.DATA.raidOperator.op01RunSpeed;
+  for(const speed of [3.6,1.8,2.88,.54,0,3.6]){
+    op.update(.05,{moving:true,groundSpeed:speed});
+    for(const layer of ['lower','upper'])
+      assert.ok(Math.abs(op.actions[layer].run.getEffectiveTimeScale()-speed/reference)<1e-10);
+  }
+  op.update(.05,{moving:true,groundSpeed:1.8,aiming:true,walkYaw:Math.PI,aimYaw:0});
+  assert.ok(Math.abs(op.actions.lower.back.getEffectiveTimeScale()+1.8/reference)<1e-10);
+  assert.equal(op.actions.upper.aim.getEffectiveTimeScale(),1,'aim remains independent of the legs');
+  op.shoot();op.update(.05,{moving:true,groundSpeed:2.88,aiming:true});
+  assert.equal(op.actions.upper.shoot.getEffectiveTimeScale(),1,'fire playback must not inherit walking speed');
+  op.reset();const before=op.mixer.time;op.update(.1,{moving:true,groundSpeed:3.6});
+  assert.ok(Math.abs(op.mixer.time-before-.1)<1e-10,'slow frames (10 FPS) must advance the whole game interval');
+});
+
+test('OP01 gait reference matches the shipped planted-toe speed',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  op.update(0,{moving:true});
+  const duration=op.actions.lower.run.getClip().duration;
+  for(const name of ['mixamorigLeftToeBase','mixamorigRightToeBase']){
+    op.update(0,{moving:true});
+    const toe=op.model.getObjectByName(name),samples=[];
+    for(let i=0;i<240;i++){
+      op.mixer.setTime(duration*i/240);op.root.updateMatrixWorld(true);
+      const p=toe.getWorldPosition(new THREE.Vector3());
+      samples.push({t:duration*i/240,y:p.y,z:p.z});
+    }
+    const low=Math.min(...samples.map(p=>p.y)),high=Math.max(...samples.map(p=>p.y));
+    const speeds=[];
+    for(let i=1;i<samples.length;i++){
+      const a=samples[i-1],b=samples[i],speed=(a.z-b.z)/(b.t-a.t);
+      // Low, backward-moving toes approximate the stance portion of the stride.
+      if(a.y<low+(high-low)*.25&&b.y<low+(high-low)*.25&&speed>0)speeds.push(speed);
+    }
+    speeds.sort((a,b)=>a-b);
+    assert.ok(speeds.length>50,'enough planted samples to measure the gait');
+    const measured=speeds[Math.floor(speeds.length/2)];
+    const reference=globalThis.DATA.raidOperator.op01RunSpeed;
+    assert.ok(Math.abs(measured/reference-1)<.03,`${name}: measured ${measured}, reference ${reference}`);
+    // At either full or half ground speed, the implied planted-foot speed must
+    // agree with body travel; protects against an inverted or fixed timeScale.
+    for(const speed of [3.6,1.8]){
+      op.update(0,{moving:true,groundSpeed:speed});
+      assert.ok(Math.abs(measured*op.actions.lower.run.getEffectiveTimeScale()/speed-1)<.03);
+    }
+  }
+});

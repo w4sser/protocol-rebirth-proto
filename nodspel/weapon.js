@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.28.86';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.86';
-import {RULES} from './levels.js?v=2.28.86';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.86';
-import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction,shootShelf} from './round.js?v=2.28.86-ftue-opening-v1';
+import {audioEvent} from './audio.js?v=2.28.87';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.87';
+import {RULES} from './levels.js?v=2.28.87';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.87';
+import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction,shootShelf} from './round.js?v=2.28.87-ftue-opening-v1';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){

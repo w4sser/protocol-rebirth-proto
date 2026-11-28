@@ -551,12 +551,24 @@ async function raidRun([w,h],area){
   await page.goto(`${BASE}/nodspel/?seed=layout&debug=1&q=high&area=${area}&quest=extract%3Acable%3A1%3A3`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
   await report(page,`${tag} tutorial`);await shot(page,`raid-${area}-${w}x${h}-tutorial`);
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1500);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});
+  // v2.28.87: the 10 FPS dt floor lets a slow layout runner accumulate ~2 min of combat
+  // during L1–L3, which was killing the stationary test player (exit-label check then
+  // failed; enemy labels drifted into each other). Same harden as bit-top-right / ftue-hints.
+  await page.evaluate(()=>{
+    window.__NR.setRoomClearsEnabled(false);
+    const r=window.__NR.round();r.health=100000;
+    for(const e of r.level.enemies??[]){e.sleeping=true;e.aggro=false;}
+  });await settle(1500);
   const fb=await page.evaluate(()=>{const c=document.querySelector('#game').getBoundingClientRect();return [c.left,c.top,c.width,c.height,innerWidth,innerHeight];});
   if(Math.abs(fb[0])>1||Math.abs(fb[1])>1||Math.abs(fb[2]-fb[4])>1||Math.abs(fb[3]-fb[5])>1)fail(tag,`canvas is not full-bleed (${fb.slice(0,4).map(Math.round)} vs ${fb[4]}x${fb[5]})`);
   for(const level of [1,2,3]){
     const ctx=`${tag} L${level}`;
-    await page.evaluate(n=>window.__NR.goLevel(n),level);await settle(1800);
+    await page.evaluate(n=>{
+      window.__NR.goLevel(n);
+      const r=window.__NR.round();r.health=100000;
+      for(const e of r.level.enemies??[]){e.sleeping=true;e.aggro=false;}
+    },level);await settle(1800);
     if(await page.$('.perk-overlay'))fail(ctx,'unexpected perk modal element during gameplay layout -- the picker was removed in v2.28.25');
     await report(page,ctx,'.stick,#reset,#open-bag');
     if(await page.$eval('#pause-map',el=>el.offsetHeight>0))fail(ctx,'pause map visible in raid HUD');
@@ -970,8 +982,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.86');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.86');
+    const {createRound}=await import('./round.js?v=2.28.87');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.87');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

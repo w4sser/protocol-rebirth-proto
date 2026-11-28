@@ -1,8 +1,8 @@
 // Walking choices, always-live current beam and loud hold-to-hack terminals.
-import '../data/raid-depth.js?v=2.28.86';
-import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from './depth-level.js?v=2.28.86';
-import {timeoutRound,extractDepthZone} from './round.js?v=2.28.86';
-import {rarityOf} from './rarity.js?v=2.28.86';
+import '../data/raid-depth.js?v=2.28.87';
+import {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR} from './depth-level.js?v=2.28.87';
+import {timeoutRound,extractDepthZone} from './round.js?v=2.28.87';
+import {rarityOf} from './rarity.js?v=2.28.87';
 
 export const DEPTH=globalThis.DATA.raidDepth;
 export {generateDepthLevel,areaAt,depthDoor,applyAreaCombat,wakeArea,scaleDepthRules,placeDepthCover,combatRoomsWithCover,depthConnectorPaths,LINK_WIDTH,DEPTH_CLEAR_WIDTH,DEPTH_COVER_LANE_HALF,DEPTH_EXTRACT_COVER_CLEAR};
