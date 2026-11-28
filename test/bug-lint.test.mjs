@@ -2,6 +2,12 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';import {RULES,runAll} from '../scripts/bug-lint.mjs';
 const by=id=>RULES.find(r=>r.id===id);
+{
+  const fixed=fs.readFileSync(new URL('../nodspel/ground-preview.js',import.meta.url),'utf8');
+  assert.equal(by('ground-floor-union').check({groundSrc:fixed}).length,0,'1128 accepts clipped tile placement');
+  assert.equal(by('ground-floor-union').check({groundSrc:fixed.replace('clipFloors(level.floors.filter','(level.floors.filter')}).length,1,'1128 catches bypassed clipping');
+  assert.equal(by('ground-floor-union').check({groundSrc:fixed.replace('const floor = tilable[f];','const floor = level.floors[f];')}).length,1,'1128 catches rendering original floors');
+}
 assert.ok(by('no-tracked-node-modules').check({files:['node_modules'],gitignore:'node_modules/\n'}).length===2,'#129 fires');
 assert.equal(by('no-tracked-node-modules').check({files:['a.js'],gitignore:'node_modules\n'}).length,0);
 assert.equal(by('audio-ogg-m4a-pairs').check({files:['assets/audio/sfx/x.ogg']}).length,1,'#162 fires');

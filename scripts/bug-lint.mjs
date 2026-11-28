@@ -12,6 +12,11 @@ import * as walk from 'acorn-walk';
 
 import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
+  {id:'ground-floor-union',pr:'1128 depth corridor z-fighting',why:'overlapping navigation floors must not produce overlapping opaque ground tiles',
+   check(c={}){const src=c.groundSrc??read('nodspel/ground-preview.js');
+     return /const tilable\s*=\s*clipFloors\(level\.floors\.filter\(/.test(src)&&
+       /const floor\s*=\s*tilable\[f\];\s*grid\(floor,/.test(src)
+       ?[]:['nodspel/ground-preview.js: tile the clipped floor union, not the original overlapping navigation rectangles'];}},
   {id:'selective-bloom-occlusion-and-combine',pr:'v2.28.4x graphics pilot (2.28.53)',why:'the WIP layer-only source lost wall occlusion, included fog and doubled sharp cue pixels',
    check(c={}){const s=c.postfxSrc??read('nodspel/postfx.js');return s.includes('bloomMask.render(')&&s.includes('scene.fog=null')&&s.includes('masked(m,false)')&&s.includes('finally{')&&s.includes('scene.background=background;scene.fog=fog;')&&s.includes('tBloom.value=bloom.renderTargetsHorizontal[0].texture')?[]:['bloom needs black occluders, fog-free source, state restoration and a blur-only combine'];}},
   {id:'drum-bloom-reads-with-boost',pr:'v2.28.5x graphics pilot review (2.28.53)',why:'the drum danger material emissive is a dark warning-maroon tuned for direct-view self-illumination; masked verbatim it barely bloomed next to the pad/extraction cues',
