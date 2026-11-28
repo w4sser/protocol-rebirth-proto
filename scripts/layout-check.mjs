@@ -1080,7 +1080,7 @@ async function ftueHintsRun([w,h]){
 }
 
 const layoutGroup=process.env.LAYOUT_GROUP||'all';
-if(!['all','popups','base','raid-bunker','raid-town','ftue-hints','bit-top-right'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
+if(!['all','popups','base','raid-bunker','raid-town','ftue-hints','bit-top-right','pause-map'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
 const group=name=>layoutGroup==='all'||layoutGroup===name;
 try{
   if(group('popups')){
@@ -1137,6 +1137,7 @@ try{
     for(const vp of VIEWPORTS)await baseRun(vp);
   }
   if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);for(const vp of VIEWPORTS)await ftueHintsRun(vp);}
+  if(layoutGroup==='pause-map')for(const vp of VIEWPORTS)await pauseMapRun(vp);
   if(layoutGroup==='bit-top-right')for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);
   if(layoutGroup==='ftue-hints')for(const vp of VIEWPORTS)await ftueHintsRun(vp);
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');

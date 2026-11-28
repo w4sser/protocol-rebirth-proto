@@ -6,6 +6,7 @@
 /* PRB-166 (HUD diet, 2026-11-27): raid card moved top-right, clear of #raid-settings-open
    (top:12px, 44px tall) and the centered depth/round timer chip, never over the aim/move
    sticks, DASH/BIT/tool buttons or the central play area. */
+body.raid-paused .bit-card.ctx-raid{visibility:hidden;pointer-events:none;}
 .bit-card.ctx-raid{left:auto;right:calc(12px + var(--sr));top:calc(64px + var(--st));bottom:auto;transform:none;
   max-width:min(240px,calc(31vw - 12px - var(--sr)));flex-direction:column;align-items:flex-end;gap:4px;}
 .bit-card.ctx-raid .bit-card-img{width:40px;height:40px;}
