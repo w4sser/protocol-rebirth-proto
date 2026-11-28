@@ -996,10 +996,10 @@ async function raidDepthBitTopRightRun([w,h]){
     if(!(m.rect.l>=m.vw*.5&&m.rect.t<=m.vh*.5))
       fail(tag,`BIT card is not in the top-right quadrant (${JSON.stringify(m.rect)} in ${m.vw}x${m.vh})`);
     for(const [name,r] of [['move stick',m.move],['aim stick',m.aim],['DASH button',m.dash],['tool button',m.tool],['BIT distract button',m.distract],['health bar',m.health],['shield bar',m.shield],['ammo HUD',m.ammo],['pause button',m.pause]])
-      if(ov(m.rect,r))fail(tag,`BIT card overlaps the ${name}`);
+      if(ov(m.rect,r))fail(tag,`BIT card overlaps the ${name} (card ${JSON.stringify(m.rect)}, ${name} ${JSON.stringify(r)})`);
     // the central 40% width x 60% height region around the player is off-limits
     const cw=m.vw*.4,ch=m.vh*.6,central={l:m.sp.x-cw/2,t:m.sp.y-ch/2,r:m.sp.x+cw/2,b:m.sp.y+ch/2};
-    if(ov(m.rect,central))fail(tag,'BIT card overlaps the central play area around the player');
+    if(ov(m.rect,central))fail(tag,`BIT card overlaps the central play area around the player (card ${JSON.stringify(m.rect)}, player ${JSON.stringify(m.sp)})`);
     for(const e of m.enemies){const er={l:e.x-20,t:e.y-20,r:e.x+20,b:e.y+20};if(ov(m.rect,er))fail(tag,'BIT card overlaps an enemy on screen');}
   }
   await shot(page,`raid-depth-bit-top-right-${w}x${h}`);
@@ -1080,7 +1080,7 @@ async function ftueHintsRun([w,h]){
 }
 
 const layoutGroup=process.env.LAYOUT_GROUP||'all';
-if(!['all','popups','base','raid-bunker','raid-town','ftue-hints'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
+if(!['all','popups','base','raid-bunker','raid-town','ftue-hints','bit-top-right'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
 const group=name=>layoutGroup==='all'||layoutGroup===name;
 try{
   if(group('popups')){
@@ -1137,6 +1137,7 @@ try{
     for(const vp of VIEWPORTS)await baseRun(vp);
   }
   if(group('raid-bunker')){for(const vp of VIEWPORTS)await raidRun(vp,'bunker');for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);for(const vp of VIEWPORTS)await ftueHintsRun(vp);}
+  if(layoutGroup==='bit-top-right')for(const vp of VIEWPORTS)await raidDepthBitTopRightRun(vp);
   if(layoutGroup==='ftue-hints')for(const vp of VIEWPORTS)await ftueHintsRun(vp);
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
