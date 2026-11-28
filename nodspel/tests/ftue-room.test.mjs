@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,initEquip,takeDamage,tickRound,activateNode,enterExit,collectLoot,detonateDrum} from '../round.js?v=2.28.85';
-import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.85';
-import {applyIntroEncounter} from '../progression-goal.js?v=2.28.85';
-import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js?v=2.28.85';
-import {traceTargets} from '../physics.mjs?v=2.28.85';
+import {createRound,initEquip,takeDamage,tickRound,activateNode,enterExit,collectLoot,detonateDrum} from '../round.js?v=2.28.86';
+import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.86';
+import {applyIntroEncounter} from '../progression-goal.js?v=2.28.86';
+import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js?v=2.28.86';
+import {traceTargets} from '../physics.mjs?v=2.28.86';
 const seeds=['ftue','alpha','beta','gamma','delta','one','two','three','four','five'];
 const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
 function setup(seed='ftue',attempts=0,intro=true){
