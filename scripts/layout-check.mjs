@@ -179,7 +179,12 @@ const shot=async(page,name)=>{
 };
 const settle=ms=>new Promise(r=>setTimeout(r,ms));
 async function newPage(w,h){
-  const page=await browser.newPage();
+  // Isolated context so one raid scenario cannot leak localStorage (FTUE hint
+  // completion) or a dangling Chromium touch into the next.
+  const context=await browser.createBrowserContext();
+  const page=await context.newPage();
+  const close=page.close.bind(page);
+  page.close=async()=>{try{await close.call(page,{runBeforeUnload:false});}finally{await context.close().catch(()=>{});}};
   await page.setViewport({width:w,height:h,isMobile:true,hasTouch:true,deviceScaleFactor:1});
   page.on('pageerror',e=>{console.log('  pageerror',String(e).slice(0,160));fail('pageerror',String(e).slice(0,160));});
   return page;
@@ -965,8 +970,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.83');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.83');
+    const {createRound}=await import('./round.js?v=2.28.84');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.84');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -1050,7 +1055,10 @@ async function raidDepthBitTopRightRun([w,h]){
   });
   for(const [k,v] of Object.entries(removed))if(v)fail(tag,`#${k} is visible in the permanent raid HUD -- it must only show inside the pause panel`);
   // (b) force a BIT line and check the card's rect
-  await page.evaluate(()=>{window.PRBitCard?.show?.({id:'layout-check-bit-top-right',text:'Area ahead. Stay sharp.'});});
+  await page.evaluate(()=>{
+    while(window.PRBitCard.isOpen())window.PRBitCard.dismiss();
+    window.PRBitCard.show({id:'layout-check-bit-top-right',text:'Area ahead. Stay sharp.',duration:60000});
+  });
   await settle(200);
   const m=await page.evaluate(()=>{
     const el=document.querySelector('.bit-card.ctx-raid');
@@ -1078,6 +1086,35 @@ async function raidDepthBitTopRightRun([w,h]){
     if(ov(m.rect,central))fail(tag,`BIT card overlaps the central play area around the player (card ${JSON.stringify(m.rect)}, player ${JSON.stringify(m.sp)})`);
     for(const e of m.enemies){const er={l:e.x-20,t:e.y-20,r:e.x+20,b:e.y+20};if(ov(m.rect,er))fail(tag,'BIT card overlaps an enemy on screen');}
   }
+  // A real touch must shoot even when its origin is underneath the narrator button.
+  // The real weapon increments this ID only after creating a shot. Unlike ammo it
+  // remains observable after auto-reload, without adding production debug instrumentation.
+  const shots=()=>page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
+  const drag=async(point,pause=false)=>{
+    const before=await shots();
+    await page.touchscreen.touchStart(point.x,point.y);
+    await page.touchscreen.touchMove(point.x-15,point.y+5);
+    if(pause)await page.evaluate(()=>{window.__NR.openSettings();window.__NR.closeSettings();});
+    await page.touchscreen.touchMove(point.x-40,point.y+10);
+    await page.touchscreen.touchEnd();
+    const after=await shots();
+    if(after!==before+1)fail(tag,`touch drag ${pause?'across pause/resume':'under BIT card'} fired ${after-before} shots, expected one`);
+  };
+  if(m){
+    const point={x:(m.rect.l+m.rect.r)/2,y:(m.rect.t+m.rect.b)/2};
+    const hit=await page.evaluate(({x,y})=>{
+      const card=document.querySelector('.bit-card.ctx-raid'),r=document.getElementById('viewport').getBoundingClientRect();
+      const hud=document.querySelector('.hud').getBoundingClientRect();
+      return {pointerEvents:getComputedStyle(card).pointerEvents,cardHit:card.contains(document.elementFromPoint(x,y)),
+        aimZone:x>=r.left+r.width*.55&&y>=hud.bottom&&y<=r.bottom,
+        aimZoneRect:{l:r.left+r.width*.55,t:hud.bottom,r:r.right,b:r.bottom}};
+    },point);
+    console.log(`${tag}: BIT ${JSON.stringify(m.rect)}, touch ${JSON.stringify(point)}, ${JSON.stringify(hit)}`);
+    if(!hit.aimZone||hit.cardHit||hit.pointerEvents!=='none')fail(tag,`BIT touch must hit the aim zone beneath the card: ${JSON.stringify(hit)}`);
+    await drag(point);
+    await settle(800); // allow the normal magazine refill; do not alter weapon balance
+    await drag({x:(m.aim.l+m.aim.r)/2,y:(m.aim.t+m.aim.b)/2},true);
+  }
   await shot(page,`raid-depth-bit-top-right-${w}x${h}`);
   await page.close();
 }
@@ -1089,12 +1126,20 @@ async function raidDepthBitTopRightRun([w,h]){
 async function ftueHintsRun([w,h]){
   const tag=`raid ftue-hints ${w}x${h}`;console.log(tag);
   const page=await newPage(w,h);
+  // Shared Chromium profile: earlier raid-bunker scenarios (including the v2.28.84
+  // touch-drag shots under the BIT card) can persist pr_ftue_hints_v1=done. A replay
+  // waits 12 s of idle before the hint appears, longer than this check's 8 s wait.
+  await page.evaluateOnNewDocument(()=>{try{localStorage.removeItem('pr_ftue_hints_v1');}catch{}});
   await page.goto(`${BASE}/nodspel/?seed=ftue-hints&ftue=1&debug=1&q=high`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
   // The FTUE start card can move/hide while the loader fades; a DOM click is immune to the 'not clickable' race a pointer click hits.
   await loaderGone(page);await page.evaluate(()=>document.querySelector('#tutorial-start')?.click());
   await page.waitForFunction('window.__NR?.round?.()',{timeout:30000});
-  await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
+  await page.evaluate(()=>{
+    window.__NR.setRoomClearsEnabled(false);
+    const r=window.__NR.round();r.health=100000;
+    for(const e of r.level.enemies??[]){e.sleeping=true;e.aggro=false;}
+  });
   await page.waitForFunction("document.getElementById('ftue-hint-move')?.classList.contains('show')",{timeout:8000,polling:'raf'}).catch(()=>{});
   const rectOf=sel=>page.$eval(sel,el=>{if(el.hidden||!el.getClientRects().length)return null;const r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom};}).catch(()=>null);
   const ov=(a,b)=>!!a&&!!b&&Math.min(a.r,b.r)-Math.max(a.l,b.l)>0&&Math.min(a.b,b.b)-Math.max(a.t,b.t)>0;
@@ -1146,9 +1191,20 @@ async function ftueHintsRun([w,h]){
   // Firing (tapping the aim stick fires an auto-aim shot) must end the hints and the raid must stay unpaused.
   await unfreeze();
   const aimBox=await page.$eval('#aim-stick',el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
-  await page.touchscreen.tap(aimBox.x,aimBox.y);
-  await settle(500);
+  const shotsBefore=await page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
+  // Dispatch on the stick itself. A CDP touchscreen tap can no-op here if an earlier
+  // scenario in the same Chromium left a contact down (Input.dispatchTouchEvent is
+  // browser-global even when pages use isolated contexts).
+  await page.evaluate(({x,y})=>{
+    const el=document.getElementById('aim-stick');
+    for(const type of ['pointerdown','pointerup']){
+      el.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,composed:true,pointerId:7,pointerType:'touch',isPrimary:true,clientX:x,clientY:y,button:0,buttons:type==='pointerdown'?1:0}));
+    }
+  },aimBox);
+  await page.waitForFunction((before)=> (window.__NR.round().nextCombatShotId??0)>before && !document.getElementById('ftue-hint-aim').classList.contains('show'), {timeout:3000}, shotsBefore).catch(()=>{});
+  const shotsAfter=await page.evaluate(()=>window.__NR.round().nextCombatShotId??0);
   const aimHidden=await page.$eval('#ftue-hint-aim',e=>!e.classList.contains('show'));
+  if(shotsAfter<=shotsBefore)fail(tag,`aim-stick tap did not fire a shot (nextCombatShotId ${shotsBefore} -> ${shotsAfter})`);
   if(!aimHidden)fail(tag,'#ftue-hint-aim is still showing after a shot was fired');
   const pausedAfterShot=await page.evaluate(()=>window.__NR.round().pauseAt);
   if(pausedAfterShot!=null)fail(tag,'round is paused after the hint-ending shot');

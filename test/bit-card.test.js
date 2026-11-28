@@ -41,6 +41,8 @@ function bootComponent(){
   assert.equal(requests.length, 0);
   const vp = doc.createElement("div"); vp.id = "viewport"; doc.body.append(vp);
   PRBitCard.show({ id:"raid-bust", text:"new material", mood:"happy" });
+  assert.equal(doc.querySelector(".bit-card").tabIndex, -1);
+  assert.equal(doc.querySelector(".bit-card").getAttribute("aria-label"), "BIT");
   assert.equal(requests.length, 4);
   assert.equal(new Set(requests).size, 4);
   assert(requests.every(src=>src.startsWith("../assets/production/bit-narrator/")));

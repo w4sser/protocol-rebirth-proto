@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.28.83';
+import {inputPaused} from '../perks.js?v=2.28.84';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -52,12 +52,12 @@ test('active Transmitter supply has a visible guaranteed Archipelago radio crate
   assert.ok(!generateLevel(1,'inactive-radio','archipelago').lootBoxes.some(b=>b.item==='transmitter'));
 });
 
-test('held aim gesture is cleared on modal entry and its release cannot fire after close (Brawl Stars: fire only happens on release, so neither touchdown nor a stale post-modal release may add a shot)',()=>{
+test('full input reset cancels a held aim gesture and its stale release; a fresh gesture still fires once',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),handlers={},state={shots:0},thumb={style:{},getBoundingClientRect:()=>({width:36})};
   const el={style:{setProperty(){}},querySelector:()=>thumb,classList:{add(){},remove(){},toggle(){}},getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:100}),addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture(){},hasPointerCapture:()=>true,releasePointerCapture(id){handlers.lostpointercapture({pointerId:id,type:'lostpointercapture'});}};
   const ctx={viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390})},inputPaused,stickOffset,finishGesture,document:{addEventListener(){}},sticks:[],round:{pauseAt:null,over:false},tutorialOpen:false,$:selector=>selector==='#inventory'?{hidden:true}:el,keys:new Set(['Space']),mouseDown:true,screenToWorld:(x,y)=>({x,z:y}),beginAim:(x,y)=>({origin:{x,y},direction:null,target:{x:1,y:0}}),dragAim:(g,x,y)=>g.direction={x:x-g.origin.x,y:y-g.origin.y},releaseAim:(g,cancelled)=>cancelled?null:g.direction,aim:null,shot:()=>state.shots++,
     RULES:{aimControls:{deadZonePx:20,stickRadiusPx:48}},TAP_MS:200,performance:{now:()=>0},setTimeout:fn=>fn(),tapAimDirection:()=>({x:0,z:-1})};
-  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('function setupStick('),source.indexOf("setupStick('#move-stick'"))+'\n'+source.match(/function clearInput\(\)\{[^\n]+/)[0]+"\nsetupStick('#aim-stick',{},shot)",ctx);
+  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('function setupStick('),source.indexOf("setupStick('#move-stick'"))+'\n'+source.slice(source.indexOf('function clearInput('),source.indexOf("window.addEventListener('blur'"))+"\nsetupStick('#aim-stick',{},shot)",ctx);
   const event=type=>({type,pointerId:9,clientX:70,clientY:50,preventDefault(){}});
   handlers.pointerdown(event('pointerdown'));assert.equal(state.shots,0,'pointerdown must never fire -- Brawl Stars fires on release only');
   handlers.pointermove({...event('pointermove'),clientX:90});
