@@ -1,7 +1,7 @@
 // @hot shelfBitLine
 // Same profile ledger and calm first-sight rule as the power-pad introduction.
-import {RULES} from './levels.js?v=2.28.79';
-import {traceTargets} from './physics.mjs?v=2.28.79';
+import {RULES} from './levels.js?v=2.28.81';
+import {traceTargets} from './physics.mjs?v=2.28.81';
 export const SHELF_BIT_LINE='Gravity: still free, still rude.';
 const EMPTY=Object.freeze([]);
 export function shelfBitLine(round,position,alreadySeen,solids=round.level.walls){
