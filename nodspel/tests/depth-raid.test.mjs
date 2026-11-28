@@ -10,7 +10,7 @@ import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {resultView} from '../result-screen.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.84';
+import '../../data/bit-lines.js?v=2.28.85';
 
 function startDepth(seed,now=0,ctx={}){
   const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});

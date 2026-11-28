@@ -10,9 +10,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture,createFireInputGate} from '../controls.js?v=2.28.84';
-import {RULES} from '../levels.js?v=2.28.84';
-import {inputPaused,pausePick,resumePick,hitstop,advanceHitstop} from '../perks.js?v=2.28.84';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture,createFireInputGate} from '../controls.js?v=2.28.85';
+import {RULES} from '../levels.js?v=2.28.85';
+import {inputPaused,pausePick,resumePick,hitstop,advanceHitstop} from '../perks.js?v=2.28.85';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
