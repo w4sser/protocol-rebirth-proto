@@ -10,6 +10,7 @@
 // lighter than the full boom, air stays a hiss, and that the UI click generators and the fallback
 // synth are dry noise bursts, never a sine/square tone sweep.
 import test from 'node:test';
+import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -80,4 +81,23 @@ test('UI tap/back/confirm are dry mechanical clicks, never a sine-tone chirp',()
   assert.ok(!/tone\(/.test(clickFn)&&!/np\.sin\(/.test(clickFn),'click() must stay a noise burst -- no tone()/np.sin( sine oscillator');
   const params=(src.match(/params = \{[^}]*\}/)||[''])[0];
   assert.ok(!/'ui-tap'|'ui-back'|'ui-confirm'/.test(params),'ui-tap/ui-back/ui-confirm must not also be listed in the generic tone()-based params dict');
+});
+
+test('extraction and simultaneous UI cues retain headroom in both shipping formats',t=>{
+  if(spawnSync('ffmpeg',['-version']).status!==0){t.skip('ffmpeg unavailable');return;}
+  // Oversample floating-point decode: s16 would conceal codec overshoots by clipping them.
+  const peaks={};
+  for(const ext of ['m4a','ogg'])for(const name of ['extract-success','extract-countdown','ui-tap','ui-confirm']){
+    const run=spawnSync('ffmpeg',['-v','error','-i',resolve(root,'assets/audio/sfx',name+'.'+ext),'-ar','88200','-ac','1','-f','f32le','-'],{maxBuffer:8*1024*1024});
+    assert.equal(run.status,0,String(run.stderr));
+    let peak=0;for(let i=0;i<run.stdout.length;i+=4)peak=Math.max(peak,Math.abs(run.stdout.readFloatLE(i)));
+    assert.ok(peak>0&&peak<(name.startsWith('extract-') ? 0.9 : 1),`${name}.${ext}: oversampled peak ${peak} must retain headroom`);
+    peaks[name+'.'+ext]=peak;
+  }
+  const require=createRequire(import.meta.url);require('../../data/audio.js');const config=globalThis.DATA.audio;
+  for(const ext of ['m4a','ogg']){
+    // The extract button's bubbled click can overlap its UI tap with the success sting.
+    const sum=['extract-success','ui-tap'].reduce((total,name)=>total+peaks[name+'.'+ext]*config.sfx[name].gain*(1+config.gainVariation),0);
+    assert.ok(sum<1,`${ext}: worst-case success + UI gain ${sum} clips at full user volume`);
+  }
 });

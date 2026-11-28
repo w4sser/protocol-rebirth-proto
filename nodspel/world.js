@@ -1,20 +1,20 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.85';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.85';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.86';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.86';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.85';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.85';
-import {buildTown} from './town.js?v=2.28.85';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.85';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.85-glacial-merge1';
-import {dressPines,dressFuelDrum,dressSupplyCrates,dressLockedDoor} from './granite-kit.js?v=2.28.85';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.85-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.85';
-import {controlCablePath} from './control-cables.js?v=2.28.85';
-import {extractAvailable} from './big-level.js?v=2.28.85';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.85';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.85';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.85';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.86';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.86';
+import {buildTown} from './town.js?v=2.28.86';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.86';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.86-glacial-merge1';
+import {dressPines,dressFuelDrum,dressSupplyCrates,dressLockedDoor} from './granite-kit.js?v=2.28.86';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.86-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.86';
+import {controlCablePath} from './control-cables.js?v=2.28.86';
+import {extractAvailable} from './big-level.js?v=2.28.86';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.86';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.86';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.86';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));

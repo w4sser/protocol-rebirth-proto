@@ -1,5 +1,5 @@
 // One data-driven ability slot next to the aim stick: icon, label, status and charge bar.
-import {svgIcon} from './svg-icons.js?v=2.28.85';
+import {svgIcon} from './svg-icons.js?v=2.28.86';
 
 export function createDashAbility(requestDash,cooldownMs=round=>round.stats.dashCooldownMs){
   return {

@@ -650,3 +650,33 @@ for(const startOnIntro of [false,true])test(`cold-open greeting after ${startOnI
     assert.equal(audio.context.sources.length,count);
   }finally{dom.window.close();}
 });
+
+test('extraction fades outgoing music, voice and SFX before stopping, then plays one success cue',async()=>{
+  await import('../audio.js');
+  const a=fixture().audio,previous=globalThis.PR_AUDIO;globalThis.PR_AUDIO=a;
+  try{
+    const {audioEvent}=await import('../audio.js?extract-fade-test');
+    await a.preload();await a.unlock();
+    await a.loop('music','pulse');await a.voice('bag-heavy');await a.play('impact-wall');
+    const outgoing=[...a.active];assert.equal(outgoing.length,3);
+    const events=new Map();
+    for(const source of outgoing){
+      const log=[];events.set(source,log);
+      source.prLevel.gain.cancelScheduledValues=t=>log.push(['cancel',t]);
+      source.prLevel.gain.setValueAtTime=(v,t)=>log.push(['hold',v,t]);
+      source.prLevel.gain.linearRampToValueAtTime=(v,t)=>log.push(['ramp',v,t]);
+      source.stop=t=>log.push(['stop',t]);
+    }
+    audioEvent('result',{success:true});await new Promise(r=>setTimeout(r,0));
+    const end=a.context.currentTime+config.resultFadeSeconds;
+    for(const log of events.values()){
+      assert.deepEqual(log.map(e=>e[0]),['cancel','hold','ramp','stop']);
+      assert.deepEqual(log.at(-2),['ramp',0,end]);assert.deepEqual(log.at(-1),['stop',end]);
+    }
+    assert.equal(a.desiredMusic,false);assert.equal(a.loops.size,0);
+    const result=[...a.active].filter(s=>!outgoing.includes(s));
+    assert.equal(result.length,1,'one success cue, with no music restart or extra sting');
+    assert.equal(result[0].buffer,a.decodedBuffers.get('sfx/extract-success'));
+    assert.ok(config.resultFadeSeconds>0&&config.resultFadeSeconds<=.05);
+  }finally{a.stop();globalThis.PR_AUDIO=previous;}
+});
