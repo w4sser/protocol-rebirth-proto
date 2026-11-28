@@ -1,8 +1,8 @@
-import {createRoomVisibility} from './big-level-culling.js?v=2.28.81';
+import {createRoomVisibility} from './big-level-culling.js?v=2.28.82';
 import * as THREE from './vendor/three.module.js';
-import {levelMapSVG,mapIconSymbols} from './level-map.js?v=2.28.81';
-import {graphRoomAt} from './zone-graph.js?v=2.28.81';
-import {updateBigCulling,extractAvailable} from './big-level.js?v=2.28.81';
+import {levelMapSVG,mapIconSymbols} from './level-map.js?v=2.28.82';
+import {graphRoomAt} from './zone-graph.js?v=2.28.82';
+import {updateBigCulling,extractAvailable} from './big-level.js?v=2.28.82';
 
 export function createBigLevelRuntime(level,world,makeLabel){
   if(!level.big)return null;
