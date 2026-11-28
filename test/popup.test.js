@@ -51,7 +51,7 @@ console.log("POPUP TESTS PASSED (" + migrated.join(", ") + ")");
 // v1.53 lobby layout (RAID tab): 3-column grid filling the height, operator unobstructed, no baked-UI background art
 {
   const html = fs.readFileSync(path + "/index.html", "utf8"), blk = (html.match(/<style id="lobby2">([\s\S]*?)<\/style>/) || [])[1] || "";
-  assert(/"top top top" "left hero right" "area hero risk" "area hero play"/.test(blk), "lobby: balanced 3-column grid areas");
+  assert(/"top top top" "left hero right" "area hero play"/.test(blk), "lobby: balanced 3-column grid areas");
   assert(/\.hero-weapon\{display:none\}/.test(blk) && /operator-stats\.compact\{position:absolute;left:6px;top:6px;bottom:6px/.test(blk), "lobby: stats as side column, no ghost weapon label over the operator");
   assert(/#app\.s-prep\{background:radial-gradient[^}]*!important\}/.test(blk) && !/hero_preraid/.test(blk), "lobby: no background art with baked UI panels bleeding at the right edge");
   const { A, doc } = boot(); A.go("prep"); const l = doc.querySelector(".lobby");

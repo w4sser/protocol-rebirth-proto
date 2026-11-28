@@ -31,10 +31,10 @@ assert(d.querySelector('.pr-dest-preview[data-area]'),'destination art follows t
 assert(d.querySelector('.pr-mission-btn'),'mission planning remains accessible');
 assert(!d.querySelector('.pr-mode-sel'),'mode selector stays hidden on the first-raid / pre-Fabricator prep');
 assert.equal(d.querySelector('.pr-mission-btn b')?.textContent,'NODE RAID');
-assert(d.querySelector('.pr-risk-card .riskbar'),'loss warning stays visible');
-assert.equal(d.querySelectorAll('.node-raid-launch').length,1,'only one deploy action');
-assert.equal(d.querySelector('.node-raid-launch').getAttribute('onclick'),'A.deployNodeRaid()','deploy retains real raid launch');
-assert.equal(d.querySelector('.node-raid-launch').textContent.trim(),'DEPLOY','launch button displays only DEPLOY');
+assert(!d.querySelector('.pr-risk-card'),'the risk card ("lost if you die" legend) is gone -- amber dots on tiles are the only at-risk indicator');
+assert.equal(d.querySelectorAll('.node-raid-launch').length,1,'only one launch action');
+assert.equal(d.querySelector('.node-raid-launch').getAttribute('onclick'),'A.deployNodeRaid()','launch retains the real raid-launch function');
+assert.equal(d.querySelector('.node-raid-launch').textContent.trim(),'RAID','launch button displays only RAID');
 assert(!d.querySelector('.lobby-top .hard-btn, .lobby-top .bigmap-btn'),'debug-like options are not top-level');
 assert(d.querySelector('#mission-panel .bigmap-btn'),'advanced big map option is in Mission');
 w.A.planToggle(true);

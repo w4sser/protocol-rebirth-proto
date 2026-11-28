@@ -750,6 +750,33 @@ export const RULES=[
      if(!/const ftueHintsActive=ftueHintsEligible\(launch\);/.test(game))out.push('nodspel/game.mjs must gate hints on const ftueHintsActive=ftueHintsEligible(launch)');
      if(!/if\(ftueHintsActive&&!hintState\)hintState=createFtueHintState\(/.test(game))out.push('nodspel/game.mjs must only ever create hintState when ftueHintsActive is true');
      return out;}},
+  {id:'splash-skip-before-paint',pr:'v2.28.81 playtest (Robert, phone/landscape)',why:'#splash is visible-by-default in CSS and only JS (setupSplash) hides it; on the raid-return path, index.html loads many blocking <script src> tags before app.js ever runs, so the browser could paint a frame of the lighthouse splash first. An inline head script (run before any of those loads) must pre-hide #splash via CSS off the same pending-raid-result signal app.js uses, and setupSplash must hand off from it once it makes the real call.',
+   check(ctx={}){const html=ctx.htmlSrc??read('index.html'),app=ctx.appSrc??read('app.js');const out=[];
+     // ui/debug-sandbox.js is allowed (required, see debug-sandbox-isolated) to load first -- it must
+     // namespace Storage before anything else touches it -- so this only has to run before the SECOND
+     // external <script src>, not necessarily the very first one.
+     const headScript=html.indexOf('pr-skip-splash'),externalScripts=[...html.matchAll(/<script\b[^>]*\bsrc=/g)].map(m=>m.index);
+     if(headScript<0)out.push('index.html: no inline script toggles a pr-skip-splash class off the pending raid result');
+     else if(externalScripts.length>1&&headScript>externalScripts[1])out.push('index.html: the pr-skip-splash head script must run before the second blocking <script src> tag (only ui/debug-sandbox.js may load first), or a frame can still paint before it runs');
+     if(!/localStorage\s*&&\s*window\.localStorage\.getItem\("pr_raid_result_v1"\)/.test(html))out.push('index.html: the pre-paint check must read the same localStorage key (pr_raid_result_v1) as app.js\'s RAID_RESULT_KEY/ingestPendingCoreResult');
+     if(!/html\.pr-skip-splash\s*#splash\{[^}]*display\s*:\s*none\s*!important/.test(html))out.push('index.html: html.pr-skip-splash #splash must set display:none !important so the splash never paints visible');
+     if(!/classList\.remove\("pr-skip-splash"\)/.test(app))out.push('app.js: setupSplash must remove the pr-skip-splash class once it has made its own (authoritative) shown/hidden decision');
+     return out;}},
+  {id:'deploy-screen-raid-label',pr:'v2.28.81 playtest (Robert)',why:'the Raid Preparation launch button read DEPLOY (and aria-label="Deploy"); Robert asked for it to say RAID instead. The internal function name (A.deployNodeRaid) stays unchanged -- only the player-facing label moves.',
+   check(ctx={}){const app=ctx.appSrc??read('app.js');const out=[];
+     const m=app.match(/<button type="button" class="playbtn node-raid-launch" onclick="A\.deployNodeRaid\(\)" aria-label="([^"]*)"><b>([^<]*)<\/b><\/button>/);
+     if(!m)out.push('app.js: lobbyHtml\'s node-raid-launch button markup not found');
+     else{
+       if(m[2]!=='RAID')out.push(`app.js: the launch button must read RAID, not ${JSON.stringify(m[2])}`);
+       if(m[1]!=='Raid')out.push(`app.js: the launch button's aria-label must be "Raid", not ${JSON.stringify(m[1])}`);
+     }
+     return out;}},
+  {id:'deploy-screen-no-risk-card',pr:'v2.28.81 playtest (Robert)',why:'Robert found the "lost if you die" risk card on Raid Preparation confusing and asked for it to be removed entirely (both the at-risk and "No gear at risk" variants) -- the amber dot already on each loadout tile stays as the only at-risk indicator.',
+   check(ctx={}){const app=ctx.appSrc??read('app.js'),html=ctx.htmlSrc??read('index.html');const out=[];
+     if(/pr-risk-card|gearRiskHtml/.test(app))out.push('app.js: lobbyHtml must not render a pr-risk-card / call gearRiskHtml -- Robert asked for the risk legend to be removed entirely');
+     if(/\.riskbar/.test(html))out.push('index.html: .riskbar CSS must be removed along with the risk card (the per-tile .rdot amber dot stays)');
+     if(!/\.lslot \.rdot\{/.test(html))out.push('index.html: the per-tile amber-dot rule (.lslot .rdot) must stay even though the risk card is gone');
+     return out;}},
 ];
 
 

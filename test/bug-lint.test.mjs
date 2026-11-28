@@ -727,3 +727,44 @@ for(const bad of ['fetch(url)','new XMLHttpRequest()','navigator.sendBeacon(url,
  const dropped=html.replace('<span id="seed-label" hidden></span>','');
  assert.equal(rule.check({htmlSrc:dropped}).length,1,'PR 2 fires when #seed-label is removed from the pause panel entirely');
 }
+
+{
+ const rule=by('splash-skip-before-paint');
+ assert.equal(rule.check().length,0,'splash-skip-before-paint holds on real source');
+ assert.equal(rule.check({htmlSrc:'',appSrc:''}).length,4,'all splash-skip-before-paint guards fire on empty source');
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const inlineScript='<script>\ntry{\n  if(window.localStorage && window.localStorage.getItem("pr_raid_result_v1"))\n    document.documentElement.classList.add("pr-skip-splash");\n}catch(e){}\n</script>\n';
+ const secondExternal='<script src="ui/viewport.js?v=2.28.81"></script>';
+ const reordered=html.replace(inlineScript,'').replace(secondExternal,secondExternal+inlineScript);
+ assert.notEqual(reordered,html,'fixture setup: the reorder replace must actually match the real markup');
+ assert.equal(rule.check({htmlSrc:reordered}).length,1,'moving the pr-skip-splash script after the second blocking <script src> fires');
+ // the real markup already proves running right after ui/debug-sandbox.js (not the very first
+ // script) is fine -- that sandbox script must stay first (see debug-sandbox-isolated).
+ const noCss=html.replace('html.pr-skip-splash #splash{display:none !important;}','');
+ assert.notEqual(noCss,html,'fixture setup: the CSS replace must actually match the real markup');
+ assert.equal(rule.check({htmlSrc:noCss}).length,1,'dropping the html.pr-skip-splash #splash{display:none} rule fires');
+ const noHandoff=app.replace('document.documentElement.classList.remove("pr-skip-splash");','');
+ assert.notEqual(noHandoff,app,'fixture setup: the handoff replace must actually match the real source');
+ assert.equal(rule.check({appSrc:noHandoff}).length,1,'setupSplash never handing off from pr-skip-splash fires');
+}
+
+{
+ const rule=by('deploy-screen-raid-label');
+ assert.equal(rule.check().length,0,'deploy-screen-raid-label holds on real source');
+ assert.equal(rule.check({appSrc:''}).length,1,'missing the launch button markup fires');
+ const deployApp='<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy"><b>DEPLOY</b></button>';
+ assert.equal(rule.check({appSrc:deployApp}).length,2,'a regression back to DEPLOY text + aria-label fires on both');
+ const halfFixed='<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Raid"><b>DEPLOY</b></button>';
+ assert.equal(rule.check({appSrc:halfFixed}).length,1,'button text left as DEPLOY with a fixed aria-label still fires once');
+ const fixed='<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Raid"><b>RAID</b></button>';
+ assert.equal(rule.check({appSrc:fixed}).length,0,'RAID text + aria-label passes');
+}
+
+{
+ const rule=by('deploy-screen-no-risk-card');
+ assert.equal(rule.check().length,0,'deploy-screen-no-risk-card holds on real source');
+ assert.equal(rule.check({appSrc:'<div class="pr-risk-card">x</div>function gearRiskHtml(){}',htmlSrc:'.riskbar{color:red}'}).length,3,'a reintroduced risk card (app + CSS) fires, and losing the tile amber dot fires too');
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal(rule.check({htmlSrc:html}).length,0,'the real index.html keeps the per-tile amber dot and drops .riskbar');
+}

@@ -21,7 +21,7 @@ const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert(saved.coreRaidsIngested.includes("meta-test-1") && saved.stash.cable >= 1, "ingest persisted");
 A.dismissIntro(); A.playCombatDemo(); A.endCombatDemo();
 const btn = doc.querySelector(".node-raid-launch");
-assert(btn && btn.classList.contains("playbtn") && btn.textContent.trim() === "DEPLOY" && btn.getAttribute("aria-label") === "Deploy", "prep offers a centered text-only DEPLOY button");
+assert(btn && btn.classList.contains("playbtn") && btn.textContent.trim() === "RAID" && btn.getAttribute("aria-label") === "Raid", "prep offers a centered text-only RAID button");
 assert(doc.querySelector(".lobby .lobby-hero .hero-art") && doc.querySelectorAll(".lobby .lobby-side .lslot").length === 4, "lobby: operator centre stage, 4 slot tiles around it");
 assert(doc.getElementById("mission-panel").hidden, "mission settings start hidden");
 A.planToggle(true); assert(!doc.getElementById("mission-panel").hidden, "mission button opens settings");

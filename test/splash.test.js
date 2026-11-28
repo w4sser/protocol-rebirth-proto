@@ -136,4 +136,26 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, 
   assert.equal(splashDelay, bunkerDelay, "the bunker starts fading in at the same moment #splash starts fading away, not before");
   assert(!/flightCtl\.land\(|\.land\(begin\)/.test(app), "the splash flow no longer routes through a camera-landing step");
 }
+{
+  // Robert (phone, landscape, v2.28.81): the lighthouse splash flashed for a frame on the
+  // raid-return path because #splash is visible-by-default in CSS and only setupSplash() (which
+  // can run late, after several blocking <script src> loads) ever hides it. index.html's inline
+  // head script pre-hides it via CSS, off the same pending-raid-result signal, before any of
+  // those loads -- this proves that script's own logic in isolation (setupSplash's hand-off back
+  // to it is covered by the "a waiting raid result skips the splash" cases above).
+  const block = html.match(/<script>\s*\ntry\{[\s\S]*?pr-skip-splash[\s\S]*?\}catch\(e\)\{\}\n<\/script>/);
+  assert(block, "index.html: pre-paint pr-skip-splash head script not found");
+  const src = block[0].replace(/^<script>\n?/, "").replace(/<\/script>$/, "");
+  const run = getItem => {
+    const classes = new Set();
+    const window = getItem ? { localStorage: { getItem } } : {};
+    const document = { documentElement: { classList: { add: c => classes.add(c) } } };
+    new Function("window", "document", src)(window, document);
+    return classes;
+  };
+  assert(run(() => "{}").has("pr-skip-splash"), "a pending raid result hides #splash before any other script runs");
+  assert(!run(() => null).has("pr-skip-splash"), "no pending raid result leaves #splash alone");
+  assert(!run(() => { throw Error("denied"); }).has("pr-skip-splash"), "blocked localStorage fails safe (never throws, never force-hides)");
+  assert(!run().has("pr-skip-splash"), "missing window.localStorage fails safe too");
+}
 console.log("SPLASH ENTRY PASSED (loading, automatic entry, tap/keyboard skip, reduced motion, repeat sessions, backgrounding)");
