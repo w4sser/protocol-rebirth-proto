@@ -12,6 +12,7 @@
 import * as THREE from './vendor/three.module.js';
 import {pbrEnvironment} from './environment-look.js?v=2.28.86';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
+import '../data/raid-operator.js?v=2.28.81';
 
 export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD0.glb',
@@ -363,7 +364,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     for(const layer of ['upper','lower'])if(current[layer]===actions[layer].hit)
       current[layer].reset().play();
   }
-  function update(dt,{moving=false,dashing=false,dead=false,aiming=false,interacting=false,
+  function update(dt,{moving=false,groundSpeed=null,dashing=false,dead=false,aiming=false,interacting=false,
     keepFacing=false,walkYaw=0,aimYaw=walkYaw}={}){
     dt=clamp(Number(dt)||0,0,.1);
     shotLeft=Math.max(0,shotLeft-dt);
@@ -382,6 +383,12 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     change('lower',dead?'death':dashing?'dash':hitLeft>0&&!moving?'hit':moving?(back?'back':'run'):'idle');
     change('upper',dead?'death':dashing?'dash':hitLeft>0?'hit':shotLeft>0?'shoot':
       aiming||interacting||keepFacing?'aim':moving?'run':'idle');
+    // Match feet to actual travel, including analog input, weight and wall slides.
+    // Upper-body aim/shoot and the distance-timed dash keep their own playback.
+    const runRate=Number.isFinite(groundSpeed)?Math.max(0,groundSpeed)/globalThis.DATA.raidOperator.op01RunSpeed:1;
+    actions.lower.run.setEffectiveTimeScale(runRate);
+    actions.lower.back.setEffectiveTimeScale(-runRate);
+    actions.upper.run.setEffectiveTimeScale(runRate);
     mixer.update(dt);
 
     // Mixamo's aim clip is authored for its own forward direction; rotate

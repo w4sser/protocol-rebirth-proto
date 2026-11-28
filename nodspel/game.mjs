@@ -543,7 +543,7 @@ if(launch.quest?.type==='extract'&&launch.quest.prog<launch.quest.n)setQuestLoot
 setGuaranteeLoot(launch.vestGuarantee);
 let hazardLabels=[];
 const hazardLabelClock={};
-let playerMoving=false;
+let playerMoving=false,playerGroundSpeed=0;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel,bitExpr=createBitExpression(),bitDistract=createBitDistract();
@@ -1157,6 +1157,10 @@ function depthJambAssist(level,pos,delta){
     const alongX=door.w>=door.d,lat=alongX?pos.x-door.x:pos.z-door.z,dep=alongX?pos.z-door.z:pos.x-door.x;
     const half=Math.max(door.w,door.d)/2;
     if(Math.abs(dep)>1.6||Math.abs(lat)<.02||Math.abs(lat)>half+0.25)continue;
+    // Center only an approach through the opening. A parallel step used to lose
+    // up to 85% of its speed, and walking away still pulled toward the jamb.
+    const normal=alongX?delta.z:delta.x,lateral=alongX?delta.x:delta.z;
+    if(Math.abs(normal)<Math.abs(lateral)||dep*normal>0)continue;
     const pull=-Math.sign(lat)*Math.min(Math.abs(lat),m*.85);
     return alongX?{x:delta.x+pull,z:delta.z}:{x:delta.x,z:delta.z+pull};
   }
@@ -2216,7 +2220,7 @@ window.addEventListener('unhandledrejection',e=>onFatal(e.reason??new Error('unh
 // v2.22.4 hot-path scratch objects (reused every frame; never stored by callees).
 const hotPosBefore={x:0,z:0},hotPosDash={x:0,z:0},hotPosCombat={x:0,z:0},hotCountdown={remainingMs:0};
 const hotRenderedShots=new Set(),hotActiveShots=new Set(),hotVisibleProjectiles=[],hotAliveProjectiles=new Set(),hotAimTargets=[],hotNoAssist={target:null,direction:null};
-const hotHumanOpts={moving:false,dashing:false,dead:false,aiming:false,interacting:false,keepFacing:false,walkYaw:0,aimYaw:0},hotFxOpts={dashing:false,x:0,z:0,low:false};
+const hotHumanOpts={moving:false,groundSpeed:0,dashing:false,dead:false,aiming:false,interacting:false,keepFacing:false,walkYaw:0,aimYaw:0},hotFxOpts={dashing:false,x:0,z:0,low:false};
 const hotCamGoal=new THREE.Vector3(),hotRayDir=new THREE.Vector3(),SUN_OFFSET=new THREE.Vector3(-8,18,10);
 const hotOne=[null];function one(x){hotOne[0]=x;return hotOne;} // single-target list for traceTargets (not kept)
 function copyXZ(out,p){out.x=p.x;out.z=p.z;return out;}
@@ -2245,7 +2249,10 @@ function frameInner(now){
     if(fpsState.triggered){autoDowngraded=true;setGraphicsQuality('low');notice('Graphics: switched to Low for smoother performance',5000);}
   }
   const clock=gameClock(),frozen=round.pauseAt!=null;
-  const dt=frozen?0:Math.min(Math.max(0,(clock-(previousGameClock??clock))/1000),.04);previousGameClock=clock;
+  // Keep slow-phone frames (down to 10 FPS) in game time. Collision already sweeps in
+  // <= 8 cm steps; below 10 FPS or after a suspension the bound keeps AI/bullets stable.
+  const dt=frozen?0:Math.min(Math.max(0,(clock-(previousGameClock??clock))/1000),.1);previousGameClock=clock;
+  playerGroundSpeed=0;
   if(inputPaused(round)){renderFrame(dt);requestAnimationFrame(frame);return;}
   flushHitstopActions();
   if(!frozen&&pendingShot){const queued=pendingShot;aim=queued.direction;pendingShot=null;fire(queued.tap);}
@@ -2283,6 +2290,7 @@ function frameInner(now){
     const beforeDash=copyXZ(hotPosDash,position);
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     playerMoving=playerMoving||playerDisplaced(beforeDash,position);
+    playerGroundSpeed=dt>0?Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)/dt:0;
     bigRuntime?.step(position,clock,combat);
     const currentRoom=roomAt(round.level,position);if(currentRoom>=0)round.currentRoom=currentRoom;
     const stickDirection=sticks[1].state.gesture?.target;
@@ -2465,15 +2473,14 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   }
   const smoothAim=stepAim(sticks[1].state.gesture,dt);
   const selectedFacing=manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim;
-  // Character presentation turns on real frame time; gameplay dt is capped
-  // at 40 ms and can otherwise make turns take several seconds on slow phones.
+  // Character turning uses real frame time, independently of game pauses.
   const facing=op01Facing?op01Facing.resolve(
     holding,walkDirection,selectedFacing,frozen?0:realDt,playerMoving&&!round.over):
     facingDirection(holding,walkDirection,selectedFacing);
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
-  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.keepFacing=!!op01Facing?.steering;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
+  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.groundSpeed=playerGroundSpeed;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.keepFacing=!!op01Facing?.steering;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
     if(++op01LodFrame%12===0)human.updateLOD?.(camera,renderer.domElement.clientHeight||window.innerHeight);
   }else robotPresence.update(dt,o);}
   if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);
