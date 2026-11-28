@@ -1,14 +1,14 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.86';
-import {generateBigLevel} from './big-level.js?v=2.28.86';
-import '../data/items.js?v=2.28.86';
-import '../data/raid-ftue.js?v=2.28.86';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.86';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.86-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.86';
-import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.86';
-import '../data/raid-combat.js?v=2.28.86';
-import '../data/raid-junction.js?v=2.28.86';
-import '../data/raid-shelf.js?v=2.28.86';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.87';
+import {generateBigLevel} from './big-level.js?v=2.28.87';
+import '../data/items.js?v=2.28.87';
+import '../data/raid-ftue.js?v=2.28.87';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.87';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.87-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.87';
+import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.87';
+import '../data/raid-combat.js?v=2.28.87';
+import '../data/raid-junction.js?v=2.28.87';
+import '../data/raid-shelf.js?v=2.28.87';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,

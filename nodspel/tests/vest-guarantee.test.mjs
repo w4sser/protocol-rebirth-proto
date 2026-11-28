@@ -49,7 +49,7 @@ test('missing vest units fit existing caches with the early cap and a concurrent
 test('grouped vest supplies can be collected and extracted through the normal pickup path', async () => {
   const {createRound,collectLoot,extractRound}=await import('../round.js');
   // round.js uses the versioned module instance, just as the live game does.
-  const live=await import('../levels.js?v=2.28.86');
+  const live=await import('../levels.js?v=2.28.87');
   live.setGuaranteeLoot([{item:'polymer_plate',count:2},{item:'scrap_alloy',count:1},{item:'salvage_crate',count:1}]);
   const round=createRound('vest-pickups',0,{...RULES.playerStats.base,bagCapacity:20});
   const boxes=round.level.lootBoxes.filter(b=>b.guarantee);
