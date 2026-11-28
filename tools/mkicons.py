@@ -3,6 +3,9 @@ import json,os,sys
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 A='var(--ic-accent,#7ff3ff)'
 I={
+# FTUE move/shoot hints (PR 3): ghost-thumb drag and tap, shown over the sticks
+'hint-drag':'<circle cx="8" cy="16" r="3.2" fill="currentColor" stroke="none"/><path d="M10.3 13.7 L17 7" stroke-dasharray="2.2 2.2"/><path d="M17 11.2V7H12.8"/>',
+'hint-tap':'<circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="6.6" opacity=".65"/><circle cx="12" cy="12" r="10.2" opacity=".35"/>',
 # nav
 'nav-base':'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.8V20h13V9.8"/><path d="M10 20v-5h4v5"/>',
 'nav-raid':'<path d="M5 19 19 5"/><path d="M19 19 5 5"/><path d="M14.5 5H19v4.5M9.5 5H5v4.5"/><path d="M7 15l2 2M17 15l-2 2"/>',
