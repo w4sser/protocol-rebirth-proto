@@ -13,6 +13,9 @@
   // (round.js detonateDrum) had no dedicated boom -- only unrelated impact/death cues layered
   // over each other. minGap keeps a chain of drum cook-offs from stacking into a buzz.
   add('explosion',0.85,150);
+  // v2.28.80: a short tube thump when a grenadier's shell actually leaves (nodspel/combat.js
+  // lobGrenade), distinct from the detonation boom fired later from stepBlasts/detonateDrum.
+  add('mortar-launch',0.6,120);
   root.DATA.audio={
     storageKey:'pr-audio-v1',
     defaults:{master:0.8,music:0.12,sfx:0.95,voice:0.9,muted:false,musicMuted:false,sfxMuted:false,voiceMuted:false},

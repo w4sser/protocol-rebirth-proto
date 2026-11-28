@@ -1,0 +1,84 @@
+{
+  "shoot-carbine": {
+    "recipe": "patrol-autocarbine-close-dry-report",
+    "recordings": [
+      {"title": "Two close range shots.wav", "author": "moosegravy", "license": "CC0-1.0", "url": "https://freesound.org/people/moosegravy/sounds/435405/"},
+      {"title": "Explosion in a can", "author": "SamsterBirdies", "license": "CC0-1.0", "url": "https://freesound.org/people/SamsterBirdies/sounds/587887/"},
+      {"title": "Bouncing Shell Casings (Various Sizes)", "author": "GryffDavid", "license": "CC0-1.0", "url": "https://freesound.org/people/GryffDavid/sounds/318964/"}
+    ]
+  },
+  "shoot-smg": {
+    "recipe": "security-submachine-gun-close-dry-report",
+    "recordings": [
+      {"title": "Two close range shots.wav", "author": "moosegravy", "license": "CC0-1.0", "url": "https://freesound.org/people/moosegravy/sounds/435405/"},
+      {"title": "Pump Action Shotgun Reload", "author": "AugustSandberg", "license": "CC0-1.0", "url": "https://freesound.org/people/AugustSandberg/sounds/508746/"},
+      {"title": "Bouncing Shell Casings (Various Sizes)", "author": "GryffDavid", "license": "CC0-1.0", "url": "https://freesound.org/people/GryffDavid/sounds/318964/"}
+    ]
+  },
+  "shoot-shotgun": {
+    "recipe": "pump-scattergun-close-dry-report",
+    "recordings": [
+      {"title": "Firecracker Explosion", "author": "unfa", "license": "CC0-1.0", "url": "https://freesound.org/people/unfa/sounds/609588/"},
+      {"title": "Rifle Gun Shot AK47. close recording in a shooting range.", "author": "felix.blume", "license": "CC0-1.0", "url": "https://freesound.org/people/felix.blume/sounds/136399/"},
+      {"title": "Tank Tread", "author": "77Pacer", "license": "CC0-1.0", "url": "https://freesound.org/people/77Pacer/sounds/425271/"}
+    ]
+  },
+  "shoot-rifle": {
+    "recipe": "marksman-rifle-close-dry-report",
+    "recordings": [
+      {"title": "Rifle Gun Shot AK47. close recording in a shooting range.", "author": "felix.blume", "license": "CC0-1.0", "url": "https://freesound.org/people/felix.blume/sounds/136399/"},
+      {"title": "Distant Gunfire", "author": "iainmccurdy", "license": "CC0-1.0", "url": "https://freesound.org/people/iainmccurdy/sounds/842326/"},
+      {"title": "Tank Tread", "author": "77Pacer", "license": "CC0-1.0", "url": "https://freesound.org/people/77Pacer/sounds/425271/"}
+    ]
+  },
+  "explosion": {
+    "recipe": "grenade-explosion",
+    "recordings": [
+      {"title": "Firecracker Explosion", "author": "unfa", "license": "CC0-1.0", "url": "https://freesound.org/people/unfa/sounds/609588/"},
+      {"title": "Concrete Breaks Several Denoised", "author": "loganzsound", "license": "CC0-1.0", "url": "https://freesound.org/people/loganzsound/sounds/843339/"}
+    ]
+  },
+  "mortar-launch": {
+    "recipe": "antique-powder-report",
+    "recordings": [
+      {"title": "Cannon Fires, Take 3, Quarter Speed, Debris", "author": "CHallSmith", "license": "CC0-1.0", "url": "https://freesound.org/people/CHallSmith/sounds/870746/"}
+    ]
+  },
+  "impact-enemy": {
+    "recipe": "flesh-impact",
+    "recordings": [
+      {"title": "Cabbage being chopped 2.wav", "author": "MessyAcousticApocalypse666", "license": "CC0-1.0", "url": "https://freesound.org/people/MessyAcousticApocalypse666/sounds/594781/"},
+      {"title": "digging into mud.wav", "author": "Stefan21100190", "license": "CC0-1.0", "url": "https://freesound.org/people/Stefan21100190/sounds/593113/"}
+    ]
+  },
+  "impact-wall": {
+    "recipe": "metal-ricochet",
+    "recordings": []
+  },
+  "hit-grunt": {
+    "recipe": "dull-torso-hit-followed-by-cloth",
+    "recordings": [
+      {"title": "Feet Landing On Ground", "author": "elynch0901", "license": "CC0-1.0", "url": "https://freesound.org/people/elynch0901/sounds/464489/"},
+      {"title": "Foley_Clothes_Jacket_Whoosh_Sequence_Stereo.wav", "author": "Nox_Sound", "license": "CC0-1.0", "url": "https://freesound.org/people/Nox_Sound/sounds/495390/"},
+      {"title": "Rustling foliage.WAV", "author": "DDT197", "license": "CC0-1.0", "url": "https://freesound.org/people/DDT197/sounds/445788/"}
+    ]
+  },
+  "ui-tap": {
+    "recipe": "physical-light-switch",
+    "recordings": [
+      {"title": "Light Switch On Off.flac", "author": "qubodup", "license": "CC0-1.0", "url": "https://freesound.org/people/qubodup/sounds/183994/"}
+    ]
+  },
+  "ui-back": {
+    "recipe": "settings-toggle-off-cork",
+    "recordings": [
+      {"title": "Light Switch ON / OFF", "author": "FillSoko", "license": "CC0-1.0", "url": "https://freesound.org/people/FillSoko/sounds/257958/"}
+    ]
+  },
+  "ui-confirm": {
+    "recipe": "settings-toggle-engage-brass",
+    "recordings": [
+      {"title": "Light Switch On Off.flac", "author": "qubodup", "license": "CC0-1.0", "url": "https://freesound.org/people/qubodup/sounds/183994/"}
+    ]
+  }
+}

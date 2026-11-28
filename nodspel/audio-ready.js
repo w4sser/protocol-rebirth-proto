@@ -8,8 +8,9 @@ export function prepareCombatAudio(audio,{retryMs=250,schedule=setTimeout}={}){
       try{await audio.load(file);}catch(_){await new Promise(resolve=>schedule(resolve,retryMs));}
     }
   };
-  // Gun reports are synthesized rather than played from their corresponding files.
-  // Build both variants now so synthesis cannot hitch on the first shot either.
+  // play() prefers an already-decoded Lumina sample (loaded via `files` above) and falls back to
+  // synthesis when the file isn't decoded yet -- build every synth variant now too, so the
+  // fallback itself cannot hitch on the first shot either.
   for(const weapon of Object.keys(audio.config.shots.weapons))for(const enemy of [false,true])audio.shotBuffer(weapon,enemy);
   return Promise.all(files.map(load)).then(()=>true);
 }

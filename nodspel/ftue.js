@@ -1,6 +1,6 @@
-import {RULES,makeDrum} from './levels.js?v=2.28.81';
+import {RULES,makeDrum} from './levels.js?v=2.28.82';
 // Load the authored config after levels imports its original config snapshot.
-import '../data/raid-ftue.js?v=2.28.81-ftue-opening-v1';
+import '../data/raid-ftue.js?v=2.28.82-ftue-opening-v1';
 
 export const FTUE=globalThis.DATA.raidFtue;
 export function ftueAssist(attempts){

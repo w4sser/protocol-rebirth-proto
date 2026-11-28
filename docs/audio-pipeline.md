@@ -146,7 +146,7 @@ Outputs go only to git-ignored `candidates/`. Never copy audition audio into
 shipping assets. Piper is optional for these local auditions only, requires
 its own runtime/model installation, and is never a production fallback.
 
-## SFX: procedural synthesis
+## SFX: procedural synthesis, plus Lumina SFX for combat/UI (v2.28.80)
 
 `tools/audio/gen-sfx.py` reads the SFX registry from `data/audio.js` and
 synthesizes every cue using numpy (tones, filtered noise and envelopes; shoot cues are noise-burst powder or air reports, not sine-tone lasers),
@@ -154,6 +154,22 @@ plus a quiet 24-second music pulse. Footsteps and ambience were removed
 per owner feedback. A two-second raised-cosine wrap crossfade makes the
 music loop seamless. Only registered SFX are generated; unused aliases
 do not ship.
+
+Combat and UI cues (`shoot-carbine/smg/shotgun/rifle`, `explosion`,
+`mortar-launch`, `impact-enemy`, `impact-wall`, `hit-grunt`, `ui-tap`,
+`ui-back`, `ui-confirm`) ship from a Lumina SFX render instead: a committed
+22.05 kHz mono master under `tools/audio/lumina-masters/*.wav`, cropped to a
+single dry report/impact/click, peak-normalized and re-encoded the same way
+as the synth cues. `cue()` checks for a matching master before synthesizing,
+so running `gen-sfx.py` again never overwrites a Lumina cue with procedural
+noise. The Lumina catalog/sources/recipes are never vendored into this repo;
+only the rendered masters and `tools/audio/lumina-masters/credits.json`
+(recipe id and recording credits per file, used to generate
+`assets/audio/LICENSES.md`) are. At runtime, `ui/audio.js` `play()` prefers
+the decoded sample for `shoot-*`/`explosion` once it's in the file cache and
+falls back to the original `shotBuffer()`/`explosionBuffer()` synthesis
+synchronously otherwise (e.g. a slow/stalled iOS decode) -- the synth stays
+shipped as a real fallback, never a second audio engine.
 
 Per-cue SHA256-derived seeds extend master seed `20261028`, so adding a cue
 never changes another cue's synthesized PCM. Decoded PCM is reproducible;
@@ -193,4 +209,12 @@ and the mix demo do not count as shipping assets.
   texts above. All rights reserved © Robert Wasser. Consult upstream model
   documentation for training provenance.
 - **SFX and music**: original procedural synthesis in
-  `tools/audio/gen-sfx.py`, dedicated to CC0-1.0; no third-party samples.
+  `tools/audio/gen-sfx.py`, dedicated to CC0-1.0, except the Lumina-rendered
+  combat/UI cues below.
+- **Lumina SFX renders** (`shoot-carbine/smg/shotgun/rifle`, `explosion`,
+  `mortar-launch`, `impact-enemy`, `impact-wall`, `hit-grunt`, `ui-tap`,
+  `ui-back`, `ui-confirm`): free offline OSS sound library, licensed for
+  commercial game use with no credit required; we ship only the rendered
+  cues and do not redistribute the library, its catalog, sources or recipes.
+  Per-file recipe id and recording title/author/license are in
+  `tools/audio/lumina-masters/credits.json` and `assets/audio/LICENSES.md`.

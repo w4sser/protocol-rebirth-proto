@@ -1,15 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.81';
-import {audioEvent} from './audio.js?v=2.28.81';
-import {ownRooms} from './perks.js?v=2.28.81';
-import {RULES,hazardState} from './levels.js?v=2.28.81';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.81';
-import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.81-ftue-opening-v1';
-import {houseWaypoint} from './house.js?v=2.28.81';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.81';
-import {detectionMultiplier} from './stakes.js?v=2.28.81';
-import {dashInvulnerable} from './dash.js?v=2.28.81';
-import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.81-bridge1';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.82';
+import {audioEvent} from './audio.js?v=2.28.82';
+import {ownRooms} from './perks.js?v=2.28.82';
+import {RULES,hazardState} from './levels.js?v=2.28.82';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.82';
+import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.82-ftue-opening-v1';
+import {houseWaypoint} from './house.js?v=2.28.82';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.82';
+import {detectionMultiplier} from './stakes.js?v=2.28.82';
+import {dashInvulnerable} from './dash.js?v=2.28.82';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.82-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -165,7 +165,7 @@ function stepCharger(round,e,combat,player,now,dt,obstacles,dash){
 // A thrower killed during the warning never lobs; a blast already in the air still lands (leave the ring).
 function lobGrenade(round,combat,enemy,now){
   const G=RULES.encounters.grenadier,at=enemy.attackTarget;enemy.attackTarget=null;
-  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,fromX:enemy.x,fromZ:enemy.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
+  if(at){combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,fromX:enemy.x,fromZ:enemy.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});audioEvent('mortar-launch');}
   combat.nextFire.set(enemy.id,now+G.cooldownMs);
 }
 // Modest radial impulse using existing swept collision and floor restrictions.
