@@ -626,7 +626,7 @@ function setupStick(selector,value,onShot){
     const r=el.getBoundingClientRect();
     state.origin={x:r.left+r.width/2,y:r.top+r.height/2};
     state.touchdown={x:e.clientX,y:e.clientY};
-    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);
+    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;try{el.setPointerCapture(e.pointerId);}catch{}el.classList.add('active');update(e);
   }
   el.addEventListener('pointerdown',start);
   // Route touches from open playfield space; only real interactive controls (and dialogs) keep their
